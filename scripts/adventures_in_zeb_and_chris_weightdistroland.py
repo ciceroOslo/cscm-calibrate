@@ -8,7 +8,16 @@ import scipy.stats
 from tqdm.auto import tqdm
 
 
+
+def plot_weights(bins, weights,weights_plots_num, unique_code):
+    plt.scatter(bins, weights)
+    plt.title(f"Weight plot number {weights_plots_num} last added {unique_code}")
+    plt.savefig(f"weight_plot_{weights_plots_num}_uncorr.png")
+    plt.clf()
+
+
 def calculate_sample_weights(distributions, samples, niterations=50):
+    weights_plots_num = 0
     weights = np.ones(samples.shape[0])
     gofs = []
     gofs_full = []
@@ -30,6 +39,9 @@ def calculate_sample_weights(distributions, samples, niterations=50):
                 weights_to_average.append(unique_code_weights[our_values_bin_idx])
 
             weights *= unique_code_weights[our_values_bin_idx]
+            print(our_values_bin_idx)
+            plot_weights(weights=weights, bins=samples[unique_code][our_values_bin_idx], weights_plots_num=weights_plots_num, unique_code=unique_code)
+            weights_plots_num = weights_plots_num + 1
 
             gof = ((unique_code_weights[1:-1] - 1) ** 2).sum()
             gofs[-1].append(gof)
@@ -131,9 +143,9 @@ samples = {}
 samples["constraint_1"] = scipy.stats.norm.rvs(
     loc=-1., scale=1, size=10**5, random_state=18196
 )
-samples["constraint_2"] = samples["constraint_1"] + 2#scipy.stats.norm.rvs(
-    #loc=1, scale=1, size=10**5, random_state=18196
-#)
+samples["constraint_2"] = scipy.stats.norm.rvs(
+    loc=1, scale=1, size=10**5, random_state=53481
+)
 
 #sys.exit(4)
 ar_distributions = {}
@@ -146,7 +158,10 @@ for constraint in constraints:
 
 
 iteration_nums = [1,5,10,20,30,50]
-
+weights, gofs, gofs_full = calculate_sample_weights(
+        ar_distributions, accepted, niterations=5
+    )
+sys.exit(4)
 fig, axs = plt.subplots(nrows=4, ncols=3, figsize=(30,30))
 for i, iteration_num in enumerate(iteration_nums):
     weights, gofs, gofs_full = calculate_sample_weights(
