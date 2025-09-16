@@ -23,31 +23,31 @@ except:
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 warnings.filterwarnings("ignore", message=".*Parameter.*")
 
-sys.path.insert(0,os.path.join(os.getcwd(), '../', 'src'))
+cscm_path = os.path.join("..", "..", "..", "ciceroscm")
+
+sys.path.insert(0,os.path.join(cscm_path, 'src'))
 
 from ciceroscm.parallel._configdistro import _ConfigDistro
 from ciceroscm.parallel.distributionrun import DistributionRun
-
-
 
 from ciceroscm import CICEROSCM
 
 from ciceroscm import input_handler
 
 
-test_data_dir = os.path.join(os.getcwd(), '../../', 'tests', 'test-data')
-gaspam = input_handler.read_components(test_data_dir + '/gases_vupdate_2022_AR6.txt')
+test_data_dir = os.path.join(os.getcwd(), '../../', 'data', 'calibration_data_Sep2025')
+gaspam = input_handler.read_components(test_data_dir + '/gases_vupdate_2024_WMO_added_new.txt')
 print(gaspam.head())
 
-df_nat_ch4 = input_handler.read_natural_emissions(test_data_dir + '/natemis_ch4.txt','CH4')
-df_nat_n2o = input_handler.read_natural_emissions(test_data_dir + '/natemis_n2o.txt','N2O')
+df_nat_ch4 = input_handler.read_natural_emissions(test_data_dir + '/natemis_CH4_ode_method_from_Sep2025_updates.txt','CH4')
+df_nat_n2o = input_handler.read_natural_emissions(test_data_dir + '/natemis_N2O_ode_method_from_Sep2025_updates.txt','N2O')
 print(df_nat_ch4.head())
 
 
-df_ssp2_conc =input_handler.read_inputfile(test_data_dir + '/ssp245_conc_RCMIP.txt', True)
+df_ssp2_conc =input_handler.read_inputfile(test_data_dir + 'igcc_historical_conc_gases_vupdate_2024_WMO_added_new.txt', True)
 
-ih = input_handler.InputHandler({"nyend": 2025, "nystart": 1750, "emstart": 1850})
-emi_input =ih.read_emissions(test_data_dir + '/ssp245_em_RCMIP.txt')
+ih = input_handler.InputHandler({"nyend": 2024, "nystart": 1750, "emstart": 1850})
+emi_input =ih.read_emissions(test_data_dir + 'historical_em_gases_vupdate_2024_WMO_added_new.txt')
 emi_input.rename(columns={"CO2": "CO2_FF", "CO2.1": "CO2_AFOLU"}, inplace=True)
 
 
@@ -56,7 +56,7 @@ scendata={
             "emstart": 1850,  
             "conc_run":False,
             "nystart": 1750,
-            "nyend": 2025,
+            "nyend": 2024,
             "concentrations_data": df_ssp2_conc,
             "emissions_data": emi_input,
             "nat_ch4_data": df_nat_ch4,
@@ -66,58 +66,43 @@ scendata={
             "scenname": "ssp245",
         }
 
-ordering=[
-    "rlamdo",
-    "akapa",
-    "cpi",
-    "W",
-    "beto",
-    "lambda",
-    "mixed",
-    "qo3",
-    "qdirso2",
-    "qindso2",
-    "qbc",
-    "qoc",
-    "beta_f",
-    "mixed_carbon",
-    "qh2o_ch4",
-]
+prior_distro_dict = {
+    "rlamdo": [5, 25],
+    "akapa": [0.06, 0.8],
+    "cpi": [0.161, 0.569],
+    "W": [0.55, 2.55],
+    "beto": [0, 7],
+    "lambda": [2 / 3.71, 5 / 3.71],
+    "mixed": [25, 125],
+    "qo3": [0.4, 0.6],
+    "qdirso2": [-0.006, -0.001],
+    "qindso2": [-0.03, -0.01],
+    "qbc": [0.004, 0.05],
+    "qoc": [-0.008, -0.001],
+    "beta_f": [0.110, 0.465],
+    "mixed_carbon": [25, 125],
+    "solubility_sens": [0.01, 0.03],
+    "solubility_limit": [0.4, 0.8],
+    "ocean_efficacy": [0.8, 1.2],
+    "ml_w_sigmoid": [2.0, 4.0],
+    "ml_fracmax": [-0.5, 1.0],
+    "ml_t_half": [0.3, 0.8],
+    "npp0": [55, 75],
+    "t_half": [0.3, 0.8],
+    "w_sigmoid": [5, 10],
+    "t_threshold": [3, 7],
+    "w_threshold": [5, 10],
+}
 
-len(ordering)
-
-
-prior_flat_array = np.array(
-    [
-        [5, 25],
-        [0.06, 0.8],
-        [0.161, 0.569],
-        [0.55, 2.55],
-        [0, 7],
-        [2 / 3.71, 5 / 3.71],
-        [25, 125],
-        [0.4, 0.6],
-        [-0.55, -0.2],
-        [-1.5, -0.5],
-        [0.1, 0.2],
-        [-0.1, -0.06],
-        [0.110, 0.465],
-        [25, 125],
-        [0.08, 0.1],
-    ]
-)
-
-print(prior_flat_array.shape)
 
 testconfig = _ConfigDistro(
-    distro_array=prior_flat_array,
+    distro_array=prior_distro_dict,
     setvalues={
         "threstemp": 7.0,
         "lm": 40,
         "ldtime": 12,
         "qbmb": 0
     },
-    ordering=ordering,
 )
 
 scen = 'test'
@@ -167,7 +152,7 @@ calibdata = pd.DataFrame(
 
     })
 
-distrorun1 = DistributionRun(testconfig, numvalues=50000)
+distrorun1 = DistributionRun(testconfig, numvalues= 5)#numvalues=50000)
 output_vars = calibdata["Variable Name"]
 results = distrorun1.run_over_distribution(scenariodata, output_vars, max_workers=200)
 
@@ -178,7 +163,9 @@ results_for_fit_dict = {}
 for idx, data in calibdata.iterrows():
     print(data)
     results_sub = results.loc[results["variable"] == data["Variable Name"]]
-    if data["Yearstart_norm"] == data["Yearend_norm"] and data["Yearstart_norm"]== 1750:
+    if data["Variable Name"] == "Surface Air Ocean Blended Temperature Change":
+        results_for_fit_dict[data["Variable Name"]] = results_sub.values
+    elif data["Yearstart_norm"] == data["Yearend_norm"] and data["Yearstart_norm"]== 1750:
         results_for_fit_dict[data["Variable Name"]] = results_sub.iloc[:, data["Yearstart_change"]-1750+7].values
     elif data["Yearstart_norm"] == data["Yearend_norm"]:
         results_for_fit_dict[data["Variable Name"]] = (results_sub.iloc[:, data["Yearstart_change"]-1750+7] - results_sub.iloc[:,data["Yearstart_norm"]-1750+7]).values
@@ -209,7 +196,7 @@ pmat=pd.DataFrame(mdict)
 parammat=pmat.loc[:, (pmat != pmat.iloc[0]).any()]
 parammat
 
-
+sys.exit(4)
 store = pd.HDFStore('data/data.h5')
 store['targ'] = targ
 store['parammat'] = parammat
