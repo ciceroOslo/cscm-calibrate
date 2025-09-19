@@ -16,6 +16,8 @@ import pandas as pd
 import pandas.testing as pdt
 import warnings
 
+import plot_distributions_w_obs
+
 try:
     from pandas.core.common import SettingWithCopyWarning
 except:
@@ -92,6 +94,20 @@ prior_distro_dict = {
     "w_threshold": [2,8],
     "w_sigmoid": [2,8]
 }
+
+prior_distro_dict = {
+    "beta_f": [0.110, 0.465],
+    "mixed_carbon": [25, 125],
+    "solubility_sens": [0, 0.03],
+    "ml_w_sigmoid": [2.0, 7.0],
+    "ml_fracmax": [0., 1.0],
+    "npp0": [50, 70],
+    "t_half": [0.3, 0.8],
+    "t_threshold": [3, 10],
+    "w_threshold": [2,8],
+    "w_sigmoid": [2,8]
+}
+
 
 testconfig = _ConfigDistro(
     distro_dict=prior_distro_dict,
@@ -171,8 +187,8 @@ calibdata_longer_input = pd.DataFrame(
         "sigma": [36.8551891022091 , 0.073, 0.7, 3.0, 0.4, 0.5],
     }
 )
-
-distrorun1 = DistributionRun(testconfig, numvalues= 5)#numvalues=50000)
+distnums = 5
+distrorun1 = DistributionRun(testconfig, numvalues= distnums)
 output_vars = calibdata["Variable Name"]
 results = distrorun1.run_over_distribution(scenariodata, output_vars, max_workers=200)
 
@@ -194,11 +210,8 @@ for idx, data in calibdata.iterrows():
             results_sub.iloc[:,data["Yearstart_norm"]-1750+7: data["Yearend_norm"]-1750+8]).mean(axis = 1)
         ).values
 print(results_for_fit_dict_1d)
-targ = pd.DataFrame(
-    data = results_for_fit_dict_1d
-)
-targ.index.set_names("run_id", inplace=True)
 
+"""
 print(results.loc[results["variable"] =="Atmospheric Concentrations|CO2"].values[:, 7:])
 temp_targ = pd.DataFrame(
     data = results.loc[results["variable"]=="Surface Air Ocean Blended Temperature Change"].values[:, 7:],
@@ -211,28 +224,43 @@ co2_targ = pd.DataFrame(
 )
 print(temp_targ)
 print(co2_targ)
+"""
+plot = True
+if plot:
+    plot_distributions_w_obs.plot_distributions(results, f"{distnums}_test_just_carbon.png")
+    print(distrorun1.cfgs)
 # There used to be a pruning sanity check here...
-pdict=distrorun1.cfgs
+store = False
+if store:
+    targ = pd.DataFrame(
+    data = results_for_fit_dict_1d
+    )
+    targ.index.set_names("run_id", inplace=True)
+    pdict=distrorun1.cfgs
 
-def merge_dicts(dc):
-    x=dc['pamset_udm']
-    y=dc['pamset_emiconc']
-    z = x.copy()
-    z.update(y)
-    return z
+    def merge_dicts(dc):
+        x=dc['pamset_udm']
+        y=dc['pamset_emiconc']
+        w=dc['pamset_carbon']
+        z = x.copy()
+        z.update(y)
+        z.update(w)
+        return z
 
-mdict=[ merge_dicts(d) for d in pdict ]
-pmat=pd.DataFrame(mdict)
+    mdict=[ merge_dicts(d) for d in pdict ]
+    pmat=pd.DataFrame(mdict)
 
 
-parammat=pmat.loc[:, (pmat != pmat.iloc[0]).any()]
-parammat
+    parammat=pmat.loc[:, (pmat != pmat.iloc[0]).any()]
+    parammat
 
-#sys.exit(4)
-store = pd.HDFStore('data/data.h5')
-store['targ'] = targ
-store["temp_targ"] = temp_targ
-store["co2_targ"] = co2_targ
-store['parammat'] = parammat
-store.close()
+    #sys.exit(4)
+    store = pd.HDFStore('data/data.h5')
+    store['targ'] = targ
+    store['parammat'] = parammat
+    store.close()
+
+    store_long = pd.HDFStore('data/data_long.h5')
+    store_long['results'] = results
+    store_long.close()
 
