@@ -22,7 +22,7 @@ def read_gcb_ocean_carbon_data():
     data_xls = data_xls.loc[:, ~data_xls.columns.str.contains('^Unnamed')]
     return data_xls
 
-def pam_plotting(paramat):
+def pam_plotting(parammat):
     fig, axs = plt.subplots(nrows=5, ncols=5, figsize=(30, 30))
     for i, param in enumerate(parammat.columns):
         axnow = axs[i//5, i%5]
@@ -46,6 +46,7 @@ print(data_ohc.head())
 data_ohc.columns = data_ohc.columns.str.strip()
 print(data_ohc.columns)
 print(data_ohc.shape)
+print(data_ohc.head())
 #sys.exit(4)
 
 
@@ -61,7 +62,7 @@ def plot_distributions(results, name_epithet):
         #print(np.sum(np.isnan(data)))
         #print(data.shape)
         if variable == "Heat Content|Ocean":
-            shift = data[:,121]
+            shift = data[:,221:223].mean(axis=1)
             data = (data.transpose() - shift).transpose()
         elif variable == "Surface Air Ocean Blended Temperature Change":
             shift = np.mean(data[:, 100:150], axis=1)
@@ -84,6 +85,7 @@ def plot_distributions(results, name_epithet):
             #print(np.percentile(data, 5, axis=1))
         if variable == "Heat Content|Ocean":
             fig.plot(data_ohc["Year"], data_ohc["Central Estimate Full-depth"], "k", label="")
+            fig.axhline()
             fig.fill_between(data_ohc["Year"], data_ohc["Central Estimate Full-depth"] - 1.645* data_ohc["Full-depth Uncertainty (1-sigma)"], data_ohc["Central Estimate Full-depth"] + 1.645* data_ohc["Full-depth Uncertainty (1-sigma)"], alpha= 0.5, label="IGCC spread")
         fig.fill_between(years, np.percentile(data, 5, axis=0), np.percentile(data, 95, axis=0), label="5-95th percetile", alpha=0.5)
         fig.set_xlabel("Years")

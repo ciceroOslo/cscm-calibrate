@@ -78,24 +78,23 @@ prior_distro_dict = {
     "lambda": [2 / 3.71, 5 / 3.71],
     "mixed": [25, 125],
     "qo3": [0.4, 0.6],
-    "qdirso2": [-0.006, -0.001],
-    "qindso2": [-0.03, -0.01],
+    "qdirso2": [-0.005, -0.000],
+    "qindso2": [-0.02, -0.00],
     "qbc": [0.004, 0.05],
     "qoc": [-0.008, -0.001],
-    "beta_f": [0.110, 0.465],
+    "beta_f": [0.110, 1.0],
     "mixed_carbon": [25, 125],
     "solubility_sens": [0, 0.03],
     "ocean_efficacy": [0.9, 1.3],
     "ml_w_sigmoid": [2.0, 7.0],
     "ml_fracmax": [0., 1.0],
-    "npp0": [50, 70],
     "t_half": [0.3, 0.8],
     "t_threshold": [3, 10],
     "w_threshold": [2,8],
     "w_sigmoid": [2,8]
 }
 
-prior_distro_dict = {
+prior_distro_dict_just_carbon = {
     "beta_f": [0.110, 0.465],
     "mixed_carbon": [25, 125],
     "solubility_sens": [0, 0.03],
@@ -187,7 +186,7 @@ calibdata_longer_input = pd.DataFrame(
         "sigma": [36.8551891022091 , 0.073, 0.7, 3.0, 0.4, 0.5],
     }
 )
-distnums = 5
+distnums = 1000000
 distrorun1 = DistributionRun(testconfig, numvalues= distnums)
 output_vars = calibdata["Variable Name"]
 results = distrorun1.run_over_distribution(scenariodata, output_vars, max_workers=200)
@@ -227,10 +226,10 @@ print(co2_targ)
 """
 plot = True
 if plot:
-    plot_distributions_w_obs.plot_distributions(results, f"{distnums}_test_just_carbon.png")
+    plot_distributions_w_obs.plot_distributions(results, f"{distnums}_test1_full.png")
     print(distrorun1.cfgs)
 # There used to be a pruning sanity check here...
-store = False
+store = True
 if store:
     targ = pd.DataFrame(
     data = results_for_fit_dict_1d
