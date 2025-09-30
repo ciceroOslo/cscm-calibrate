@@ -10,6 +10,7 @@ import os, sys
 
 import matplotlib.pyplot as plt
 import numpy as np
+import json
 import pandas as pd
 import scipy.optimize
 import scipy.stats
@@ -17,11 +18,57 @@ from dotenv import load_dotenv
 from matplotlib.lines import Line2D
 from tqdm.auto import tqdm
 
+import plot_distributions_w_obs
+
+#from prune_distribution_to_timeseries import make_config_distro_json
+
+cscm_path = os.path.join("..", "..", "..", "ciceroscm")
+
+sys.path.insert(0,os.path.join(cscm_path, 'src'))
+
+from ciceroscm.parallel._configdistro import ordering_standard_forc
+from ciceroscm.carbon_cycle.carbon_cycle_mod import CARBON_CYCLE_MODEL_REQUIRED_PAMSET
+
+
+def make_config_distro_json(matrix, parameter_names, json_name, indexer_pre="", index_list =None):
+    config_list = [None] * matrix.shape[1]
+    
+    if index_list is None:
+        index_list = [f"{indexer_pre}{i}" for i in matrix.shape[1]]
+
+    for i in range(len(config_list)):
+        pamset_udm = {
+            "threstemp": 7.0,
+            "lm": 40,
+            "ldtime": 12,
+            }
+        pamset_emiconc = {"qbmb": 0,}
+        pamset_carbon = {        
+            "solubility_limit": 0.1,
+            "ml_t_half": 0.
+        }
+        for j, pam in enumerate(parameter_names):
+            value = matrix[j, i]
+            if pam in ordering_standard_forc:
+                pamset_udm[pam] = value
+            elif pam in CARBON_CYCLE_MODEL_REQUIRED_PAMSET:
+                pamset_carbon[pam] = value
+            else:
+                pamset_emiconc[pam] = value
+        config_list[i] = {
+                "pamset_udm": pamset_udm.copy(),
+                "pamset_emiconc": pamset_emiconc.copy(),
+                "pamset_carbon": pamset_carbon.copy(),
+                "Index": index_list[i],
+        }
+    with open(f"data/{json_name}", "w", encoding="utf-8") as wfile:
+        json.dump(config_list, wfile)
+
 plt.switch_backend("agg")
 
 print("Doing reweighting...")
 
-store = pd.HDFStore('data/data.h5')
+store = pd.HDFStore('data/data_all_targs_paramats.h5')
 targ = store['targ']
 parammat = store['parammat']
 
@@ -32,32 +79,17 @@ print(targ.shape)
 print(parammat.shape)
 NINETY_TO_ONESIGMA = scipy.stats.norm.ppf(0.95)
 
-calibdata_longer_input = pd.DataFrame(
-    data={
-        "Variable Name": [
-            "Heat Content|Ocean",
-            "Surface Air Ocean Blended Temperature Change",
-            "Effective Radiative Forcing|Aerosols",
-            "Atmospheric Concentrations|CO2",
-            "Ocean carbon flux", 
-            "Biosphere carbon flux" 
-        ],
-        "Yearstart_norm": [1971, 1850, 1750, 1750, 1750, 1750],
-        "Yearend_norm": [1971, 1900, 1750, 1750, 1750, 1750],
-        "Yearstart_change": [2023, 2015, 2024, 2024, 2023, 2023],
-        "Yearend_change": [2023, 2024, 2024, 2024, 2023, 2023],
-        "Central Value": [484.82157000000063, 1.24, -1.07, 422.5, 2.880720693, 2.302042382],
-        "sigma": [36.8551891022091 , 0.073, 0.7, 3.0, 0.4, 0.5],
-    }
-)
+# Only needed if not chunked
+not_chunked = False
+if not_chunked:
+    valid_temp = np.loadtxt(
+        f"data/{targ.shape[0]}_runids_rmse_pass.csv"
+    ).astype(np.int64)
 
-valid_temp = np.loadtxt(
-    f"data/{targ.shape[0]}_runids_rmse_pass.csv"
-).astype(np.int64)
-print(valid_temp)
+    #print(valid_temp)
 
-output_ensemble_size = 5#841
-input_ensemble_size = len(valid_temp)
+output_ensemble_size = 500
+input_ensemble_size = targ.shape[0]
 
 #sys.exit(4)
 
@@ -109,7 +141,7 @@ samples["ERFaer"] = scipy.stats.skewnorm.rvs(
 # IGCC dataset: 416.9
 # my assessment 417.0 +/- 0.5
 samples["CO2 concentration"] = scipy.stats.norm.rvs(
-    loc=410.0, scale=0.5, size=10**5, random_state=81693
+    loc=419.3, scale=0.5, size=10**5, random_state=81693
 )
 
 samples["Ocean carbon 2014-2023"] = scipy.stats.norm.rvs(
@@ -144,19 +176,30 @@ weights_51yr[-1] = 0.5
 co2_1850 = 284.3169988
 co2_1920 = co2_1850 * 1.01**70  # NOT 2x (69.66 yr), per definition of TCRE
 """
-accepted = pd.DataFrame(
-    {
-        "OHC": ohc_in[valid_temp],
-        "temperature 2011-2020": temp_in[valid_temp],
-        "ERFaer": faer_in[valid_temp],
-        "CO2 concentration": co2_in[valid_temp],
-        "Ocean carbon 2014-2023": occarb_in[valid_temp],
-        "Biosphere carbon 2014-2023": biocarb_in[valid_temp]
-    },
-    index=valid_temp,
-)
-
-
+if not_chunked:
+    accepted = pd.DataFrame(
+        {
+            "OHC": ohc_in[valid_temp],
+            "temperature 2011-2020": temp_in[valid_temp],
+            "ERFaer": faer_in[valid_temp],
+            "CO2 concentration": co2_in[valid_temp],
+            "Ocean carbon 2014-2023": occarb_in[valid_temp],
+            "Biosphere carbon 2014-2023": biocarb_in[valid_temp]
+        },
+        index=valid_temp,
+    )
+else:
+    accepted = pd.DataFrame(
+        {
+            "OHC": ohc_in,
+            "temperature 2011-2020": temp_in,
+            "ERFaer": faer_in,
+            "CO2 concentration": co2_in,
+            "Ocean carbon 2014-2023": occarb_in,
+            "Biosphere carbon 2014-2023": biocarb_in
+        },
+        index=np.arange(targ.shape[0]),
+    )
 def calculate_sample_weights(distributions, samples, niterations=50):
     weights = np.ones(samples.shape[0])
     gofs = []
@@ -262,8 +305,23 @@ def get_unique_code_weights(unique_code, distributions, samples, weights, j, k):
 
 
 weights, gofs, gofs_full = calculate_sample_weights(
-    ar_distributions, accepted, niterations=30
+    ar_distributions, accepted, niterations=60
 )
+
+plot_pam_distributions = True
+if plot_pam_distributions:
+    print(weights.shape)
+    print(accepted.shape)
+    #store = pd.HDFStore('data/data.h5')
+    #targ = store['targ']
+    #parammat = store['parammat']
+
+    #store.close()
+    print(targ)
+    print(parammat)
+    plot_distributions_w_obs.pam_plotting(parammat, name_epithet="post1")
+    plot_distributions_w_obs.pam_plotting(parammat, weights= np.minimum(weights, 1), name_epithet="post2")
+
 
 effective_samples = int(np.floor(np.sum(np.minimum(weights, 1))))
 print("Number of effective samples:", effective_samples)
@@ -274,6 +332,10 @@ draws = []
 drawn_samples = accepted.sample(
     n=output_ensemble_size, replace=False, weights=weights, random_state=10099
 )
+print(drawn_samples)
+sample_ids = np.load("data/valid_sample_ids_all_chunks.npy", allow_pickle=True)[drawn_samples.index.to_list()]
+make_config_distro_json(parammat.iloc[drawn_samples.index.to_list(), :].to_numpy().transpose(), parammat.columns, f"draw_samples_{output_ensemble_size}.json", index_list=sample_ids)
+sys.exit(4)
 draws.append((drawn_samples))
 name_dict = {
     "OHC": [ohc_in, 100, 900],
@@ -380,3 +442,4 @@ print("Mean annual ocean sink 2014-2023:", np.percentile(draws[0]["Ocean carbon 
 print("Mean annual land sink 2014-2023:", np.percentile(draws[0]["Biosphere carbon 2014-2023"], (5, 50, 95)))
 
 print("*likely range")
+

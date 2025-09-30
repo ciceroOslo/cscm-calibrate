@@ -1,87 +1,143 @@
 
 import sys
+import os
+import json
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.stats
 from tqdm.auto import tqdm
 
-import plot_distributions_w_obs 
+from .plot_distributions_w_obs  import datadir
+from .shared_functions import rmse
 
 
-# In[15]:
+def prepare_weights_temp():
+    weights = np.ones(52)
+    weights[0] = 0.5
+    weights[-1] = 0.
+    # Temperature pruning input
 
-def rmse(obs, mod):
-    return np.sqrt(np.sum((obs - mod) ** 2) / len(obs))
+    temp_data = pd.read_csv(f"{datadir}annual_averages.csv")
+    gmst = temp_data["GMST"].values
+    return gmst, weights
 
+def do_pruning_for_chunk(chunk_num, total_samples= 6000000):
+    gmst, weights = prepare_weights_temp()
+    samples = np.load(f"data/sample_ids_{total_samples}_chunk_{chunk_num}.npy", allow_pickle=True)
+    temp_in = np.load(f"data/temp_{total_samples}_chunk_{chunk_num}_1850-2023.npy")
+    
+    print(temp_in.shape)
+    print(samples.shape)
+    # temperature is on timebounds, and observations are midyears
+    # but, this is OK, since we are subtracting a consistent baseline (1850-1900, weighting
+    # the bounding timebounds as 0.5)
+    # e.g. 1993.0 timebound has big pinatubo hit, timebound 143
+    # in obs this is 1992.5, timepoint 142
+    # compare the timebound after the obs, since the forcing has had chance to affect both
+    # the obs timepoint and the later timebound.
+    # the goal of RMSE is as much to match the shape of warming as the magnitude; we do not
+    # want to average out internal variability in the model or the obs.
+    rmse_temp = np.zeros(len(samples))
+    for i in tqdm(range(len(samples))):
+        rmse_temp[i] = rmse(
+            gmst[:173],
+            temp_in[i, 1:] - np.average(temp_in[i,:52], weights=weights, axis=0),
+        )
+    accept_temp = rmse_temp < 0.17
+    print("Passing RMSE constraint:", np.sum(accept_temp))
+    valid_temp = np.arange(len(samples), dtype=int)[accept_temp]
+    # get 10 largest (but passing) and 10 smallest RMSEs
+    rmse_temp_accept = rmse_temp[accept_temp]
+    just_passing = np.argpartition(rmse_temp_accept, -10)[-10:]
+    smashing_it = np.argpartition(rmse_temp_accept, 10)[:10]
+    print(just_passing)
+    print(rmse_temp_accept[just_passing])
+    print(rmse_temp_accept[smashing_it])
+    #valid_temp = np.arange(samples, dtype=int)[accept_temp]
+    #np.savetxt(
+    #    f"data/valid_temp_{len(samples)}_runids_rmse_pass.csv",
+    #    valid_temp.astype(int),
+    #    fmt="%d",
+    #)
+    return valid_temp, accept_temp, samples[accept_temp]
 
-do_pam_plotting = False
-
-if do_pam_plotting: 
-    store = pd.HDFStore('data/data.h5')
+def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples= 6000000):
+    store = pd.HDFStore(f'data/data_{total_samples}_chunk_{chunk_num}.h5')
     targ = store['targ']
     parammat = store['parammat']
-
     store.close()
-    print(targ)
-    print(parammat)
-    plot_distributions_w_obs.pam_plotting(paramat=parammat)
+    #print(targ.shape)
+    #print(targ.head())
+    #print(parammat.shape)
+    #print(parammat.head())
 
-weights = np.ones(52)
-weights[0] = 0.5
-weights[-1] = 0.5
+    return targ.iloc[valid_samples, :], parammat.iloc[valid_samples, :]
 
-temp_data = pd.read_csv(f"{plot_distributions_w_obs.datadir}annual_averages.csv")
-gmst = temp_data["GMST"].values
-print(gmst)
-print(temp_data.head)
-print(len(gmst))
-co2_conc = plot_distributions_w_obs.read_noaa_gml_ml_means("year")
+def prune_all_chunks(tot_chunks=600)
 
-store_long = pd.HDFStore("data/data_long.h5")
-results_full = store_long["results"]
-store_long.close()
-print(results_full.shape)
-print(results_full.head())
-samples = results_full.index.values
-temp_in = results_full.loc[results_full["variable"] =="Surface Air Ocean Blended Temperature Change"].iloc[:,7:].to_numpy(float)
-samples = results_full.loc[results_full["variable"] =="Surface Air Ocean Blended Temperature Change"].iloc[:,2].to_numpy(int)
-print(temp_in.shape)
-print(samples.shape)
-plot_full_dist = True
-if plot_full_dist:
-    plot_distributions_w_obs.plot_distributions(results_full, f"{len(samples)}_first_test_ts")
+    keep_temp = []
+    keep_samples = []
+    keep_targ = []
+    keep_parammat = []
+
+    for chunk_num in tqdm(range(tot_chunks)):
+        valid_temp, accept_temp, samples_keep = do_pruning_for_chunk(chunk_num=chunk_num)
+        print(samples_keep)
+        print(accept_temp)
+        print(valid_temp)
+        print(len(valid_temp))
+        keep_temp.append(valid_temp)
+        keep_samples.append(samples_keep)
+        targ_keep, parammat_keep = get_targ_paramat_valid_for_chunk(chunk_num, valid_temp, total_samples= 6000000)
+        print(targ_keep.shape)
+        print(parammat_keep.shape)
+        keep_targ.append(targ_keep)
+        keep_parammat.append(parammat_keep)
+
+    valid_temps_all = np.concatenate(keep_temp)
+    np.save("data/valid_indices_all_cunks.npy", valid_temps_all)
+    valid_ids_all = np.concatenate(keep_samples)
+    np.save("data/valid_sample_ids_all_chunks.npy", valid_ids_all)
+    all_targs = pd.concat(keep_targ)
+    all_paramat = pd.concat(keep_parammat)
+
+    store = pd.HDFStore("data/data_all_targs_paramats.h5")
+    store['targ'] = all_targs
+    store['parammat'] = all_paramat
+    store.close()
+
+
+if __name__ == "__main__":
+    prune_all_chunks()
 #sys.exit(4)
 
-# temperature is on timebounds, and observations are midyears
-# but, this is OK, since we are subtracting a consistent baseline (1850-1900, weighting
-# the bounding timebounds as 0.5)
-# e.g. 1993.0 timebound has big pinatubo hit, timebound 143
-# in obs this is 1992.5, timepoint 142
-# compare the timebound after the obs, since the forcing has had chance to affect both
-# the obs timepoint and the later timebound.
-# the goal of RMSE is as much to match the shape of warming as the magnitude; we do not
-# want to average out internal variability in the model or the obs.
-rmse_temp = np.zeros(len(samples))
-for i in tqdm(range(len(samples))):
-    rmse_temp[i] = rmse(
-        gmst[:173],
-        temp_in[i, 101:] - np.average(temp_in[i,100:152], weights=weights, axis=0),
-    )
+# CO2 pruning block
+#co2_conc = plot_distributions_w_obs.read_noaa_gml_ml_means("year")
+#co2_in = targ["Atmospheric Concentrations|CO2"].to_numpy()
+#accepted_co2 = (np.abs(co2_in - 410) < 5)
+#print("Passing CO2 constraint:", np.sum(accepted_co2))
+#valid_co2 = np.arange(len(samples), dtype=int)[accepted_co2]
 
-accept_temp = rmse_temp < 0.17
-print("Passing RMSE constraint:", np.sum(accept_temp))
-valid_temp = np.arange(len(samples), dtype=int)[accept_temp]
 
-# get 10 largest (but passing) and 10 smallest RMSEs
-rmse_temp_accept = rmse_temp[accept_temp]
-just_passing = np.argpartition(rmse_temp_accept, -10)[-10:]
-smashing_it = np.argpartition(rmse_temp_accept, 10)[:10]
-print(just_passing)
-print(rmse_temp_accept[just_passing])
-print(rmse_temp_accept[smashing_it])
-#valid_temp = np.arange(samples, dtype=int)[accept_temp]
-np.savetxt(
-    f"data/{len(samples)}_runids_rmse_pass.csv",
-    valid_temp.astype(int),
-    fmt="%d",
-)
+
+#plot_full_dist = False
+#sys.exit(4)
+
+
+
+
+
+
+#np.savetxt(
+#    f"data/temp_{len(samples)}_runids_rmse_pass.csv",
+#    valid_co2.astype(int),
+#    fmt="%d",
+#)
+
+#valid_both = np.array(list(set(valid_co2).intersection(set(valid_temp))), dtype=int)
+#print(f"Valid for both constraints: {len(valid_both)}")
+#print(valid_both)
+
+    
+

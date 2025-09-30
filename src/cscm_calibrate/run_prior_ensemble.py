@@ -53,22 +53,6 @@ ih = input_handler.InputHandler({"nyend": nyend, "nystart": 1750, "emstart": 185
 emi_input =ih.read_emissions(test_data_dir + '/historical_em_gases_vupdate_2024_WMO_added_new.txt')
 emi_input.rename(columns={"CO2": "CO2_FF", "CO2.1": "CO2_AFOLU"}, inplace=True)
 
-
-scendata={
-            "gaspam_data": gaspam,
-            "emstart": 1850,  
-            "conc_run":False,
-            "nystart": 1750,
-            "nyend": nyend,
-            "concentrations_data": df_ssp2_conc,
-            "emissions_data": emi_input,
-            "nat_ch4_data": df_nat_ch4,
-            "nat_n2o_data": df_nat_n2o,
-            "idtm":24,
-            "udir": test_data_dir,
-            "scenname": "ssp245",
-        }
-
 prior_distro_dict = {
     "rlamdo": [5, 25],
     "akapa": [0.06, 0.8],
@@ -94,20 +78,6 @@ prior_distro_dict = {
     "w_sigmoid": [2,8]
 }
 
-prior_distro_dict_just_carbon = {
-    "beta_f": [0.110, 0.465],
-    "mixed_carbon": [25, 125],
-    "solubility_sens": [0, 0.03],
-    "ml_w_sigmoid": [2.0, 7.0],
-    "ml_fracmax": [0., 1.0],
-    "npp0": [50, 70],
-    "t_half": [0.3, 0.8],
-    "t_threshold": [3, 10],
-    "w_threshold": [2,8],
-    "w_sigmoid": [2,8]
-}
-
-
 testconfig = _ConfigDistro(
     distro_dict=prior_distro_dict,
     setvalues={
@@ -119,20 +89,6 @@ testconfig = _ConfigDistro(
         "ml_t_half": 0.
     },
 )
-
-scen = 'test'
-cscm_dir=CICEROSCM({
-            "gaspam_data": gaspam,
-            "emstart": 1850,  
-            "conc_run":False,
-            "nystart": 1750,
-            "nyend": nyend,
-            "concentrations_data": df_ssp2_conc,
-            "emissions_data": emi_input,
-            "nat_ch4_data": df_nat_ch4,
-            "nat_n2o_data": df_nat_n2o,
-            "idtm":24
-        })
 
 scenariodata = [{
             "gaspam_data": gaspam,
@@ -186,80 +142,94 @@ calibdata_longer_input = pd.DataFrame(
         "sigma": [36.8551891022091 , 0.073, 0.7, 3.0, 0.4, 0.5],
     }
 )
-distnums = 1000000
-distrorun1 = DistributionRun(testconfig, numvalues= distnums)
-output_vars = calibdata["Variable Name"]
-results = distrorun1.run_over_distribution(scenariodata, output_vars, max_workers=200)
+distnums = 6000000
+chunk_size = 10000
+testconfig.make_config_lists(distnums, json_fname=f"data/configs_{distnums}_.json", max_chunk_size=chunk_size)
+chunk_nums = int(np.ceil(distnums/chunk_size))
 
-print(results.head())
-print(results.shape)
+for i in range(chunk_nums):
+    file_midstring = f"{distnums}_chunk_{i}"
+    distrorun1 = DistributionRun(testconfig, json_file_name= f"data/configs_{file_midstring}.json", numvalues= distnums)
+    output_vars = calibdata["Variable Name"]
+    results = distrorun1.run_over_distribution(scenariodata, output_vars, max_workers=200)
 
-results_for_fit_dict_1d = {}
-results_for_pruning = {}
-for idx, data in calibdata.iterrows():
-    print(data)
-    results_sub = results.loc[results["variable"] == data["Variable Name"]]
-    if data["Yearstart_norm"] == data["Yearend_norm"] and data["Yearstart_norm"]== 1750:
-        results_for_fit_dict_1d[data["Variable Name"]] = results_sub.iloc[:, data["Yearstart_change"]-1750+7].values
-    elif data["Yearstart_norm"] == data["Yearend_norm"]:
-        results_for_fit_dict_1d[data["Variable Name"]] = (results_sub.iloc[:, data["Yearstart_change"]-1750+7] - results_sub.iloc[:,data["Yearstart_norm"]-1750+7]).values
-    else:
-        results_for_fit_dict_1d[data["Variable Name"]] = ((
-            results_sub.iloc[:,data["Yearstart_change"]-1750+7: data["Yearend_change"]-1750+8]).mean(axis = 1) - (
-            results_sub.iloc[:,data["Yearstart_norm"]-1750+7: data["Yearend_norm"]-1750+8]).mean(axis = 1)
-        ).values
-print(results_for_fit_dict_1d)
+    print(results.head())
+    print(results.shape)
 
-"""
-print(results.loc[results["variable"] =="Atmospheric Concentrations|CO2"].values[:, 7:])
-temp_targ = pd.DataFrame(
-    data = results.loc[results["variable"]=="Surface Air Ocean Blended Temperature Change"].values[:, 7:],
-    index=results.loc[results["variable"]=="Surface Air Ocean Blended Temperature Change"]["run_id"]
-)
+    results_for_fit_dict_1d = {}
+    results_for_pruning = {}
+    for idx, data in calibdata.iterrows():
+        print(data)
+        results_sub = results.loc[results["variable"] == data["Variable Name"]]
+        if data["Yearstart_norm"] == data["Yearend_norm"] and data["Yearstart_norm"]== 1750:
+            results_for_fit_dict_1d[data["Variable Name"]] = results_sub.iloc[:, data["Yearstart_change"]-1750+7].values
+        elif data["Yearstart_norm"] == data["Yearend_norm"]:
+            results_for_fit_dict_1d[data["Variable Name"]] = (results_sub.iloc[:, data["Yearstart_change"]-1750+7] - results_sub.iloc[:,data["Yearstart_norm"]-1750+7]).values
+        else:
+            results_for_fit_dict_1d[data["Variable Name"]] = ((
+                results_sub.iloc[:,data["Yearstart_change"]-1750+7: data["Yearend_change"]-1750+8]).mean(axis = 1) - (
+                results_sub.iloc[:,data["Yearstart_norm"]-1750+7: data["Yearend_norm"]-1750+8]).mean(axis = 1)
+            ).values
+    #print(results_for_fit_dict_1d)
 
-co2_targ = pd.DataFrame(
-    data = results.loc[results["variable"] =="Atmospheric Concentrations|CO2"].values[:, 7:],
-    index= results.loc[results["variable"] =="Atmospheric Concentrations|CO2"]["run_id"]
-)
-print(temp_targ)
-print(co2_targ)
-"""
-plot = True
-if plot:
-    plot_distributions_w_obs.plot_distributions(results, f"{distnums}_test1_full.png")
-    print(distrorun1.cfgs)
-# There used to be a pruning sanity check here...
-store = True
-if store:
-    targ = pd.DataFrame(
-    data = results_for_fit_dict_1d
+
+    """
+    print(results.loc[results["variable"] =="Atmospheric Concentrations|CO2"].values[:, 7:])
+    temp_targ = pd.DataFrame(
+        data = results.loc[results["variable"]=="Surface Air Ocean Blended Temperature Change"].values[:, 7:],
+        index=results.loc[results["variable"]=="Surface Air Ocean Blended Temperature Change"]["run_id"]
     )
-    targ.index.set_names("run_id", inplace=True)
-    pdict=distrorun1.cfgs
 
-    def merge_dicts(dc):
-        x=dc['pamset_udm']
-        y=dc['pamset_emiconc']
-        w=dc['pamset_carbon']
-        z = x.copy()
-        z.update(y)
-        z.update(w)
-        return z
+    co2_targ = pd.DataFrame(
+        data = results.loc[results["variable"] =="Atmospheric Concentrations|CO2"].values[:, 7:],
+        index= results.loc[results["variable"] =="Atmospheric Concentrations|CO2"]["run_id"]
+    )
+    print(temp_targ)
+    print(co2_targ)
+    """
+    plot = False
+    if plot:
+        plot_distributions_w_obs.plot_distributions(results, f"{distnums}_test1_full")
+        #print(distrorun1.cfgs)
+    #print(results.head())
+    # There used to be a pruning sanity check here...
+    store = True
+    if store:
+        results = results[results["variable"] == "Surface Air Ocean Blended Temperature Change"]
+        ids = results["run_id"].to_numpy()
+        results = results.iloc[:, 107:].to_numpy(float)
+        np.save(f"data/temp_{file_midstring}_1850-2023.npy", results)
+        np.save(f"data/sample_ids_{file_midstring}.npy", ids)
+        #sys.exit(4)
+        targ = pd.DataFrame(
+        data = results_for_fit_dict_1d
+        )
+        targ.index.set_names("run_id", inplace=True)
+        pdict=distrorun1.cfgs
 
-    mdict=[ merge_dicts(d) for d in pdict ]
-    pmat=pd.DataFrame(mdict)
+        def merge_dicts(dc):
+            x=dc['pamset_udm']
+            y=dc['pamset_emiconc']
+            w=dc['pamset_carbon']
+            z = x.copy()
+            z.update(y)
+            z.update(w)
+            return z
+
+        mdict=[ merge_dicts(d) for d in pdict ]
+        pmat=pd.DataFrame(mdict)
 
 
-    parammat=pmat.loc[:, (pmat != pmat.iloc[0]).any()]
-    parammat
+        parammat=pmat.loc[:, (pmat != pmat.iloc[0]).any()]
+        parammat
 
-    #sys.exit(4)
-    store = pd.HDFStore('data/data.h5')
-    store['targ'] = targ
-    store['parammat'] = parammat
-    store.close()
+        #sys.exit(4)
+        store = pd.HDFStore(f'data/data_{file_midstring}.h5')
+        store['targ'] = targ
+        store['parammat'] = parammat
+        store.close()
 
-    store_long = pd.HDFStore('data/data_long.h5')
-    store_long['results'] = results
-    store_long.close()
+        #store_long = pd.HDFStore('data/data_long.h5')
+        #store_long['results'] = results
+        #store_long.close()
 

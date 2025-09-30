@@ -22,31 +22,37 @@ def read_gcb_ocean_carbon_data():
     data_xls = data_xls.loc[:, ~data_xls.columns.str.contains('^Unnamed')]
     return data_xls
 
-def pam_plotting(parammat):
+def pam_plotting(parammat, weights = None, name_epithet=""):
     fig, axs = plt.subplots(nrows=5, ncols=5, figsize=(30, 30))
     for i, param in enumerate(parammat.columns):
         axnow = axs[i//5, i%5]
-        axnow.hist(parammat[param].to_numpy(), bins=50)
+        if weights is None:
+            axnow.hist(parammat[param].to_numpy(), bins=50)
+        else:
+            axnow.hist(parammat[param].to_numpy(), weights=weights, bins=10)
         axnow.set_title(param)
-    fig.suptitle("Parameter distributions")
-    fig.savefig("parameter_distribtutions.png")
+    fig.suptitle(f"Parameter distributions {name_epithet}")
+    fig.savefig(f"parameter_distribtutions_{name_epithet}.png")
     plt.clf()
 
-temp_data = pd.read_csv(f"{datadir}annual_averages.csv")
-co2_conc = read_noaa_gml_ml_means("year")
-data_gcb = read_gcb_data()
-data_aer_best = pd.read_csv("../../data/calibration_data_Sep2025/ERF_best_1750-2024.csv")
-data_aer_5 = pd.read_csv(f"{datadir}ERF_p05_aggregates_1750-2024.csv")
-data_aer_95 = pd.read_csv(f"{datadir}ERF_p95_aggregates_1750-2024.csv")
-data_ohc = pd.read_csv(f"{datadir}AR6_OHC_ensemble_IGCC_update_2024-04-13.csv", skiprows=[0])
-print(data_aer_5.shape)
-print(data_aer_best.shape)
-print(data_aer_95.shape)
-print(data_ohc.head())
-data_ohc.columns = data_ohc.columns.str.strip()
-print(data_ohc.columns)
-print(data_ohc.shape)
-print(data_ohc.head())
+def get_data_for_plots():
+
+    temp_data = pd.read_csv(f"{datadir}annual_averages.csv")
+    co2_conc = read_noaa_gml_ml_means("year")
+    data_gcb = read_gcb_data()
+    data_aer_best = pd.read_csv("../../data/calibration_data_Sep2025/ERF_best_1750-2024.csv")
+    data_aer_5 = pd.read_csv(f"{datadir}ERF_p05_aggregates_1750-2024.csv")
+    data_aer_95 = pd.read_csv(f"{datadir}ERF_p95_aggregates_1750-2024.csv")
+    data_ohc = pd.read_csv(f"{datadir}AR6_OHC_ensemble_IGCC_update_2024-04-13.csv", skiprows=[0])
+    print(data_aer_5.shape)
+    print(data_aer_best.shape)
+    print(data_aer_95.shape)
+    print(data_ohc.head())
+    data_ohc.columns = data_ohc.columns.str.strip()
+    print(data_ohc.columns)
+    print(data_ohc.shape)
+    print(data_ohc.head())
+    return temp_data, co2_conc, data_gcb, data_aer_best, data_aer_5, data_aer_95,  data_ohc
 #sys.exit(4)
 
 
@@ -61,6 +67,7 @@ def plot_distributions(results, name_epithet):
         #print(data)
         #print(np.sum(np.isnan(data)))
         #print(data.shape)
+        temp_data, co2_conc, data_gcb, data_aer_best, data_aer_5, data_aer_95, data_ohc = get_data_for_plots()
         if variable == "Heat Content|Ocean":
             shift = data[:,221:223].mean(axis=1)
             data = (data.transpose() - shift).transpose()
