@@ -30,6 +30,8 @@ from ciceroscm.parallel._configdistro import ordering_standard_forc
 from ciceroscm.carbon_cycle.carbon_cycle_mod import CARBON_CYCLE_MODEL_REQUIRED_PAMSET
 
 
+NINETY_TO_ONESIGMA = scipy.stats.norm.ppf(0.95)
+
 def make_config_distro_json(matrix, parameter_names, json_name, indexer_pre="", index_list =None):
     config_list = [None] * matrix.shape[1]
     
@@ -64,46 +66,6 @@ def make_config_distro_json(matrix, parameter_names, json_name, indexer_pre="", 
     with open(f"data/{json_name}", "w", encoding="utf-8") as wfile:
         json.dump(config_list, wfile)
 
-plt.switch_backend("agg")
-
-print("Doing reweighting...")
-
-store = pd.HDFStore('data/data_all_targs_paramats.h5')
-targ = store['targ']
-parammat = store['parammat']
-
-store.close()
-print(targ)
-print(parammat)
-print(targ.shape)
-print(parammat.shape)
-NINETY_TO_ONESIGMA = scipy.stats.norm.ppf(0.95)
-
-# Only needed if not chunked
-not_chunked = False
-if not_chunked:
-    valid_temp = np.loadtxt(
-        f"data/{targ.shape[0]}_runids_rmse_pass.csv"
-    ).astype(np.int64)
-
-    #print(valid_temp)
-
-output_ensemble_size = 500
-input_ensemble_size = targ.shape[0]
-
-#sys.exit(4)
-
-assert input_ensemble_size > output_ensemble_size
-
-temp_in = targ["Surface Air Ocean Blended Temperature Change"].to_numpy()#[valid_temp]
-ohc_in = targ["Heat Content|Ocean"].to_numpy()#[valid_temp]
-faer_in = targ["Effective Radiative Forcing|Aerosols"].to_numpy()#[valid_temp]
-co2_in = targ["Atmospheric Concentrations|CO2"].to_numpy()#[valid_temp]
-occarb_in = targ["Ocean carbon flux"].to_numpy()#[valid_temp]
-biocarb_in = targ["Ocean carbon flux"].to_numpy()#[valid_temp]
-
-print(len(temp_in))
-
 def opt(x, q05_desired, q50_desired, q95_desired):
     "x is (a, loc, scale) in that order."
     q05, q50, q95 = scipy.stats.skewnorm.ppf(
@@ -111,95 +73,26 @@ def opt(x, q05_desired, q50_desired, q95_desired):
     )
     return (q05 - q05_desired, q50 - q50_desired, q95 - q95_desired)
 
-samples = {}
-
-gsat_params = scipy.optimize.root(opt, [1, 1, 1], args=(0.95, 1.09, 1.20)).x
-erf_params = scipy.optimize.root(opt, [1, 1, 1], args=(-2.10, -1.18, -0.49)).x
-print(erf_params)
-print(gsat_params)
-# note fair produces, and we here report, total earth energy uptake, not just ocean
-# this value from IGCC 2023. Use new uncertainties for ocean, assume same uncertainties
-# for land, atmosphere and cryopshere.
-samples["OHC"] = scipy.stats.norm.rvs(
-    loc=484.8, scale=36.9, size=10**5, random_state=43178
-)
-samples["temperature 2011-2020"] = scipy.stats.skewnorm.rvs(
-    gsat_params[0],
-    loc=gsat_params[1],
-    scale=gsat_params[2],
-    size=10**5,
-    random_state=19387,
-)
-samples["ERFaer"] = scipy.stats.skewnorm.rvs(
-    erf_params[0],
-    loc=erf_params[1],
-    scale=erf_params[2],
-    size=10**5,
-    random_state=91123,
-)
-# IGCC paper: 417.1 +/- 0.4
-# IGCC dataset: 416.9
-# my assessment 417.0 +/- 0.5
-samples["CO2 concentration"] = scipy.stats.norm.rvs(
-    loc=419.3, scale=0.5, size=10**5, random_state=81693
-)
-
-samples["Ocean carbon 2014-2023"] = scipy.stats.norm.rvs(
-    loc=2.9, scale=0.4, size=10**5, random_state=81693
-)
-samples["Biosphere carbon 2014-2023"] = scipy.stats.norm.rvs(
-    loc=3.2, scale=0.9, size=10**5, random_state=81693
-)
-
-ar_distributions = {}
-for constraint in [
-    "OHC",
-    "temperature 2011-2020",
-    "ERFaer",
-    "CO2 concentration",
-    "Ocean carbon 2014-2023",
-    "Biosphere carbon 2014-2023"
-]:
-    ar_distributions[constraint] = {}
-    ar_distributions[constraint]["bins"] = np.histogram(
-        samples[constraint], bins=100, density=True
-    )[1]
-    ar_distributions[constraint]["values"] = samples[constraint]
-"""
-weights_20yr = np.ones(21)
-weights_20yr[0] = 0.5
-weights_20yr[-1] = 0.5
-weights_51yr = np.ones(52)
-weights_51yr[0] = 0.5
-weights_51yr[-1] = 0.5
-
-co2_1850 = 284.3169988
-co2_1920 = co2_1850 * 1.01**70  # NOT 2x (69.66 yr), per definition of TCRE
-"""
-if not_chunked:
-    accepted = pd.DataFrame(
-        {
-            "OHC": ohc_in[valid_temp],
-            "temperature 2011-2020": temp_in[valid_temp],
-            "ERFaer": faer_in[valid_temp],
-            "CO2 concentration": co2_in[valid_temp],
-            "Ocean carbon 2014-2023": occarb_in[valid_temp],
-            "Biosphere carbon 2014-2023": biocarb_in[valid_temp]
-        },
-        index=valid_temp,
+def add_entry_to_sample_distributions(samples, constraint_config, varnum):
+    name = constraint_config["Varname_short"][varnum]
+    lower_sigma = constraint_config["lower_sigma"]
+    upper_sigma = constraint_config["upper_sigma"]
+    central = constraint_config["Central value"]
+    if  lower_sigma == upper_sigma:
+        samples[name] = scipy.stats.norm.rvs(
+            loc=central, scale=lower_sigma, size=10**5, random_state=43178
+        )
+        return samples
+    var_params = scipy.optimize.root(opt, [1, 1, 1], args=(central - lower_sigma, central, central + upper_sigma)).x
+    samples[name] = scipy.stats.skewnorm.rvs(
+        var_params[0],
+        loc=var_params[1],
+        scale=var_params[2],
+        size=10**5,
+        random_state=19387,
     )
-else:
-    accepted = pd.DataFrame(
-        {
-            "OHC": ohc_in,
-            "temperature 2011-2020": temp_in,
-            "ERFaer": faer_in,
-            "CO2 concentration": co2_in,
-            "Ocean carbon 2014-2023": occarb_in,
-            "Biosphere carbon 2014-2023": biocarb_in
-        },
-        index=np.arange(targ.shape[0]),
-    )
+    return samples
+
 def calculate_sample_weights(distributions, samples, niterations=50):
     weights = np.ones(samples.shape[0])
     gofs = []
@@ -303,38 +196,65 @@ def get_unique_code_weights(unique_code, distributions, samples, weights, j, k):
 
     return unique_code_weights, our_values_bin_idx
 
+def weight_ensemble_and_draw(
+    constraint_config, 
+    file_endstring, 
+    output_ensemble_size = 500,
+    plot_pam_distributions True,):
 
-weights, gofs, gofs_full = calculate_sample_weights(
+    print("Doing reweighting...")
+
+    store = pd.HDFStore(f'data/data_all_targs_paramats{file_endstring}.h5')
+    targ = store['targ']
+    parammat = store['parammat']
+
+    store.close()
+    input_ensemble_size = targ.shape[0]
+
+    #sys.exit(4)
+
+    assert input_ensemble_size > output_ensemble_size
+    data_in_dict = {}
+    samples = {}
+    ar_distributions = {}
+    for varnum, constraint in enumerate(constraint_config["Variable_short"]):
+        data_in_dict[constraint_config[constraint][varnum]] = targ["Variable Name"].to_numpy()
+        samples = add_entry_to_sample_distributions(samples=samples, constraint_config=constraint_config, varnum=varnum)
+        ar_distributions[constraint] = {}
+        ar_distributions[constraint]["bins"] = np.histogram(
+            samples[constraint], bins=100, density=True
+        )[1]
+        ar_distributions[constraint]["values"] = samples[constraint]
+
+    accepted = pd.DataFrame(
+        data_in_dict,
+        index=np.arange(targ.shape[0]),
+    )
+    weights, gofs, gofs_full = calculate_sample_weights(
     ar_distributions, accepted, niterations=60
-)
+    )
 
-plot_pam_distributions = True
-if plot_pam_distributions:
-    print(weights.shape)
-    print(accepted.shape)
-    #store = pd.HDFStore('data/data.h5')
-    #targ = store['targ']
-    #parammat = store['parammat']
-
-    #store.close()
-    print(targ)
-    print(parammat)
-    plot_distributions_w_obs.pam_plotting(parammat, name_epithet="post1")
-    plot_distributions_w_obs.pam_plotting(parammat, weights= np.minimum(weights, 1), name_epithet="post2")
+    if plot_pam_distributions:
+        plot_distributions_w_obs.pam_plotting(parammat, name_epithet=f"post1{file_endstring}")
+        plot_distributions_w_obs.pam_plotting(parammat, weights= np.minimum(weights, 1), name_epithet=f"post2{file_endstring}")
 
 
-effective_samples = int(np.floor(np.sum(np.minimum(weights, 1))))
-print("Number of effective samples:", effective_samples)
+    effective_samples = int(np.floor(np.sum(np.minimum(weights, 1))))
+    print("Number of effective samples:", effective_samples)
 
-assert effective_samples >= output_ensemble_size
+    assert effective_samples >= output_ensemble_size
 
-draws = []
-drawn_samples = accepted.sample(
-    n=output_ensemble_size, replace=False, weights=weights, random_state=10099
-)
-print(drawn_samples)
-sample_ids = np.load("data/valid_sample_ids_all_chunks.npy", allow_pickle=True)[drawn_samples.index.to_list()]
-make_config_distro_json(parammat.iloc[drawn_samples.index.to_list(), :].to_numpy().transpose(), parammat.columns, f"draw_samples_{output_ensemble_size}.json", index_list=sample_ids)
+    draws = []
+    drawn_samples = accepted.sample(
+        n=output_ensemble_size, replace=False, weights=weights, random_state=10099
+    )
+    print(drawn_samples)
+    sample_ids = np.load(f"data/valid_sample_ids_all_chunks{file_endstring}.npy", allow_pickle=True)[drawn_samples.index.to_list()]
+    make_config_distro_json(parammat.iloc[drawn_samples.index.to_list(), :].to_numpy().transpose(), parammat.columns, f"draw_samples_{output_ensemble_size}{file_endstring}.json", index_list=sample_ids)
+
+
+# Chris plotting stuff, not needed
+"""
 sys.exit(4)
 draws.append((drawn_samples))
 name_dict = {
@@ -443,3 +363,4 @@ print("Mean annual land sink 2014-2023:", np.percentile(draws[0]["Biosphere carb
 
 print("*likely range")
 
+"""

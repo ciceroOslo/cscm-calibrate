@@ -112,3 +112,4 @@ def define_scendata_for_scm(
             "scenname" : "ssp245-short"
         }]
     return scenariodata
+

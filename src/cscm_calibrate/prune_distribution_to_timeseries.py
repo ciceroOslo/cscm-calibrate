@@ -12,21 +12,23 @@ from .plot_distributions_w_obs  import datadir
 from .shared_functions import rmse
 
 
-def prepare_weights_temp():
+def prepare_weights_temp(data_path, data_varname = "GMST"):
     weights = np.ones(52)
     weights[0] = 0.5
     weights[-1] = 0.
     # Temperature pruning input
 
-    temp_data = pd.read_csv(f"{datadir}annual_averages.csv")
-    gmst = temp_data["GMST"].values
+    temp_data = pd.read_csv(data_path)
+    gmst = temp_data[data_varname].values
     return gmst, weights
 
-def do_pruning_for_chunk(chunk_num, total_samples= 6000000):
-    gmst, weights = prepare_weights_temp()
-    samples = np.load(f"data/sample_ids_{total_samples}_chunk_{chunk_num}.npy", allow_pickle=True)
-    temp_in = np.load(f"data/temp_{total_samples}_chunk_{chunk_num}_1850-2023.npy")
-    
+def do_pruning_for_chunk(chunk_num, prune_list, file_endstring = None, total_samples= 6000000):
+    if file_endstring is None:
+        file_endstring = ""
+    gmst, weights = prepare_weights_temp(prune_list[1])
+    samples = np.load(f"data/sample_ids_{total_samples}_chunk_{chunk_num}{file_endstring}.npy", allow_pickle=True)
+    temp_in = np.load(f"data/{prune_list[0]}_{total_samples}_chunk_{chunk_num}_1850-2023.npy")
+    rmse_accept = prune_list[2]
     print(temp_in.shape)
     print(samples.shape)
     # temperature is on timebounds, and observations are midyears
@@ -44,22 +46,9 @@ def do_pruning_for_chunk(chunk_num, total_samples= 6000000):
             gmst[:173],
             temp_in[i, 1:] - np.average(temp_in[i,:52], weights=weights, axis=0),
         )
-    accept_temp = rmse_temp < 0.17
+    accept_temp = rmse_temp < rmse_accept
     print("Passing RMSE constraint:", np.sum(accept_temp))
     valid_temp = np.arange(len(samples), dtype=int)[accept_temp]
-    # get 10 largest (but passing) and 10 smallest RMSEs
-    rmse_temp_accept = rmse_temp[accept_temp]
-    just_passing = np.argpartition(rmse_temp_accept, -10)[-10:]
-    smashing_it = np.argpartition(rmse_temp_accept, 10)[:10]
-    print(just_passing)
-    print(rmse_temp_accept[just_passing])
-    print(rmse_temp_accept[smashing_it])
-    #valid_temp = np.arange(samples, dtype=int)[accept_temp]
-    #np.savetxt(
-    #    f"data/valid_temp_{len(samples)}_runids_rmse_pass.csv",
-    #    valid_temp.astype(int),
-    #    fmt="%d",
-    #)
     return valid_temp, accept_temp, samples[accept_temp]
 
 def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples= 6000000):
@@ -74,15 +63,19 @@ def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples= 60
 
     return targ.iloc[valid_samples, :], parammat.iloc[valid_samples, :]
 
-def prune_all_chunks(tot_chunks=600)
+def prune_all_chunks(total_samples, prune_lists, num_chunks=600, file_endstring = None):
 
     keep_temp = []
     keep_samples = []
     keep_targ = []
     keep_parammat = []
+    # TODO: expand to pruning for multiple variables
+    if len(prune_lists) > 1:
+        print("Currently unimplemented. TODO")
 
-    for chunk_num in tqdm(range(tot_chunks)):
-        valid_temp, accept_temp, samples_keep = do_pruning_for_chunk(chunk_num=chunk_num)
+    for chunk_num in tqdm(range(num_chunks)):
+        prune_list = prune_lists[0]
+        valid_temp, accept_temp, samples_keep = do_pruning_for_chunk(chunk_num=chunk_num, prune_list=prune_list, file_endstring=file_endstring, total_samples=total_samples)
         print(samples_keep)
         print(accept_temp)
         print(valid_temp)
@@ -96,13 +89,13 @@ def prune_all_chunks(tot_chunks=600)
         keep_parammat.append(parammat_keep)
 
     valid_temps_all = np.concatenate(keep_temp)
-    np.save("data/valid_indices_all_cunks.npy", valid_temps_all)
+    np.save(f"data/valid_indices_all_chunks{file_endstring}.npy", valid_temps_all)
     valid_ids_all = np.concatenate(keep_samples)
-    np.save("data/valid_sample_ids_all_chunks.npy", valid_ids_all)
+    np.save(f"data/valid_sample_ids_all_chunks{file_endstring}.npy", valid_ids_all)
     all_targs = pd.concat(keep_targ)
     all_paramat = pd.concat(keep_parammat)
 
-    store = pd.HDFStore("data/data_all_targs_paramats.h5")
+    store = pd.HDFStore(f"data/data_all_targs_paramats{file_endstring}.h5")
     store['targ'] = all_targs
     store['parammat'] = all_paramat
     store.close()
