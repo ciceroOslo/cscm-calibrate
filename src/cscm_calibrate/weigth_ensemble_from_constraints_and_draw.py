@@ -20,11 +20,11 @@ from tqdm.auto import tqdm
 
 import plot_distributions_w_obs
 
-#from prune_distribution_to_timeseries import make_config_distro_json
+# from prune_distribution_to_timeseries import make_config_distro_json
 
 cscm_path = os.path.join("..", "..", "..", "ciceroscm")
 
-sys.path.insert(0,os.path.join(cscm_path, 'src'))
+sys.path.insert(0, os.path.join(cscm_path, "src"))
 
 from ciceroscm.parallel._configdistro import ordering_standard_forc
 from ciceroscm.carbon_cycle.carbon_cycle_mod import CARBON_CYCLE_MODEL_REQUIRED_PAMSET
@@ -32,9 +32,12 @@ from ciceroscm.carbon_cycle.carbon_cycle_mod import CARBON_CYCLE_MODEL_REQUIRED_
 
 NINETY_TO_ONESIGMA = scipy.stats.norm.ppf(0.95)
 
-def make_config_distro_json(matrix, parameter_names, json_name, indexer_pre="", index_list =None):
+
+def make_config_distro_json(
+    matrix, parameter_names, json_name, indexer_pre="", index_list=None
+):
     config_list = [None] * matrix.shape[1]
-    
+
     if index_list is None:
         index_list = [f"{indexer_pre}{i}" for i in matrix.shape[1]]
 
@@ -43,12 +46,11 @@ def make_config_distro_json(matrix, parameter_names, json_name, indexer_pre="", 
             "threstemp": 7.0,
             "lm": 40,
             "ldtime": 12,
-            }
-        pamset_emiconc = {"qbmb": 0,}
-        pamset_carbon = {        
-            "solubility_limit": 0.1,
-            "ml_t_half": 0.
         }
+        pamset_emiconc = {
+            "qbmb": 0,
+        }
+        pamset_carbon = {"solubility_limit": 0.1, "ml_t_half": 0.0}
         for j, pam in enumerate(parameter_names):
             value = matrix[j, i]
             if pam in ordering_standard_forc:
@@ -58,13 +60,14 @@ def make_config_distro_json(matrix, parameter_names, json_name, indexer_pre="", 
             else:
                 pamset_emiconc[pam] = value
         config_list[i] = {
-                "pamset_udm": pamset_udm.copy(),
-                "pamset_emiconc": pamset_emiconc.copy(),
-                "pamset_carbon": pamset_carbon.copy(),
-                "Index": index_list[i],
+            "pamset_udm": pamset_udm.copy(),
+            "pamset_emiconc": pamset_emiconc.copy(),
+            "pamset_carbon": pamset_carbon.copy(),
+            "Index": index_list[i],
         }
     with open(f"data/{json_name}", "w", encoding="utf-8") as wfile:
         json.dump(config_list, wfile)
+
 
 def opt(x, q05_desired, q50_desired, q95_desired):
     "x is (a, loc, scale) in that order."
@@ -73,17 +76,20 @@ def opt(x, q05_desired, q50_desired, q95_desired):
     )
     return (q05 - q05_desired, q50 - q50_desired, q95 - q95_desired)
 
+
 def add_entry_to_sample_distributions(samples, constraint_config, varnum):
     name = constraint_config["Varname_short"][varnum]
     lower_sigma = constraint_config["lower_sigma"]
     upper_sigma = constraint_config["upper_sigma"]
     central = constraint_config["Central value"]
-    if  lower_sigma == upper_sigma:
+    if lower_sigma == upper_sigma:
         samples[name] = scipy.stats.norm.rvs(
             loc=central, scale=lower_sigma, size=10**5, random_state=43178
         )
         return samples
-    var_params = scipy.optimize.root(opt, [1, 1, 1], args=(central - lower_sigma, central, central + upper_sigma)).x
+    var_params = scipy.optimize.root(
+        opt, [1, 1, 1], args=(central - lower_sigma, central, central + upper_sigma)
+    ).x
     samples[name] = scipy.stats.skewnorm.rvs(
         var_params[0],
         loc=var_params[1],
@@ -93,6 +99,7 @@ def add_entry_to_sample_distributions(samples, constraint_config, varnum):
     )
     return samples
 
+
 def calculate_sample_weights(distributions, samples, niterations=50):
     weights = np.ones(samples.shape[0])
     gofs = []
@@ -101,7 +108,7 @@ def calculate_sample_weights(distributions, samples, niterations=50):
     unique_codes = list(distributions.keys())  # [::-1]
 
     for k in tqdm(
-        range(niterations), desc="Iterations", leave=False#, disable=1 - progress
+        range(niterations), desc="Iterations", leave=False  # , disable=1 - progress
     ):
         gofs.append([])
         if k == (niterations - 1):
@@ -196,30 +203,36 @@ def get_unique_code_weights(unique_code, distributions, samples, weights, j, k):
 
     return unique_code_weights, our_values_bin_idx
 
+
 def weight_ensemble_and_draw(
-    constraint_config, 
-    file_endstring, 
-    output_ensemble_size = 500,
-    plot_pam_distributions True,):
+    constraint_config,
+    file_endstring,
+    output_ensemble_size=500,
+    plot_pam_distributions=True,
+):
 
     print("Doing reweighting...")
 
-    store = pd.HDFStore(f'data/data_all_targs_paramats{file_endstring}.h5')
-    targ = store['targ']
-    parammat = store['parammat']
+    store = pd.HDFStore(f"data/data_all_targs_paramats{file_endstring}.h5")
+    targ = store["targ"]
+    parammat = store["parammat"]
 
     store.close()
     input_ensemble_size = targ.shape[0]
 
-    #sys.exit(4)
+    # sys.exit(4)
 
     assert input_ensemble_size > output_ensemble_size
     data_in_dict = {}
     samples = {}
     ar_distributions = {}
     for varnum, constraint in enumerate(constraint_config["Variable_short"]):
-        data_in_dict[constraint_config[constraint][varnum]] = targ["Variable Name"].to_numpy()
-        samples = add_entry_to_sample_distributions(samples=samples, constraint_config=constraint_config, varnum=varnum)
+        data_in_dict[constraint_config[constraint][varnum]] = targ[
+            "Variable Name"
+        ].to_numpy()
+        samples = add_entry_to_sample_distributions(
+            samples=samples, constraint_config=constraint_config, varnum=varnum
+        )
         ar_distributions[constraint] = {}
         ar_distributions[constraint]["bins"] = np.histogram(
             samples[constraint], bins=100, density=True
@@ -231,13 +244,18 @@ def weight_ensemble_and_draw(
         index=np.arange(targ.shape[0]),
     )
     weights, gofs, gofs_full = calculate_sample_weights(
-    ar_distributions, accepted, niterations=60
+        ar_distributions, accepted, niterations=60
     )
 
     if plot_pam_distributions:
-        plot_distributions_w_obs.pam_plotting(parammat, name_epithet=f"post1{file_endstring}")
-        plot_distributions_w_obs.pam_plotting(parammat, weights= np.minimum(weights, 1), name_epithet=f"post2{file_endstring}")
-
+        plot_distributions_w_obs.pam_plotting(
+            parammat, name_epithet=f"post1{file_endstring}"
+        )
+        plot_distributions_w_obs.pam_plotting(
+            parammat,
+            weights=np.minimum(weights, 1),
+            name_epithet=f"post2{file_endstring}",
+        )
 
     effective_samples = int(np.floor(np.sum(np.minimum(weights, 1))))
     print("Number of effective samples:", effective_samples)
@@ -249,8 +267,15 @@ def weight_ensemble_and_draw(
         n=output_ensemble_size, replace=False, weights=weights, random_state=10099
     )
     print(drawn_samples)
-    sample_ids = np.load(f"data/valid_sample_ids_all_chunks{file_endstring}.npy", allow_pickle=True)[drawn_samples.index.to_list()]
-    make_config_distro_json(parammat.iloc[drawn_samples.index.to_list(), :].to_numpy().transpose(), parammat.columns, f"draw_samples_{output_ensemble_size}{file_endstring}.json", index_list=sample_ids)
+    sample_ids = np.load(
+        f"data/valid_sample_ids_all_chunks{file_endstring}.npy", allow_pickle=True
+    )[drawn_samples.index.to_list()]
+    make_config_distro_json(
+        parammat.iloc[drawn_samples.index.to_list(), :].to_numpy().transpose(),
+        parammat.columns,
+        f"draw_samples_{output_ensemble_size}{file_endstring}.json",
+        index_list=sample_ids,
+    )
 
 
 # Chris plotting stuff, not needed
