@@ -15,16 +15,66 @@ from ciceroscm.carbon_cycle.carbon_cycle_mod import CARBON_CYCLE_MODEL_REQUIRED_
 
 
 def rmse(obs, mod):
-    return np.sqrt(np.sum((obs - mod) ** 2) / len(obs))
+    """
+    Calculate the Root Mean Square Error (RMSE) between observed and modeled values.
+    Parameters
+    ----------
+    obs : array-like
+        Array of observed values.
+    mod : array-like
+        Array of modeled or predicted values.
+    Returns
+    -------
+    float
+        The root mean square error between the observed and modeled values.
+    Notes
+    -----
+    Both `obs` and `mod` must be of the same length.
+    Examples
+    --------
+    >>> import numpy as np
+    >>> obs = np.array([1.0, 2.0, 3.0])
+    >>> mod = np.array([1.1, 1.9, 3.2])
+    >>> round(rmse(obs, mod), 8)
+    np.float64(0.14142136)
+    """
+    return np.sqrt(np.mean((obs - mod) ** 2))
 
 
 def make_config_distro_json(
     matrix, parameter_names, json_name, indexer_pre="", index_list=None
 ):
+    """
+    Generates a JSON file containing a list of configuration dictionaries based on the provided parameter matrix.
+    
+    Parameters
+    ----------
+    matrix : np.ndarray
+        A 2D numpy array where each column represents a set of parameter values for a configuration.
+    parameter_names : list of str
+        List of parameter names corresponding to the rows of the matrix.
+    json_name : str
+        The name of the output JSON file (will be saved in the 'data/' directory).
+    indexer_pre : str, optional
+        Prefix to use for generating index names if `index_list` is not provided (default is an empty string).
+    index_list : list of str, optional
+        List of index names for each configuration. If None, index names are generated using `indexer_pre`.
+    
+    Returns
+    -------
+    None
+        The function writes the configuration list to a JSON file and does not return anything.
+   
+    Notes
+    -----
+    The function expects the global variables `ordering_standard_forc` and `CARBON_CYCLE_MODEL_REQUIRED_PAMSET` 
+    to be defined elsewhere in the code. Each configuration dictionary contains three parameter sets 
+    ('pamset_udm', 'pamset_emiconc', 'pamset_carbon') and an 'Index' field.
+    """
     config_list = [None] * matrix.shape[1]
 
     if index_list is None:
-        index_list = [f"{indexer_pre}{i}" for i in matrix.shape[1]]
+        index_list = [f"{indexer_pre}{i}" for i in range(matrix.shape[1])]
 
     for i in range(len(config_list)):
         pamset_udm = {
