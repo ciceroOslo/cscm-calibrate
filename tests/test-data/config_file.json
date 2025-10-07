@@ -52,8 +52,8 @@
     },
     "prune_configs": {
         "temp": [
-                
-            "Surface Air Ocean Blended Temperature Change", 
+
+            "Surface Air Ocean Blended Temperature Change",
             "annual_averages.csv",
             0.17
 
@@ -65,8 +65,8 @@
             "Surface Air Ocean Blended Temperature Change",
             "Effective Radiative Forcing|Aerosols",
             "Atmospheric Concentrations|CO2",
-            "Ocean carbon flux", 
-            "Biosphere carbon flux" 
+            "Ocean carbon flux",
+            "Biosphere carbon flux"
         ],
         "Varname_short":[
             "OHC",
@@ -84,6 +84,6 @@
         "lower_sigma": [36.8551891022091 , 0.073, 0.7, 3.0, 0.4, 0.5],
         "upper_sigma": [36.8551891022091 , 0.073, 0.7, 3.0, 0.4, 0.5],
         "run_experiments": ["historical"]
-    } 
+    }
 
 }

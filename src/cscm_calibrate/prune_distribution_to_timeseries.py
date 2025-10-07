@@ -1,17 +1,31 @@
-import sys
-import os
-import json
-import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
-import scipy.stats
+import pandas as pd
 from tqdm.auto import tqdm
 
-from .plot_distributions_w_obs import datadir
 from .shared_functions import rmse
 
 
 def prepare_weights_temp(data_path, data_varname="GMST"):
+    """
+    Prepares weights and extracts a temperature time series from a CSV file.
+    This function reads a CSV file containing temperature data, extracts the specified variable as a NumPy array,
+    and generates a corresponding weights array for use in temperature pruning. The weights array is initialized
+    with ones, except for the first element (set to 0.5) and the last element (set to 0.0).
+
+    Parameters
+    ----------
+    data_path : str
+        Path to the CSV file containing the temperature data.
+    data_varname : str, optional
+        Name of the column in the CSV file to extract as the temperature time series (default is "GMST").
+
+    Returns
+    -------
+    gmst : numpy.ndarray
+        Array containing the extracted temperature time series.
+    weights : numpy.ndarray
+        Array of weights for the temperature time series, with custom values at the first and last positions.
+    """
     weights = np.ones(52)
     weights[0] = 0.5
     weights[-1] = 0.0
@@ -25,6 +39,41 @@ def prepare_weights_temp(data_path, data_varname="GMST"):
 def do_pruning_for_chunk(
     chunk_num, prune_list, file_endstring=None, total_samples=6000000
 ):
+    """
+    Prunes a chunk of temperature timeseries samples based on RMSE constraints.
+    Loads temperature samples and corresponding sample IDs for a given chunk, computes the RMSE
+    between each sample's temperature timeseries and observed GMST (after baseline adjustment),
+    and returns the indices and IDs of samples passing the RMSE threshold.
+
+    Parameters
+    ----------
+    chunk_num : int
+        The chunk number to process.
+    prune_list : list
+        A list containing:
+            - str: The base filename for temperature data.
+            - str: The filename or identifier for observed GMST data.
+            - float: The RMSE acceptance threshold.
+    file_endstring : str, optional
+        Optional string to append to the sample IDs filename (default is None).
+    total_samples : int, optional
+        Total number of samples in the dataset (default is 6,000,000).
+
+    Returns
+    -------
+    valid_temp : np.ndarray
+        Array of indices of samples passing the RMSE constraint.
+    accept_temp : np.ndarray
+        Boolean array indicating which samples passed the RMSE constraint.
+    samples[accept_temp] : np.ndarray
+        Array of sample IDs that passed the RMSE constraint.
+
+    Notes
+    -----
+    - The function assumes temperature data is aligned to time bounds, while observations are at midyears.
+    - Baseline adjustment is performed using the average over the first 52 time steps, weighted by `weights`.
+    - The function prints diagnostic information about shapes and the number of passing samples.
+    """
     if file_endstring is None:
         file_endstring = ""
     gmst, weights = prepare_weights_temp(prune_list[1])
@@ -60,6 +109,25 @@ def do_pruning_for_chunk(
 
 
 def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples=6000000):
+    """
+    Retrieve target and parameter matrices for specified valid sample indices from an HDF5 chunk file.
+
+    Parameters
+    ----------
+    chunk_num : int
+        The chunk number identifying the HDF5 file to load.
+    valid_samples : array-like
+        Indices of valid samples to select from the target and parameter matrices.
+    total_samples : int, optional
+        The total number of samples used in the filename pattern (default is 6,000,000).
+
+    Returns
+    -------
+    targ : pandas.DataFrame
+        DataFrame containing the selected rows from the target matrix.
+    parammat : pandas.DataFrame
+        DataFrame containing the selected rows from the parameter matrix.
+    """
     store = pd.HDFStore(f"data/data_{total_samples}_chunk_{chunk_num}.h5")
     targ = store["targ"]
     parammat = store["parammat"]
@@ -73,7 +141,31 @@ def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples=600
 
 
 def prune_all_chunks(total_samples, prune_lists, num_chunks=600, file_endstring=None):
+    """
+    Prunes samples across multiple data chunks and aggregates valid indices, sample IDs, targets, and parameter matrices.
 
+    Parameters
+    ----------
+    total_samples : int
+        The total number of samples to consider for pruning.
+    prune_lists : list of list
+        A list containing pruning criteria lists for each variable or chunk.
+    num_chunks : int, optional
+        The number of data chunks to process (default is 600).
+    file_endstring : str or None, optional
+        String to append to output filenames for identification (default is None).
+
+    Returns
+    -------
+    None
+        This function saves the pruned results to disk as `.npy` and `.h5` files.
+
+    Notes
+    -----
+    - Currently, pruning for multiple variables (i.e., when `len(prune_lists) > 1`) is not implemented.
+    - The function relies on external functions `do_pruning_for_chunk` and `get_targ_paramat_valid_for_chunk`.
+    - Output files are saved in the `data/` directory with names including `file_endstring` if provided.
+    """
     keep_temp = []
     keep_samples = []
     keep_targ = []

@@ -1,12 +1,31 @@
-import sys
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
-datadir = "../../data/calibration_data_Sep2025/"
+datadir = "/home/masan/gitrepos/cscm-calibration/data/calibration_data_Sep2025/"
 
 
 def read_noaa_gml_ml_means(timeres):
+    """
+    Reads NOAA GML mean CO2 data for a given time resolution.
+
+    Parameters
+    ----------
+    timeres : str
+        Time resolution of the data to read. Must be either "year" or "month".
+
+    Returns
+    -------
+    np.ndarray
+        Transposed array of selected columns containing time and mean CO2 values.
+
+    Raises
+    ------
+    KeyError
+        If `timeres` is not one of the supported keys ("year", "month").
+    FileNotFoundError
+        If the corresponding CSV file does not exist.
+    """
     timeres_dict = {
         "year": ["annmean", 37, ["year", "mean"]],
         "month": ["mm", 38, ["decimal", "average"]],
@@ -19,6 +38,18 @@ def read_noaa_gml_ml_means(timeres):
 
 
 def read_gcb_data():
+    """
+    Reads and processes the Global Carbon Budget data from an Excel file.
+    Loads the "Historical Budget" sheet from the Global_Carbon_Budget_2024_v1.02.xlsx file,
+    starting from row 16, fills missing values with 0.0, and computes additional columns:
+    "emissions_tot" (total emissions) and "fossil emissions" (fossil emissions including cement carbonation sink).
+
+    Returns
+    -------
+    pandas.DataFrame
+        A DataFrame containing the processed Global Carbon Budget data with additional columns:
+        "emissions_tot" and "fossil emissions".
+    """
     data_xls = pd.read_excel(
         f"{datadir}/Global_Carbon_Budget_2024_v1.02.xlsx",
         sheet_name="Historical Budget",
@@ -37,6 +68,18 @@ def read_gcb_data():
 
 
 def read_gcb_ocean_carbon_data():
+    """
+    Reads ocean carbon sink data from the Global Carbon Budget Excel file.
+    This function loads data from the "Ocean Sink" sheet of the
+    'Global_Carbon_Budget_2024_v1.02.xlsx' Excel file, skipping the first 31 rows
+    and reading the next 65 rows. It fills missing values with 0.0 and removes
+    columns with names starting with 'Unnamed'.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A DataFrame containing the processed ocean carbon sink data.
+    """
     data_xls = pd.read_excel(
         f"{datadir}/Global_Carbon_Budget_2024_v1.02.xlsx",
         sheet_name="Ocean Sink",
@@ -48,6 +91,23 @@ def read_gcb_ocean_carbon_data():
 
 
 def pam_plotting(parammat, weights=None, name_epithet=""):
+    """
+    Plots histograms of parameter distributions from a DataFrame, optionally using weights, and saves the figure.
+
+    Parameters
+    ----------
+    parammat : pandas.DataFrame
+        DataFrame containing parameter values to plot. Each column represents a parameter.
+    weights : array-like, optional
+        Weights to apply to each sample when plotting histograms. If None, unweighted histograms are plotted.
+    name_epithet : str, optional
+        String to append to the plot title and output filename for identification.
+
+    Returns
+    -------
+    None
+        The function saves the generated plot as a PNG file and does not return any value.
+    """
     fig, axs = plt.subplots(nrows=5, ncols=5, figsize=(30, 30))
     for i, param in enumerate(parammat.columns):
         axnow = axs[i // 5, i % 5]
@@ -62,7 +122,33 @@ def pam_plotting(parammat, weights=None, name_epithet=""):
 
 
 def get_data_for_plots():
+    """
+    Loads and returns multiple datasets required for plotting climate-related distributions.
 
+    Reads temperature, CO2 concentration, global carbon budget, aerosol forcing, and ocean heat content data
+    from various CSV files and returns them as pandas DataFrames or appropriate objects.
+
+    Returns
+    -------
+    temp_data : pandas.DataFrame
+        Annual average temperature data.
+    co2_conc : pandas.DataFrame or appropriate object
+        CO2 concentration data, as returned by `read_noaa_gml_ml_means`.
+    data_gcb : pandas.DataFrame or appropriate object
+        Global Carbon Budget data, as returned by `read_gcb_data`.
+    data_aer_best : pandas.DataFrame
+        Best estimate of aerosol effective radiative forcing (ERF) data.
+    data_aer_5 : pandas.DataFrame
+        5th percentile aggregate aerosol ERF data.
+    data_aer_95 : pandas.DataFrame
+        95th percentile aggregate aerosol ERF data.
+    data_ohc : pandas.DataFrame
+        Ocean heat content (OHC) ensemble data.
+
+    Notes
+    -----
+    The function expects certain file paths and directory variables (e.g., `datadir`) to be defined in the scope.
+    """
     temp_data = pd.read_csv(f"{datadir}annual_averages.csv")
     co2_conc = read_noaa_gml_ml_means("year")
     data_gcb = read_gcb_data()
@@ -97,6 +183,32 @@ def get_data_for_plots():
 
 
 def plot_distributions(results, name_epithet):
+    """
+    Plots distributions of climate model results for different variables and overlays observational data.
+    For each variable in the results DataFrame, this function generates a plot showing the median, mean,
+    maximum, minimum, and 5th-95th percentile range of the model outputs over time. Observational datasets
+    are overlaid for relevant variables. The plots are saved as PNG files named according to the variable
+    and the provided epithet.
+
+    Parameters
+    ----------
+    results : pandas.DataFrame
+        DataFrame containing model results. The first 7 columns are assumed to be metadata, and columns
+        from the 8th onward represent yearly data. Must include a 'variable' column for grouping.
+    name_epithet : str
+        String to append to output filenames for distinguishing plot files.
+
+    Returns
+    -------
+    None
+        The function saves plots to disk and does not return any value.
+
+    Notes
+    -----
+    - Observational datasets are loaded via `get_data_for_plots()`.
+    - The function assumes specific variable names for overlaying observational data.
+    - Plots are saved in the current working directory.
+    """
     years = results.columns[7:].to_numpy(int)
     for variable, group in results.groupby("variable"):
         fig = plt.subplot()

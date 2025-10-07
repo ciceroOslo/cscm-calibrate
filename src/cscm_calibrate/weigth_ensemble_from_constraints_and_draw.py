@@ -1,106 +1,20 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """Apply posterior weighting"""
 
 # mention in paper: skew-normal distribution
 # this is where Zeb earns his corn
 
-import os, sys
-
-import matplotlib.pyplot as plt
 import numpy as np
-import json
 import pandas as pd
 import scipy.optimize
 import scipy.stats
-from dotenv import load_dotenv
-from matplotlib.lines import Line2D
 from tqdm.auto import tqdm
 
 from .plot_distributions_w_obs import pam_plotting
-
-# from prune_distribution_to_timeseries import make_config_distro_json
-
-cscm_path = cscm_path = "/home/masan/gitrepos/ciceroscm"
-
-sys.path.insert(0, os.path.join(cscm_path, "src"))
-
-from ciceroscm.parallel._configdistro import ordering_standard_forc
-from ciceroscm.carbon_cycle.carbon_cycle_mod import CARBON_CYCLE_MODEL_REQUIRED_PAMSET
-
+from .shared_functions import make_config_distro_json
 
 NINETY_TO_ONESIGMA = scipy.stats.norm.ppf(0.95)
-
-def make_config_distro_json(
-        matrix,
-        parameter_names,
-        json_name,
-        indexer_pre="",
-        index_list=None,
-    ):
-    """
-    Create a JSON configuration distribution file from a parameter matrix.
-
-    This function generates a list of configuration dictionaries by mapping parameter values
-    from the input matrix to specific parameter sets, and writes the resulting list to a JSON file.
-
-    Parameters
-    ----------
-    matrix : np.ndarray
-        A 2D numpy array of shape (num_parameters, num_configurations) containing parameter values.
-    parameter_names : list of str
-        List of parameter names corresponding to the rows of `matrix`.
-    json_name : str
-        Name of the output JSON file (will be saved in the 'data/' directory).
-    indexer_pre : str, optional
-        Prefix to use for generating index names if `index_list` is not provided (default is "").
-    index_list : list of str, optional
-        List of index names for each configuration. If None, indices will be generated automatically.
-
-    Returns
-    -------
-    None
-        The function writes the configuration list to a JSON file and does not return anything.
-
-    Notes
-    -----
-    - The function expects the global variables `ordering_standard_forc` and `CARBON_CYCLE_MODEL_REQUIRED_PAMSET`
-        to be defined elsewhere in the code.
-    - Each configuration dictionary contains three parameter sets: 'pamset_udm', 'pamset_emiconc', and 'pamset_carbon',
-        as well as an 'Index' field.
-    """
-    config_list = [None] * matrix.shape[1]
-
-    if index_list is None:
-        index_list = [f"{indexer_pre}{i}" for i in matrix.shape[1]]
-
-    for i in range(len(config_list)):
-        pamset_udm = {
-            "threstemp": 7.0,
-            "lm": 40,
-            "ldtime": 12,
-        }
-        pamset_emiconc = {
-            "qbmb": 0,
-        }
-        pamset_carbon = {"solubility_limit": 0.1, "ml_t_half": 0.0}
-        for j, pam in enumerate(parameter_names):
-            value = matrix[j, i]
-            if pam in ordering_standard_forc:
-                pamset_udm[pam] = value
-            elif pam in CARBON_CYCLE_MODEL_REQUIRED_PAMSET:
-                pamset_carbon[pam] = value
-            else:
-                pamset_emiconc[pam] = value
-        config_list[i] = {
-            "pamset_udm": pamset_udm.copy(),
-            "pamset_emiconc": pamset_emiconc.copy(),
-            "pamset_carbon": pamset_carbon.copy(),
-            "Index": index_list[i],
-        }
-    with open(f"data/{json_name}", "w", encoding="utf-8") as wfile:
-        json.dump(config_list, wfile)
 
 
 def opt(x, q05_desired, q50_desired, q95_desired):
@@ -163,7 +77,7 @@ def add_entry_to_sample_distributions(samples, constraint_config, varnum):
     -------
     dict
         The updated `samples` dictionary with the new variable's samples added.
-    
+
     Notes
     -----
     - If `lower_sigma` equals `upper_sigma`, a normal distribution is used.
@@ -194,6 +108,32 @@ def add_entry_to_sample_distributions(samples, constraint_config, varnum):
 
 
 def calculate_sample_weights(distributions, samples, niterations=50):
+    """
+    Iteratively calculates sample weights to match given marginal distributions using a reweighting scheme.
+
+    Parameters
+    ----------
+    distributions : dict
+        A dictionary where keys are unique codes (e.g., variable names or identifiers) and values are the target marginal distributions for each code.
+    samples : np.ndarray
+        Array of samples to be reweighted. Each row corresponds to a sample, and columns correspond to features or variables.
+    niterations : int, optional
+        Number of iterations to perform for the reweighting process (default is 50).
+
+    Returns
+    -------
+    weights_final : np.ndarray
+        The final computed weights for each sample after all iterations.
+    gofs : pandas.DataFrame
+        DataFrame containing the goodness-of-fit (gof) values for each unique code at each iteration.
+    gofs_full : pandas.DataFrame
+        DataFrame containing the goodness-of-fit values for all unique codes at each iteration, including the final iteration.
+
+    Notes
+    -----
+    This function relies on an external function `get_unique_code_weights` to compute weights for each unique code.
+    The reweighting process is performed iteratively to better match the target marginal distributions.
+    """
     weights = np.ones(samples.shape[0])
     gofs = []
     gofs_full = []
@@ -201,7 +141,9 @@ def calculate_sample_weights(distributions, samples, niterations=50):
     unique_codes = list(distributions.keys())  # [::-1]
 
     for k in tqdm(
-        range(niterations), desc="Iterations", leave=False  # , disable=1 - progress
+        range(niterations),
+        desc="Iterations",
+        leave=False,  # , disable=1 - progress
     ):
         gofs.append([])
         if k == (niterations - 1):
@@ -247,6 +189,40 @@ def calculate_sample_weights(distributions, samples, niterations=50):
 
 
 def get_unique_code_weights(unique_code, distributions, samples, weights, j, k):
+    """
+    Calculate and return the weights for each bin of a unique code's sample distribution,
+    based on assessed ranges and existing sample weights.
+
+    Parameters
+    ----------
+    unique_code : hashable
+        The key identifying the distribution and samples to process.
+    distributions : dict
+        Dictionary containing distribution information for each unique code.
+        Each entry should have "bins" (array-like) and "values" (array-like).
+    samples : dict
+        Dictionary containing sample arrays for each unique code.
+    weights : np.ndarray
+        Array of weights corresponding to the samples for the given unique code.
+    j : int
+        Index or flag used for assertion checks (typically for debugging or validation).
+    k : int
+        Index or flag used for assertion checks (typically for debugging or validation).
+
+    Returns
+    -------
+    unique_code_weights : np.ndarray
+        Array of weights for each bin, including underflow and overflow bins.
+    our_values_bin_idx : np.ndarray
+        Array of bin indices for each sample in `samples[unique_code]`, as returned by `np.digitize`.
+
+    Notes
+    -----
+    - The first and last elements of `unique_code_weights` correspond to underflow and overflow bins, respectively.
+    - If a bin in the assessed range has no samples, its weight is set to zero.
+    - If a bin has no existing weighted samples, its weight is set to one.
+    - The function asserts that the sum of weighted bin counts matches the sum of sample bin counts when `j == 0` and `k == 0`.
+    """
     bin_edges = distributions[unique_code]["bins"]
     our_values = samples[unique_code].copy()
 
@@ -303,7 +279,34 @@ def weight_ensemble_and_draw(
     output_ensemble_size=500,
     plot_pam_distributions=True,
 ):
+    """
+    Reweights an ensemble of samples based on constraints, draws a new ensemble, and optionally plots parameter distributions.
 
+    This function loads target and parameter matrices from HDF5 files, applies constraints to reweight the ensemble,
+    and draws a specified number of samples according to the computed weights. It can also plot the parameter distributions
+    before and after reweighting. The selected samples and their configuration are saved to a JSON file.
+
+    Parameters
+    ----------
+    constraint_config : dict
+        Configuration dictionary specifying constraints and variable names for reweighting.
+    file_endstring : str
+        Suffix string used to locate input and output files.
+    output_ensemble_size : int, optional
+        Number of samples to draw for the output ensemble (default is 500).
+    plot_pam_distributions : bool, optional
+        If True, plots parameter distributions before and after reweighting (default is True).
+
+    Returns
+    -------
+    None
+        The function saves the drawn samples and their configuration to a JSON file and prints information to stdout.
+
+    Raises
+    ------
+    AssertionError
+        If the input ensemble size is not greater than the output ensemble size, or if the number of effective samples is less than the output ensemble size.
+    """
     print("Doing reweighting...")
 
     store = pd.HDFStore(f"data/data_all_targs_paramats{file_endstring}.h5")
@@ -341,9 +344,7 @@ def weight_ensemble_and_draw(
     )
 
     if plot_pam_distributions:
-        pam_plotting(
-            parammat, name_epithet=f"post1{file_endstring}"
-        )
+        pam_plotting(parammat, name_epithet=f"post1{file_endstring}")
         pam_plotting(
             parammat,
             weights=np.minimum(weights, 1),
@@ -381,7 +382,7 @@ name_dict = {
     "ERFaer": [faer_in, -3, 0.4],
     "CO2 concentration": [co2_in, 405, 421],
     "Ocean carbon 2014-2023": [occarb_in, 1., 6.],
-    "Biosphere carbon 2014-2023": [biocarb_in, 1., 6.] 
+    "Biosphere carbon 2014-2023": [biocarb_in, 1., 6.]
 }
 
 target_temp = scipy.stats.gaussian_kde(samples["temperature 2011-2020"])
@@ -460,7 +461,7 @@ if plots:
         f"plots/constraints.pdf"
     )
     plt.close()
-        
+
 
 # move these to the validation script
 print("Constrained, reweighted parameters:")

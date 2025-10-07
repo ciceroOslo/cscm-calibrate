@@ -1,14 +1,14 @@
 import json
-import sys
 import os
-
+import sys
 import warnings
-import numpy as np
 from datetime import date
 
-from .set_up_calibration_configs_and_run import define_scendata_for_scm
-from .run_prior_ensemble import run_prior_ensemble
+import numpy as np
+
 from .prune_distribution_to_timeseries import prune_all_chunks
+from .run_prior_ensemble import run_prior_ensemble
+from .set_up_calibration_configs_and_run import define_scendata_for_scm
 from .weigth_ensemble_from_constraints_and_draw import weight_ensemble_and_draw
 
 try:
@@ -18,7 +18,9 @@ except:
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 warnings.filterwarnings("ignore", message=".*Parameter.*")
 
-cscm_path = "/home/masan/gitrepos/ciceroscm"#os.path.join("..", "..", "..", "ciceroscm")
+cscm_path = (
+    "/home/masan/gitrepos/ciceroscm"  # os.path.join("..", "..", "..", "ciceroscm")
+)
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 
@@ -26,10 +28,65 @@ from ciceroscm.parallel._configdistro import _ConfigDistro
 
 
 class CSCMCalibrationPipeline:
+    """
+    CSCMCalibrationPipeline
 
-    def __init__(
-        self, config_file
-    ):
+    A pipeline class for running the full calibration process of the CSCM (Climate System Calibration Model).
+    This class handles configuration loading, prior ensemble generation, distribution pruning, ensemble weighting,
+    and orchestrates the full calibration workflow.
+
+    Parameters
+    ----------
+    config_file : str
+        Path to the JSON configuration file containing all necessary calibration parameters and settings.
+
+    Attributes
+    ----------
+    configs : dict
+        Dictionary containing all loaded configuration parameters.
+    datestr : str
+        String representing the current date, used for file naming and versioning.
+
+    Methods
+    -------
+    read_in_configs(config_file)
+        Reads and loads the configuration file into the class instance.
+
+    _run_prior_ensemble()
+        Generates the prior ensemble based on the configuration and scenario data.
+
+    prune_distribution(file_endstring=None)
+        Prunes the generated distribution according to specified constraints and configuration.
+
+    weight_ensemble_and_draw_write_config(file_endstring=None)
+        Weights the ensemble, draws samples, and writes the resulting configuration.
+
+    run_full_calibration_pipeline()
+        Runs the complete calibration pipeline: prior ensemble, pruning, and weighting/drawing.
+    """
+
+    def __init__(self, config_file):
+        """
+        Initialize the calibration class with configuration parameters.
+        Reads in configuration settings from the specified file, sets up calibration parameters,
+        constraints, and other necessary setup for the calibration process. Also generates a date
+        string for metadata or output file naming.
+
+        Parameters
+        ----------
+        config_file : str
+            Path to the configuration file containing calibration parameters and settings.
+
+        Attributes
+        ----------
+        datestr : str
+            String representing the current date in the format '_YYYYMMDD', used for metadata or output files.
+
+        Notes
+        -----
+        Additional setup such as environment checks, version control, or cloning from a specific tag
+        may be performed within this initializer.
+        """
         # Initialise with the parameters and ranges to calibrate on
         # Pass the constraints to fit to
         # Possibly a pruning timeseries of data
@@ -40,15 +97,54 @@ class CSCMCalibrationPipeline:
         self.datestr = f"_{date.today().strftime('%Y%m%d')}"
 
     def read_in_configs(self, config_file):
-        with open(config_file, "r") as json_config:
+        """
+        Reads configuration settings from a JSON file and stores them in the instance.
+
+        Parameters
+        ----------
+        config_file : str
+            Path to the JSON configuration file.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        The loaded configuration is stored in the `self.configs` attribute.
+        """
+        with open(config_file) as json_config:
             configs_raw = json.load(json_config)
         self.configs = configs_raw
 
     def _run_prior_ensemble(self):
+        """
+        Runs the prior ensemble simulation using configuration parameters.
+
+        This method initializes the prior configuration distribution, prepares scenario data,
+        and executes the prior ensemble run with the specified calibration and pruning configurations.
+        It also supports optional parameters for the number of distributions and chunk size.
+
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing configuration attributes.
+
+        Returns
+        -------
+        None
+            This method does not return a value. It performs the prior ensemble run as a side effect.
+
+        Notes
+        -----
+        - Requires the following keys in `self.configs`: "prior_configs", "constraing_configs", "prune_configs".
+        - Optional keys: "distnums", "chunk_size".
+        - Relies on external functions: `_ConfigDistro`, `define_scendata_for_scm`, and `run_prior_ensemble`.
+        """
         prior_cfgs = self.configs["prior_configs"]
         testconfig = _ConfigDistro(
             distro_dict=prior_cfgs["prior_distro_dict"],
-            set_values=prior_cfgs["set_values"],
+            setvalues=prior_cfgs["set_values"],
         )
         scenariodata = define_scendata_for_scm(
             test_data_dir=prior_cfgs["input_dir"],
@@ -73,6 +169,25 @@ class CSCMCalibrationPipeline:
         )
 
     def prune_distribution(self, file_endstring=None):
+        """
+        Prunes a distribution by processing and filtering samples in chunks according to configuration.
+
+        Parameters
+        ----------
+        file_endstring : str, optional
+            Suffix to append to output files. If None, defaults to `self.datestr`.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        This method prepares a list of variables and their associated pruning information
+        from the configuration, then calls `prune_all_chunks` to process the distribution
+        in manageable chunks. The number of samples and chunk size are determined by the
+        configuration dictionary.
+        """
         if file_endstring is None:
             file_endstring = self.datestr
         tot_samples = self.configs.get("distnums", 6000000)
@@ -94,6 +209,22 @@ class CSCMCalibrationPipeline:
         )
 
     def weight_ensemble_and_draw_write_config(self, file_endstring=None):
+        """
+        Weights the ensemble, draws samples, and writes the configuration using the specified file end string.
+
+        This method calls the `weight_ensemble_and_draw` function with the appropriate configuration parameters.
+        If no file end string is provided, it defaults to the instance's date string.
+
+
+        Parameters
+        ----------
+        file_endstring : str, optional
+            The string to append to the output file name. If None, uses the instance's `datestr` attribute.
+
+        Returns
+        -------
+        None
+        """
         if file_endstring is None:
             file_endstring = self.datestr
         weight_ensemble_and_draw(
@@ -103,6 +234,19 @@ class CSCMCalibrationPipeline:
         )
 
     def run_full_calibration_pipeline(self):
-        self.run_full_calibration_pipeline()
+        """
+        Runs the complete calibration pipeline, including prior ensemble generation, distribution pruning,
+        and ensemble weighting/drawing.
+
+        This method executes the full sequence of calibration steps in order:
+        1. Runs the prior ensemble.
+        2. Prunes the resulting distribution.
+        3. Weights the ensemble, draws samples, and writes the configuration.
+
+        Notes
+        -----
+        This method performs each calibration step sequentially.
+        """
+        self._run_prior_ensemble()
         self.prune_distribution()
         self.weight_ensemble_and_draw_write_config()

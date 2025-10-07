@@ -1,4 +1,4 @@
-import os, sys
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,8 +8,7 @@ import scipy.stats
 from tqdm.auto import tqdm
 
 
-
-def plot_weights(bins, weights,weights_plots_num, unique_code):
+def plot_weights(bins, weights, weights_plots_num, unique_code):
     plt.scatter(bins, weights)
     plt.title(f"Weight plot number {weights_plots_num} last added {unique_code}")
     plt.savefig(f"weight_plot_{weights_plots_num}_uncorr.png")
@@ -24,8 +23,7 @@ def calculate_sample_weights(distributions, samples, niterations=50):
 
     unique_codes = list(distributions.keys())  # [::-1]
 
-    for k in tqdm(
-        range(niterations), desc="Iterations", leave=False):
+    for k in tqdm(range(niterations), desc="Iterations", leave=False):
         gofs.append([])
         if k == (niterations - 1):
             weights_second_last_iteration = weights.copy()
@@ -40,7 +38,12 @@ def calculate_sample_weights(distributions, samples, niterations=50):
 
             weights *= unique_code_weights[our_values_bin_idx]
             print(our_values_bin_idx)
-            plot_weights(weights=weights, bins=samples[unique_code][our_values_bin_idx], weights_plots_num=weights_plots_num, unique_code=unique_code)
+            plot_weights(
+                weights=weights,
+                bins=samples[unique_code][our_values_bin_idx],
+                weights_plots_num=weights_plots_num,
+                unique_code=unique_code,
+            )
             weights_plots_num = weights_plots_num + 1
 
             gof = ((unique_code_weights[1:-1] - 1) ** 2).sum()
@@ -74,8 +77,8 @@ def calculate_sample_weights(distributions, samples, niterations=50):
 
 def get_unique_code_weights(unique_code, distributions, samples, weights, j, k):
     bin_edges = distributions[unique_code]["bins"]
-    #print(samples.columns)
-    #print(samples[unique_code])
+    # print(samples.columns)
+    # print(samples[unique_code])
     our_values = samples[unique_code].copy()
 
     our_values_bin_counts, bin_edges_np = np.histogram(our_values, bins=bin_edges)
@@ -124,6 +127,7 @@ def get_unique_code_weights(unique_code, distributions, samples, weights, j, k):
 
     return unique_code_weights, our_values_bin_idx
 
+
 accepted = pd.DataFrame(
     {
         "constraint_1": scipy.stats.norm.rvs(
@@ -135,34 +139,31 @@ accepted = pd.DataFrame(
     },
     index=np.arange(10**5),
 )
-constraints = {
-    "constraint_1",
-    "constraint_2"
-}
+constraints = {"constraint_1", "constraint_2"}
 samples = {}
 samples["constraint_1"] = scipy.stats.norm.rvs(
-    loc=-1., scale=1, size=10**5, random_state=18196
+    loc=-1.0, scale=1, size=10**5, random_state=18196
 )
 samples["constraint_2"] = scipy.stats.norm.rvs(
     loc=1, scale=1, size=10**5, random_state=53481
 )
 
-#sys.exit(4)
+# sys.exit(4)
 ar_distributions = {}
 for constraint in constraints:
     ar_distributions[constraint] = {}
     ar_distributions[constraint]["bins"] = np.histogram(
-            samples[constraint], bins=100, density=True
-        )[1]
+        samples[constraint], bins=100, density=True
+    )[1]
     ar_distributions[constraint]["values"] = samples[constraint]
 
 
-iteration_nums = [1,5,10,20,30,50]
+iteration_nums = [1, 5, 10, 20, 30, 50]
 weights, gofs, gofs_full = calculate_sample_weights(
-        ar_distributions, accepted, niterations=5
-    )
+    ar_distributions, accepted, niterations=5
+)
 sys.exit(4)
-fig, axs = plt.subplots(nrows=4, ncols=3, figsize=(30,30))
+fig, axs = plt.subplots(nrows=4, ncols=3, figsize=(30, 30))
 for i, iteration_num in enumerate(iteration_nums):
     weights, gofs, gofs_full = calculate_sample_weights(
         ar_distributions, accepted, niterations=iteration_num
@@ -178,7 +179,7 @@ for i, iteration_num in enumerate(iteration_nums):
         n=output_ensemble_size, replace=False, weights=weights, random_state=10099
     )
     print(drawn_samples.head())
-    #sys.exit(4)
+    # sys.exit(4)
     start = -4
     stop = 4
     x_for_plot = np.linspace(start, stop, 1000)
@@ -188,8 +189,8 @@ for i, iteration_num in enumerate(iteration_nums):
     prior_2 = scipy.stats.gaussian_kde(accepted["constraint_2"])
     post_1 = scipy.stats.gaussian_kde(drawn_samples["constraint_1"])
     post_2 = scipy.stats.gaussian_kde(drawn_samples["constraint_2"])
-    axnow_1 = axs[i//3*2, i%3]
-    axnow_2 = axs[i//3*2 + 1, i%3]
+    axnow_1 = axs[i // 3 * 2, i % 3]
+    axnow_2 = axs[i // 3 * 2 + 1, i % 3]
     axnow_1.plot(x_for_plot, target_1(x_for_plot), label=("target"))
     axnow_1.plot(x_for_plot, prior_1(x_for_plot), label=("prior"))
     axnow_1.plot(x_for_plot, post_1(x_for_plot), label=("posterior"))

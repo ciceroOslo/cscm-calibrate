@@ -1,20 +1,16 @@
-import sys
-import re
 import os
-import numpy as np
-import pandas as pd
-import pandas.testing as pdt
-import warnings
+import sys
 
-cscm_path = "/home/masan/gitrepos/ciceroscm"#os.path.join("..", "..", "..", "ciceroscm")
+import pandas as pd
+
+cscm_path = (
+    "/home/masan/gitrepos/ciceroscm"  # os.path.join("..", "..", "..", "ciceroscm")
+)
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 
-from ciceroscm import CICEROSCM
 
 from ciceroscm import input_handler
-
-
 
 
 def get_df_from_input_w_data_handler(

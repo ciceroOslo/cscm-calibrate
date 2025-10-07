@@ -30,7 +30,7 @@ checks:  ## run all the linting checks of the codebase
 		echo "=== mypy ==="; MYPYPATH=stubs $(VENV_DIR)/bin/mypy src || echo "--- mypy failed ---" >&2; \
 		echo "======"
 
-.PHONY: ruff-fixes $(VENV_DIR) 
+.PHONY: ruff-fixes $(VENV_DIR)
 ruff-fixes:  ## fix the code using ruff
     # format before and after checking so that the formatted stuff is checked and
     # the fixed stuff is formatted

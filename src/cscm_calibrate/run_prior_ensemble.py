@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 # # CICERO SCM notebook - parallel application
 
@@ -8,13 +7,12 @@
 # In[1]:
 
 
-import sys
-import re
 import os
+import sys
+import warnings
+
 import numpy as np
 import pandas as pd
-import pandas.testing as pdt
-import warnings
 
 try:
     from pandas.core.common import SettingWithCopyWarning
@@ -23,15 +21,14 @@ except:
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 warnings.filterwarnings("ignore", message=".*Parameter.*")
 
-cscm_path = cscm_path = "/home/masan/gitrepos/ciceroscm"#os.path.join("..", "..", "..", "ciceroscm")
+cscm_path = cscm_path = (
+    "/home/masan/gitrepos/ciceroscm"  # os.path.join("..", "..", "..", "ciceroscm")
+)
 
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 
-from ciceroscm.parallel._configdistro import _ConfigDistro
 from ciceroscm.parallel.distributionrun import DistributionRun
-
-from ciceroscm import input_handler
 
 
 def run_prior_ensemble(
@@ -116,6 +113,7 @@ def run_prior_ensemble(
                     :, data["Yearstart_change"] - 1750 + 7
                 ].values
             elif data["Yearstart_norm"] == data["Yearend_norm"]:
+                print(results_sub.iloc[:, data["Yearstart_change"] - 1750 + 7])
                 results_for_fit_dict_1d[data["Variable Name"]] = (
                     results_sub.iloc[:, data["Yearstart_change"] - 1750 + 7]
                     - results_sub.iloc[:, data["Yearstart_norm"] - 1750 + 7]
@@ -181,108 +179,108 @@ def run_prior_ensemble(
         # store_long.close()
 
 
-if __name__ == "__main__":
-    test_data_dir = os.path.join(
-        os.getcwd(), "../../", "data", "calibration_data_Sep2025"
-    )
-    gaspam = input_handler.read_components(
-        test_data_dir + "/gases_vupdate_2024_WMO_added_new.txt"
-    )
-    print(gaspam.head())
-    nyend = 2023
+# if __name__ == "__main__":
+#     test_data_dir = os.path.join(
+#         os.getcwd(), "../../", "data", "calibration_data_Sep2025"
+#     )
+#     gaspam = input_handler.read_components(
+#         test_data_dir + "/gases_vupdate_2024_WMO_added_new.txt"
+#     )
+#     print(gaspam.head())
+#     nyend = 2023
 
-    df_nat_ch4 = input_handler.read_natural_emissions(
-        test_data_dir + "/natemis_CH4_ode_method_from_Sep2025_updates.txt",
-        "CH4",
-        endyear=nyend,
-    )
-    df_nat_n2o = input_handler.read_natural_emissions(
-        test_data_dir + "/natemis_N2O_ode_method_from_Sep2025_updates.txt",
-        "N2O",
-        endyear=nyend,
-    )
-    print(df_nat_ch4.head())
+#     df_nat_ch4 = input_handler.read_natural_emissions(
+#         test_data_dir + "/natemis_CH4_ode_method_from_Sep2025_updates.txt",
+#         "CH4",
+#         endyear=nyend,
+#     )
+#     df_nat_n2o = input_handler.read_natural_emissions(
+#         test_data_dir + "/natemis_N2O_ode_method_from_Sep2025_updates.txt",
+#         "N2O",
+#         endyear=nyend,
+#     )
+#     print(df_nat_ch4.head())
 
-    df_ssp2_conc = input_handler.read_inputfile(
-        test_data_dir + "/igcc_historical_conc_gases_vupdate_2024_WMO_added_new.txt",
-        True,
-        year_end=nyend,
-    )
+#     df_ssp2_conc = input_handler.read_inputfile(
+#         test_data_dir + "/igcc_historical_conc_gases_vupdate_2024_WMO_added_new.txt",
+#         True,
+#         year_end=nyend,
+#     )
 
-    ih = input_handler.InputHandler({"nyend": nyend, "nystart": 1750, "emstart": 1850})
-    emi_input = ih.read_emissions(
-        test_data_dir + "/historical_em_gases_vupdate_2024_WMO_added_new.txt"
-    )
-    emi_input.rename(columns={"CO2": "CO2_FF", "CO2.1": "CO2_AFOLU"}, inplace=True)
+#     ih = input_handler.InputHandler({"nyend": nyend, "nystart": 1750, "emstart": 1850})
+#     emi_input = ih.read_emissions(
+#         test_data_dir + "/historical_em_gases_vupdate_2024_WMO_added_new.txt"
+#     )
+#     emi_input.rename(columns={"CO2": "CO2_FF", "CO2.1": "CO2_AFOLU"}, inplace=True)
 
-    prior_distro_dict = {
-        "rlamdo": [5, 25],
-        "akapa": [0.06, 0.8],
-        "cpi": [0.161, 0.569],
-        "W": [0.55, 2.55],
-        "beto": [0, 7],
-        "lambda": [2 / 3.71, 5 / 3.71],
-        "mixed": [25, 125],
-        "qo3": [0.4, 0.6],
-        "qdirso2": [-0.005, -0.000],
-        "qindso2": [-0.02, -0.00],
-        "qbc": [0.004, 0.05],
-        "qoc": [-0.008, -0.001],
-        "beta_f": [0.110, 1.0],
-        "mixed_carbon": [25, 125],
-        "solubility_sens": [0, 0.03],
-        "ocean_efficacy": [0.9, 1.3],
-        "ml_w_sigmoid": [2.0, 7.0],
-        "ml_fracmax": [0.0, 1.0],
-        "t_half": [0.3, 0.8],
-        "t_threshold": [3, 10],
-        "w_threshold": [2, 8],
-        "w_sigmoid": [2, 8],
-    }
+#     prior_distro_dict = {
+#         "rlamdo": [5, 25],
+#         "akapa": [0.06, 0.8],
+#         "cpi": [0.161, 0.569],
+#         "W": [0.55, 2.55],
+#         "beto": [0, 7],
+#         "lambda": [2 / 3.71, 5 / 3.71],
+#         "mixed": [25, 125],
+#         "qo3": [0.4, 0.6],
+#         "qdirso2": [-0.005, -0.000],
+#         "qindso2": [-0.02, -0.00],
+#         "qbc": [0.004, 0.05],
+#         "qoc": [-0.008, -0.001],
+#         "beta_f": [0.110, 1.0],
+#         "mixed_carbon": [25, 125],
+#         "solubility_sens": [0, 0.03],
+#         "ocean_efficacy": [0.9, 1.3],
+#         "ml_w_sigmoid": [2.0, 7.0],
+#         "ml_fracmax": [0.0, 1.0],
+#         "t_half": [0.3, 0.8],
+#         "t_threshold": [3, 10],
+#         "w_threshold": [2, 8],
+#         "w_sigmoid": [2, 8],
+#     }
 
-    testconfig = _ConfigDistro(
-        distro_dict=prior_distro_dict,
-        setvalues={
-            "threstemp": 7.0,
-            "lm": 40,
-            "ldtime": 12,
-            "qbmb": 0,
-            "solubility_limit": 0.1,
-            "ml_t_half": 0.0,
-        },
-    )
+#     testconfig = _ConfigDistro(
+#         distro_dict=prior_distro_dict,
+#         setvalues={
+#             "threstemp": 7.0,
+#             "lm": 40,
+#             "ldtime": 12,
+#             "qbmb": 0,
+#             "solubility_limit": 0.1,
+#             "ml_t_half": 0.0,
+#         },
+#     )
 
-    scenariodata = [
-        {
-            "gaspam_data": gaspam,
-            "emstart": 1850,
-            "conc_run": False,
-            "nystart": 1750,
-            "nyend": nyend,
-            "concentrations_data": df_ssp2_conc,
-            "emissions_data": emi_input,
-            "nat_ch4_data": df_nat_ch4,
-            "nat_n2o_data": df_nat_n2o,
-            "idtm": 24,
-            "scenname": "ssp245-short",
-        }
-    ]
+#     scenariodata = [
+#         {
+#             "gaspam_data": gaspam,
+#             "emstart": 1850,
+#             "conc_run": False,
+#             "nystart": 1750,
+#             "nyend": nyend,
+#             "concentrations_data": df_ssp2_conc,
+#             "emissions_data": emi_input,
+#             "nat_ch4_data": df_nat_ch4,
+#             "nat_n2o_data": df_nat_n2o,
+#             "idtm": 24,
+#             "scenname": "ssp245-short",
+#         }
+#     ]
 
-    calibdata = pd.DataFrame(
-        data={
-            "Variable Name": [
-                "Heat Content|Ocean",
-                "Surface Air Ocean Blended Temperature Change",
-                "Effective Radiative Forcing|Aerosols",
-                "Atmospheric Concentrations|CO2",
-                "Ocean carbon flux",
-                "Biosphere carbon flux",
-            ],
-            "Yearstart_norm": [1971, 1850, 1750, 1750, 1750, 1750],
-            "Yearend_norm": [1971, 1900, 1750, 1750, 1750, 1750],
-            "Yearstart_change": [2023, 2011, 2023, 2023, 2014, 2014],
-            "Yearend_change": [2023, 2020, 2023, 2023, 2023, 2023],
-            "Central Value": [484.82157000000063, 1.24, -1.18, 410.1 - 278, 2.9, 3.2],
-            "sigma": [36.8551891022091, 0.073, 0.7, 0.4, 0.4, 0.9],
-        }
-    )
+#     calibdata = pd.DataFrame(
+#         data={
+#             "Variable Name": [
+#                 "Heat Content|Ocean",
+#                 "Surface Air Ocean Blended Temperature Change",
+#                 "Effective Radiative Forcing|Aerosols",
+#                 "Atmospheric Concentrations|CO2",
+#                 "Ocean carbon flux",
+#                 "Biosphere carbon flux",
+#             ],
+#             "Yearstart_norm": [1971, 1850, 1750, 1750, 1750, 1750],
+#             "Yearend_norm": [1971, 1900, 1750, 1750, 1750, 1750],
+#             "Yearstart_change": [2023, 2011, 2023, 2023, 2014, 2014],
+#             "Yearend_change": [2023, 2020, 2023, 2023, 2023, 2023],
+#             "Central Value": [484.82157000000063, 1.24, -1.18, 410.1 - 278, 2.9, 3.2],
+#             "sigma": [36.8551891022091, 0.073, 0.7, 0.4, 0.4, 0.9],
+#         }
+#     )

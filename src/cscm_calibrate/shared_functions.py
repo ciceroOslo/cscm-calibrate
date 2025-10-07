@@ -1,35 +1,40 @@
-import sys
-import os
 import json
-import pandas as pd
+import os
+import sys
+
 import numpy as np
 
-
-cscm_path = cscm_path = "/home/masan/gitrepos/ciceroscm"#os.path.join("..", "..", "..", "ciceroscm")
+cscm_path = cscm_path = (
+    "/home/masan/gitrepos/ciceroscm"  # os.path.join("..", "..", "..", "ciceroscm")
+)
 
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 
-from ciceroscm.parallel._configdistro import ordering_standard_forc
 from ciceroscm.carbon_cycle.carbon_cycle_mod import CARBON_CYCLE_MODEL_REQUIRED_PAMSET
+from ciceroscm.parallel._configdistro import ordering_standard_forc
 
 
 def rmse(obs, mod):
     """
     Calculate the Root Mean Square Error (RMSE) between observed and modeled values.
+
     Parameters
     ----------
     obs : array-like
         Array of observed values.
     mod : array-like
         Array of modeled or predicted values.
+
     Returns
     -------
     float
         The root mean square error between the observed and modeled values.
+
     Notes
     -----
     Both `obs` and `mod` must be of the same length.
+
     Examples
     --------
     >>> import numpy as np
@@ -46,7 +51,7 @@ def make_config_distro_json(
 ):
     """
     Generates a JSON file containing a list of configuration dictionaries based on the provided parameter matrix.
-    
+
     Parameters
     ----------
     matrix : np.ndarray
@@ -59,16 +64,16 @@ def make_config_distro_json(
         Prefix to use for generating index names if `index_list` is not provided (default is an empty string).
     index_list : list of str, optional
         List of index names for each configuration. If None, index names are generated using `indexer_pre`.
-    
+
     Returns
     -------
     None
         The function writes the configuration list to a JSON file and does not return anything.
-   
+
     Notes
     -----
-    The function expects the global variables `ordering_standard_forc` and `CARBON_CYCLE_MODEL_REQUIRED_PAMSET` 
-    to be defined elsewhere in the code. Each configuration dictionary contains three parameter sets 
+    The function expects the global variables `ordering_standard_forc` and `CARBON_CYCLE_MODEL_REQUIRED_PAMSET`
+    to be defined elsewhere in the code. Each configuration dictionary contains three parameter sets
     ('pamset_udm', 'pamset_emiconc', 'pamset_carbon') and an 'Index' field.
     """
     config_list = [None] * matrix.shape[1]

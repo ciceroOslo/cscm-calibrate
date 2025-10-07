@@ -1,10 +1,9 @@
-import pytest
-import numpy as np
 import json
 import os
-from unittest.mock import patch, mock_open
 
-from cscm_calibrate.shared_functions import rmse, make_config_distro_json
+import numpy as np
+
+from cscm_calibrate.shared_functions import make_config_distro_json, rmse
 
 
 def test_rmse_basic_calculation():
@@ -36,22 +35,23 @@ def test_rmse_single_value():
 
 def test_make_config_distro_json_basic():
     """Test basic functionality of make_config_distro_json without fixtures."""
-    import builtins
-    matrix = np.array([[1.0, 2.0], [3.0, 4.0]])
+    matrix = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
     print(matrix.shape)
-    parameter_names = ['param1', 'param2']
-    json_name = 'test_config.json'
+    parameter_names = ["param1", "lambda", "beta_f"]
+    json_name = "test_config.json"
 
     make_config_distro_json(matrix, parameter_names, json_name)
 
-
-    assert os.path.exists('data/test_config.json')
-    with open('data/test_config.json', 'r', encoding='utf-8') as rfile:
+    assert os.path.exists("data/test_config.json")
+    with open("data/test_config.json", encoding="utf-8") as rfile:
         config_list = json.load(rfile)
     assert len(config_list) == 2  # Two configurations
     print(config_list)
-    assert 'pamset_udm' in config_list[0]
-    assert 'pamset_emiconc' in config_list[0]
-    assert 'pamset_carbon' in config_list[0]
-    assert 'Index' in config_list[0]
-    os.remove('data/test_config.json')
+    assert "pamset_udm" in config_list[0]
+    assert "pamset_emiconc" in config_list[0]
+    assert "pamset_carbon" in config_list[0]
+    assert "Index" in config_list[0]
+    os.remove("data/test_config.json")
+    assert config_list[0]["pamset_udm"]["lambda"] == 3.0
+    assert config_list[1]["pamset_carbon"]["beta_f"] == 6.0
+    assert config_list[1]["pamset_emiconc"]["param1"] == 2.0
