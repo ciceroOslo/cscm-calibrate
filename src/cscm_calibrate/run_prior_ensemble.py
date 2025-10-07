@@ -16,8 +16,6 @@ import pandas as pd
 import pandas.testing as pdt
 import warnings
 
-import plot_distributions_w_obs
-
 try:
     from pandas.core.common import SettingWithCopyWarning
 except:
@@ -25,14 +23,13 @@ except:
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 warnings.filterwarnings("ignore", message=".*Parameter.*")
 
-cscm_path = os.path.join("..", "..", "..", "ciceroscm")
+cscm_path = cscm_path = "/home/masan/gitrepos/ciceroscm"#os.path.join("..", "..", "..", "ciceroscm")
+
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 
 from ciceroscm.parallel._configdistro import _ConfigDistro
 from ciceroscm.parallel.distributionrun import DistributionRun
-
-from ciceroscm import CICEROSCM
 
 from ciceroscm import input_handler
 
@@ -46,7 +43,45 @@ def run_prior_ensemble(
     chunk_size=10000,
     startdate=None,
 ):
+    """
+    Run a prior ensemble simulation, processes results, and saves outputs for calibration.
 
+    This function generates configuration lists, runs simulations over a distribution of parameter sets,
+    processes the results for calibration, and saves the relevant outputs and parameter matrices to disk.
+    The simulation is performed in chunks to handle large numbers of distributions efficiently.
+
+    Parameters
+    ----------
+    testconfig : object
+        Configuration object with methods for generating configuration lists.
+    scenariodata : object or DataFrame
+        Scenario data required for running the distribution simulations.
+    calibdata : pandas.DataFrame
+        DataFrame containing calibration variable information and year ranges.
+    prunecfgs : dict
+        Dictionary mapping variable names to configuration information for pruning and saving results.
+    distnums : int, optional
+        Total number of distributions to simulate (default is 6,000,000).
+    chunk_size : int, optional
+        Number of distributions to process per chunk (default is 10,000).
+    startdate : str or None, optional
+        Optional string to append to output filenames for distinguishing runs (default is None).
+
+    Returns
+    -------
+    None
+        This function saves results to disk and does not return any value.
+
+    Side Effects
+    ------------
+    - Saves numpy arrays and HDF5 files with simulation results and parameter matrices in the 'data/' directory.
+    - May print debugging information if print statements are uncommented.
+
+    Notes
+    -----
+    - The function assumes the existence of a `DistributionRun` class and specific structure in `calibdata`.
+    - Output files are named according to the number of distributions, chunk index, and optional start date.
+    """
     if startdate is None:
         startdate = ""
     testconfig.make_config_lists(

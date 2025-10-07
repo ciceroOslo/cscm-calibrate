@@ -5,7 +5,8 @@ import pandas as pd
 import numpy as np
 
 
-cscm_path = os.path.join("..", "..", "..", "ciceroscm")
+cscm_path = cscm_path = "/home/masan/gitrepos/ciceroscm"#os.path.join("..", "..", "..", "ciceroscm")
+
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 

@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "cscm-calibrate"
 version = "0.1.0a1"
@@ -44,15 +48,6 @@ plots = [
 full = [
     "cscm-calibrate[plots]",
 ]
-
-[dependency-groups]
-# The development dependencies are pinned
-# to give a consistent starting point when using this template.
-# They should be removed/updated/changed/loosened as suits your project.
-# (As soon as you have a lock file, you can remove all of the implied dependencies.)
-# (This is a workaround for the fact
-# that we can't easily include the lock file in the copier template
-# because of how locking works and the order of operations).
 dev = [
     # Key dependencies
     # ----------------
@@ -83,6 +78,12 @@ dev = [
     "toml==0.10.2",
     "typing-extensions==4.12.2",
     "virtualenv==20.28.1",
+    "numpy",
+    "matplotlib",
+    "scipy",
+    "pandas",
+    "dotenv",
+    "tqdm"
 ]
 docs = [
     # Key dependencies
@@ -214,19 +215,7 @@ docs = [
 ]
 # For minimum test dependencies.
 # These are used when running our minimum PyPI install tests.
-tests-min = [
-    # Key dependencies
-    # ----------------
-    "pytest==8.3.4",
-    # Implied by the key dependencies above
-    # -------------------------------------
-    "colorama==0.4.6 ; sys_platform == 'win32'",
-    "iniconfig==2.0.0",
-    "packaging==24.2",
-    "pluggy==1.5.0",
-]
-# Full test dependencies.
-tests-full = [
+tests = [
     # Key dependencies
     # ----------------
     "pytest-cov==6.0.0",
@@ -239,27 +228,8 @@ tests-full = [
     "pluggy==1.5.0",
     "pytest==8.3.4",
 ]
-# Test dependencies
-# (partly split because liccheck uses toml,
-# which doesn't support inhomogeneous arrays).
-tests = [
-    {include-group = "tests-min"},
-    {include-group = "tests-full"},
-]
 all-dev = [
-    {include-group = "dev"},
-    {include-group = "docs"},
-    {include-group = "tests"},
-]
-
-[build-system]
-requires = ["uv_build>=0.8.7,<0.9.0"]
-build-backend = "uv_build"
-
-[tool.uv.build-backend]
-source-include = [
-    "src/cscm_calibrate",
-    "LICENCE",
+    'cscm-calibrate[tests, dev, docs]'
 ]
 
 [tool.coverage.run]

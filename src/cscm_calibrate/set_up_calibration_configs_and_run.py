@@ -6,13 +6,15 @@ import pandas as pd
 import pandas.testing as pdt
 import warnings
 
+cscm_path = "/home/masan/gitrepos/ciceroscm"#os.path.join("..", "..", "..", "ciceroscm")
+
+sys.path.insert(0, os.path.join(cscm_path, "src"))
+
 from ciceroscm import CICEROSCM
 
 from ciceroscm import input_handler
 
-cscm_path = os.path.join("..", "..", "..", "ciceroscm")
 
-sys.path.insert(0, os.path.join(cscm_path, "src"))
 
 
 def get_df_from_input_w_data_handler(
@@ -24,6 +26,38 @@ def get_df_from_input_w_data_handler(
     emstart=1850,
     case_type="CH4",
 ):
+    """
+    Loads and processes input data for calibration using the input_handler module.
+
+    Parameters
+    ----------
+    input_concrete : str, os.PathLike, pd.DataFrame or None
+        The input data, which can be a file path, DataFrame, or None. If None, uses `expected_string`.
+    test_data_dir : str or os.PathLike
+        Directory where test data files are located.
+    expected_string : str
+        Default filename or identifier to use if `input_concrete` is None.
+    nyend : int, optional
+        End year for the data (default is 2023).
+    nystart : int, optional
+        Start year for the data (default is 1750).
+    emstart : int, optional
+        Emissions start year (default is 1850).
+    case_type : str, optional
+        Type of data to process. Must be one of ["CH4", "N2O", "emis", "conc", "gases"] (default is "CH4").
+
+    Returns
+    -------
+    pd.DataFrame
+        Processed input data as a pandas DataFrame.
+
+    Raises
+    ------
+    ValueError
+        If `case_type` is not a valid option.
+    TypeError
+        If the processed input is not a pandas DataFrame.
+    """
     valid = ["CH4", "N2O", "emis", "conc", "gases"]
     if case_type not in valid:
         raise ValueError(
@@ -70,7 +104,41 @@ def define_scendata_for_scm(
     nystart=1750,
     emstart=1850,
 ):
+    """
+    Prepares and returns scenario data for SCM (Simple Climate Model) calibration runs.
 
+    This function loads and processes various input datasets required for SCM calibration,
+    including gas parameters, natural emissions, concentrations, and historical emissions.
+    It returns a list containing a dictionary with all relevant scenario data.
+
+    Parameters
+    ----------
+    test_data_dir : str
+        Path to the directory containing test data files.
+    gaspam : pandas.DataFrame or None, optional
+        DataFrame containing gas parameter data. If None, data will be loaded from file.
+    df_nat_ch4 : pandas.DataFrame or None, optional
+        DataFrame containing natural CH4 emissions data. If None, data will be loaded from file.
+    df_nat_n2o : pandas.DataFrame or None, optional
+        DataFrame containing natural N2O emissions data. If None, data will be loaded from file.
+    df_conc : pandas.DataFrame or None, optional
+        DataFrame containing historical gas concentrations. If None, data will be loaded from file.
+    df_emis : pandas.DataFrame or None, optional
+        DataFrame containing historical emissions data. If None, data will be loaded from file.
+    nyend : int, optional
+        End year for the scenario data (default is 2023).
+    nystart : int, optional
+        Start year for the scenario data (default is 1750).
+    emstart : int, optional
+        Start year for emissions data (default is 1850).
+
+    Returns
+    -------
+    scenariodata : list of dict
+        A list containing a single dictionary with all scenario data required for SCM calibration.
+        The dictionary includes gas parameters, natural emissions, concentrations, emissions,
+        and scenario metadata.
+    """
     gaspam = get_df_from_input_w_data_handler(
         gaspam,
         test_data_dir,

@@ -1,6 +1,8 @@
 import json
 import sys
+import os
 
+import warnings
 import numpy as np
 from datetime import date
 
@@ -16,7 +18,7 @@ except:
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 warnings.filterwarnings("ignore", message=".*Parameter.*")
 
-cscm_path = os.path.join("..", "..", "..", "ciceroscm")
+cscm_path = "/home/masan/gitrepos/ciceroscm"#os.path.join("..", "..", "..", "ciceroscm")
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 
@@ -26,7 +28,7 @@ from ciceroscm.parallel._configdistro import _ConfigDistro
 class CSCMCalibrationPipeline:
 
     def __init__(
-        self, config_file, data_directory, data_name_prefix, optional_arg_dict=None
+        self, config_file
     ):
         # Initialise with the parameters and ranges to calibrate on
         # Pass the constraints to fit to
@@ -39,7 +41,7 @@ class CSCMCalibrationPipeline:
 
     def read_in_configs(self, config_file):
         with open(config_file, "r") as json_config:
-            configs_raw = json.loads(json_config)
+            configs_raw = json.load(json_config)
         self.configs = configs_raw
 
     def _run_prior_ensemble(self):

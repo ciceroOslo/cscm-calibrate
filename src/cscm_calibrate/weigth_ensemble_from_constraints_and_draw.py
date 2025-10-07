@@ -18,11 +18,11 @@ from dotenv import load_dotenv
 from matplotlib.lines import Line2D
 from tqdm.auto import tqdm
 
-import plot_distributions_w_obs
+from .plot_distributions_w_obs import pam_plotting
 
 # from prune_distribution_to_timeseries import make_config_distro_json
 
-cscm_path = os.path.join("..", "..", "..", "ciceroscm")
+cscm_path = cscm_path = "/home/masan/gitrepos/ciceroscm"
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 
@@ -32,10 +32,44 @@ from ciceroscm.carbon_cycle.carbon_cycle_mod import CARBON_CYCLE_MODEL_REQUIRED_
 
 NINETY_TO_ONESIGMA = scipy.stats.norm.ppf(0.95)
 
-
 def make_config_distro_json(
-    matrix, parameter_names, json_name, indexer_pre="", index_list=None
-):
+        matrix,
+        parameter_names,
+        json_name,
+        indexer_pre="",
+        index_list=None,
+    ):
+    """
+    Create a JSON configuration distribution file from a parameter matrix.
+
+    This function generates a list of configuration dictionaries by mapping parameter values
+    from the input matrix to specific parameter sets, and writes the resulting list to a JSON file.
+
+    Parameters
+    ----------
+    matrix : np.ndarray
+        A 2D numpy array of shape (num_parameters, num_configurations) containing parameter values.
+    parameter_names : list of str
+        List of parameter names corresponding to the rows of `matrix`.
+    json_name : str
+        Name of the output JSON file (will be saved in the 'data/' directory).
+    indexer_pre : str, optional
+        Prefix to use for generating index names if `index_list` is not provided (default is "").
+    index_list : list of str, optional
+        List of index names for each configuration. If None, indices will be generated automatically.
+
+    Returns
+    -------
+    None
+        The function writes the configuration list to a JSON file and does not return anything.
+
+    Notes
+    -----
+    - The function expects the global variables `ordering_standard_forc` and `CARBON_CYCLE_MODEL_REQUIRED_PAMSET`
+        to be defined elsewhere in the code.
+    - Each configuration dictionary contains three parameter sets: 'pamset_udm', 'pamset_emiconc', and 'pamset_carbon',
+        as well as an 'Index' field.
+    """
     config_list = [None] * matrix.shape[1]
 
     if index_list is None:
@@ -70,7 +104,38 @@ def make_config_distro_json(
 
 
 def opt(x, q05_desired, q50_desired, q95_desired):
-    "x is (a, loc, scale) in that order."
+    """
+    Compute the differences between the quantiles of a skew-normal distribution and desired quantile values.
+
+    Given the parameters of a skew-normal distribution (`a`, `loc`, `scale`), this function calculates the 5th, 50th, and 95th percentiles (quantiles) of the distribution and returns their differences from the corresponding desired quantile values.
+
+    Parameters
+    ----------
+    x : array-like of float
+        Parameters of the skew-normal distribution in the order (a, loc, scale):
+            - a : float
+                Skewness parameter.
+            - loc : float
+                Location parameter (mean).
+            - scale : float
+                Scale parameter (standard deviation).
+    q05_desired : float
+        Desired value for the 5th percentile (0.05 quantile).
+    q50_desired : float
+        Desired value for the 50th percentile (0.50 quantile, median).
+    q95_desired : float
+        Desired value for the 95th percentile (0.95 quantile).
+
+    Returns
+    -------
+    tuple of float
+        Differences between the computed and desired quantiles:
+            - (q05 - q05_desired, q50 - q50_desired, q95 - q95_desired)
+
+    Notes
+    -----
+    This function is typically used as an objective function for optimization routines that fit a skew-normal distribution to match specified quantiles.
+    """
     q05, q50, q95 = scipy.stats.skewnorm.ppf(
         (0.05, 0.50, 0.95), x[0], loc=x[1], scale=x[2]
     )
@@ -78,6 +143,34 @@ def opt(x, q05_desired, q50_desired, q95_desired):
 
 
 def add_entry_to_sample_distributions(samples, constraint_config, varnum):
+    """
+    Adds a new entry to the `samples` dictionary by generating random samples for a variable
+    based on its constraints, using either a normal or skew-normal distribution.
+
+    Parameters
+    ----------
+    samples : dict
+        Dictionary to which the generated samples will be added. The key is the variable name,
+        and the value is a NumPy array of samples.
+    constraint_config : dict
+        Dictionary containing constraint information for variables. Must include the keys:
+        "Varname_short" (list of variable names), "lower_sigma" (float), "upper_sigma" (float),
+        and "Central value" (float).
+    varnum : int
+        Index of the variable in "Varname_short" to process.
+
+    Returns
+    -------
+    dict
+        The updated `samples` dictionary with the new variable's samples added.
+    
+    Notes
+    -----
+    - If `lower_sigma` equals `upper_sigma`, a normal distribution is used.
+    - If `lower_sigma` and `upper_sigma` differ, a skew-normal distribution is fitted.
+    - The function assumes the existence of an `opt` function for optimization and that
+      `scipy.stats` and `scipy.optimize` are imported.
+    """
     name = constraint_config["Varname_short"][varnum]
     lower_sigma = constraint_config["lower_sigma"]
     upper_sigma = constraint_config["upper_sigma"]
@@ -248,10 +341,10 @@ def weight_ensemble_and_draw(
     )
 
     if plot_pam_distributions:
-        plot_distributions_w_obs.pam_plotting(
+        pam_plotting(
             parammat, name_epithet=f"post1{file_endstring}"
         )
-        plot_distributions_w_obs.pam_plotting(
+        pam_plotting(
             parammat,
             weights=np.minimum(weights, 1),
             name_epithet=f"post2{file_endstring}",
