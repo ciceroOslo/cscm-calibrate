@@ -122,9 +122,51 @@ For the rest of our developer docs, please see [development][development].
 
 <!--- --8<-- [end:installation] -->
 
-## Original template
+## CSCM Calibration Pipeline
 
-This project was generated from this template:
-[copier core python repository](https://gitlab.com/openscm/copier-core-python-repository).
-[copier](https://copier.readthedocs.io/en/stable/) is used to manage and
-distribute this template.
+This repository provides a pipeline for running, pruning, and weighting ensembles of the CICERO Simple Climate Model (SCM) for climate calibration and uncertainty quantification. The pipeline is designed to:
+
+- Generate prior ensembles of model runs using configurable parameter distributions.
+- Prune the ensemble based on observational constraints (e.g., temperature time series).
+- Apply posterior weighting and draw a final ensemble consistent with constraints.
+
+### Main Features
+
+- Modular pipeline: Each step (prior, prune, weight) can be run independently or as a full workflow.
+- Configurable via a single JSON file (see [`tests/test-data/config_file.json`](tests/test-data/config_file.json) for an example).
+- Integration with the CICERO SCM codebase.
+- Includes unit and integration tests for all major components.
+
+### Example: Running the Pipeline
+
+```python
+from cscm_calibrate.cscm_calibrate import CSCMCalibrationPipeline
+
+# Path to your config file (see tests/test-data/config_file.json for structure)
+config_path = "tests/test-data/config_file.json"
+
+pipeline = CSCMCalibrationPipeline(config_path)
+pipeline._run_prior_ensemble()  # Generate prior ensemble
+pipeline.prune_distribution()   # Prune ensemble based on constraints
+pipeline.weight_ensemble_and_draw_write_config()  # Weight and draw final ensemble
+
+# Or run the full pipeline
+pipeline.run_full_calibration_pipeline()
+```
+
+### Configuration
+
+The pipeline is controlled by a JSON config file. See [`tests/test-data/config_file.json`](tests/test-data/config_file.json) for a minimal working example. The config file specifies:
+
+- Prior parameter distributions and scenario data
+- Pruning constraints and variables
+- Weighting and output ensemble size
+- Paths to input data
+
+### Testing
+
+Unit and integration tests are provided in the `tests/` directory. To run all tests:
+
+```bash
+make test
+```
