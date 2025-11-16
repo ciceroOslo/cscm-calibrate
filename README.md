@@ -3,6 +3,8 @@
 
 Calibration pipeline for the ciceroscm simple climate model
 
+Work in progress
+
 **Key info :**
 [![Docs](https://readthedocs.org/projects/cscm-calibrate/badge/?version=latest)](https://cscm-calibrate.readthedocs.io)
 [![Main branch: supported Python versions](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2FciceroOslo%2Fcscm-calibrate%2Fmain%2Fpyproject.toml)](https://github.com/ciceroOslo/cscm-calibrate/blob/main/pyproject.toml)
