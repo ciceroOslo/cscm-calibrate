@@ -95,7 +95,10 @@ class CSCMCalibrationPipeline:
         # Also get the path to the correct version of cscm-code to use
         # should possibly include some setup and cloning from tag and include environment or at least
         # version check written to metadata...?
-        self.read_in_configs(config_file=config_file, constraints_to_read_separately=constraints_to_read_separately)
+        self.read_in_configs(
+            config_file=config_file,
+            constraints_to_read_separately=constraints_to_read_separately,
+        )
         self.datestr = f"_{date.today().strftime('%Y%m%d')}"
 
     def read_in_configs(self, config_file, constraints_to_read_separately=None):
@@ -115,13 +118,27 @@ class CSCMCalibrationPipeline:
         -----
         The loaded configuration is stored in the `self.configs` attribute.
         """
+        config_file = os.path.abspath(config_file)
+        config_dir = os.path.dirname(config_file)
+        
         with open(config_file) as json_config:
             configs_raw = json.load(json_config)
         print(configs_raw)
+        
+        # Resolve relative paths in prior_configs relative to config file location
+        if "prior_configs" in configs_raw and "input_dir" in configs_raw["prior_configs"]:
+            input_dir = configs_raw["prior_configs"]["input_dir"]
+            if not os.path.isabs(input_dir):
+                # Convert relative path to absolute, relative to config file location
+                configs_raw["prior_configs"]["input_dir"] = os.path.abspath(
+                    os.path.join(config_dir, input_dir)
+                )
+        
         if constraints_to_read_separately is not None:
             configs_raw["constraint_configs"] = make_constraints_config_from_RCMIP_csv(
-                constraints_from_RCMIP=constraints_to_read_separately)
-            #configs_raw["constraing_configs"] = constraints_raw
+                constraints_from_RCMIP=constraints_to_read_separately
+            )
+            # configs_raw["constraing_configs"] = constraints_raw
         self.configs = configs_raw
 
     def _run_prior_ensemble(self):
@@ -209,7 +226,7 @@ class CSCMCalibrationPipeline:
             prune_lists.append(
                 [
                     varname,
-                    f"{self.configs['prior_configs']['input_dir']}{varinfo[1]}",
+                    os.path.join(self.configs['prior_configs']['input_dir'], varinfo[1]),
                     varinfo[2],
                 ]
             )

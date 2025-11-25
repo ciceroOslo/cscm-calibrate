@@ -78,11 +78,11 @@ def do_pruning_for_chunk(
         file_endstring = ""
     gmst, weights = prepare_weights_temp(prune_list[1])
     samples = np.load(
-        f"data/sample_ids_{total_samples}_chunk_{chunk_num}{file_endstring}.npy",
+        f"output/sample_ids_{total_samples}_chunk_{chunk_num}{file_endstring}.npy",
         allow_pickle=True,
     )
     temp_in = np.load(
-        f"data/{prune_list[0]}_{total_samples}_chunk_{chunk_num}_1850-2023.npy"
+        f"output/{prune_list[0]}_{total_samples}_chunk_{chunk_num}{file_endstring}_1850-2023.npy"
     )
     rmse_accept = prune_list[2]
     print(temp_in.shape)
@@ -108,7 +108,7 @@ def do_pruning_for_chunk(
     return valid_temp, accept_temp, samples[accept_temp]
 
 
-def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples=6000000):
+def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples=6000000, file_endstring=""):
     """
     Retrieve target and parameter matrices for specified valid sample indices from an HDF5 chunk file.
 
@@ -120,6 +120,8 @@ def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples=600
         Indices of valid samples to select from the target and parameter matrices.
     total_samples : int, optional
         The total number of samples used in the filename pattern (default is 6,000,000).
+    file_endstring : str, optional
+        Optional suffix to append to filenames (default is "").
 
     Returns
     -------
@@ -128,7 +130,7 @@ def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples=600
     parammat : pandas.DataFrame
         DataFrame containing the selected rows from the parameter matrix.
     """
-    store = pd.HDFStore(f"data/data_{total_samples}_chunk_{chunk_num}.h5")
+    store = pd.HDFStore(f"output/data_{total_samples}_chunk_{chunk_num}{file_endstring}.h5")
     targ = store["targ"]
     parammat = store["parammat"]
     store.close()
@@ -189,7 +191,7 @@ def prune_all_chunks(total_samples, prune_lists, num_chunks=600, file_endstring=
         keep_temp.append(valid_temp)
         keep_samples.append(samples_keep)
         targ_keep, parammat_keep = get_targ_paramat_valid_for_chunk(
-            chunk_num, valid_temp, total_samples=6000000
+            chunk_num, valid_temp, total_samples=total_samples, file_endstring=file_endstring
         )
         print(targ_keep.shape)
         print(parammat_keep.shape)
@@ -197,13 +199,13 @@ def prune_all_chunks(total_samples, prune_lists, num_chunks=600, file_endstring=
         keep_parammat.append(parammat_keep)
 
     valid_temps_all = np.concatenate(keep_temp)
-    np.save(f"data/valid_indices_all_chunks{file_endstring}.npy", valid_temps_all)
+    np.save(f"output/valid_indices_all_chunks{file_endstring}.npy", valid_temps_all)
     valid_ids_all = np.concatenate(keep_samples)
-    np.save(f"data/valid_sample_ids_all_chunks{file_endstring}.npy", valid_ids_all)
+    np.save(f"output/valid_sample_ids_all_chunks{file_endstring}.npy", valid_ids_all)
     all_targs = pd.concat(keep_targ)
     all_paramat = pd.concat(keep_parammat)
 
-    store = pd.HDFStore(f"data/data_all_targs_paramats{file_endstring}.h5")
+    store = pd.HDFStore(f"output/data_all_targs_paramats{file_endstring}.h5")
     store["targ"] = all_targs
     store["parammat"] = all_paramat
     store.close()

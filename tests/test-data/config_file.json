@@ -157,7 +157,7 @@
             "solubility_limit": 0.1,
             "ml_t_half": 0
         },
-        "input_dir": "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/data/calibration_data_Sep2025",
+        "input_dir": "../../data/calibration_data_Sep2025",
         "gases": "gases_vupdate_2024_WMO_added_new.txt",
         "nat_ch4": "natemis_CH4_ode_method_from_Sep2025_updates.txt",
         "nat_n2o": "natemis_N2O_ode_method_from_Sep2025_updates.txt",

@@ -19,6 +19,13 @@ try:
 except:
     from pandas.errors import SettingWithCopyWarning
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
+
+
+def get_project_root():
+    """Get the project root directory (where this package is installed)."""
+    # Go up from src/cscm_calibrate/ to the project root
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
 warnings.filterwarnings("ignore", message=".*Parameter.*")
 
 cscm_path = cscm_path = (
@@ -81,8 +88,14 @@ def run_prior_ensemble(
     """
     if startdate is None:
         startdate = ""
+    
+    # Ensure we save to project root output directory
+    project_root = get_project_root()
+    output_dir = os.path.join(project_root, "output")
+    os.makedirs(output_dir, exist_ok=True)
+    
     testconfig.make_config_lists(
-        distnums, json_fname=f"data/configs_{distnums}_.json", max_chunk_size=chunk_size
+        distnums, json_fname=os.path.join(output_dir, f"configs_{distnums}_.json"), max_chunk_size=chunk_size
     )
     chunk_nums = int(np.ceil(distnums / chunk_size))
 
@@ -90,7 +103,7 @@ def run_prior_ensemble(
         file_midstring = f"{distnums}_chunk_{i}{startdate}"
         distrorun1 = DistributionRun(
             testconfig,
-            json_file_name=f"data/configs_{file_midstring}.json",
+            json_file_name=os.path.join(output_dir, f"configs_{file_midstring}.json"),
             numvalues=distnums,
         )
         output_vars = calibdata["Variable Name"]
@@ -142,12 +155,23 @@ def run_prior_ensemble(
                     ).mean(axis=1)
                 ).values
 
+        print(f"DEBUG: prunecfgs = {prunecfgs}")
+        print(f"DEBUG: About to save .npy files for {len(prunecfgs)} variables")
+        print(f"DEBUG: Current working directory: {os.getcwd()}")
+        print(f"DEBUG: Saving to output directory: {output_dir}")
         for variable, varinfo in prunecfgs.items():
+            print(f"DEBUG: Processing variable '{variable}' with varinfo {varinfo}")
             results_save = results[results["variable"] == varinfo[0]]
+            print(f"DEBUG: results_save shape before filtering: {results_save.shape}")
             ids = results_save["run_id"].to_numpy()
             results_save = results_save.iloc[:, 107:].to_numpy(float)
-            np.save(f"data/{variable}_{file_midstring}_1850-2023.npy", results)
-            np.save(f"data/sample_ids_{file_midstring}.npy", ids)
+            filename = os.path.join(output_dir, f"{variable}_{file_midstring}_1850-2023.npy")
+            abs_filename = os.path.abspath(filename)
+            print(f"DEBUG: Saving to {filename} with shape {results_save.shape}")
+            np.save(filename, results_save)
+            np.save(os.path.join(output_dir, f"sample_ids_{file_midstring}.npy"), ids)
+            print(f"DEBUG: Files saved successfully")
+            print(f"DEBUG: File exists check: {os.path.exists(abs_filename)}")
         # sys.exit(4)
         targ = pd.DataFrame(data=results_for_fit_dict_1d)
         targ.index.set_names("run_id", inplace=True)
@@ -169,7 +193,7 @@ def run_prior_ensemble(
         parammat
 
         # sys.exit(4)
-        store = pd.HDFStore(f"data/data_{file_midstring}.h5")
+        store = pd.HDFStore(os.path.join(output_dir, f"data_{file_midstring}.h5"))
         store["targ"] = targ
         store["parammat"] = parammat
         store.close()

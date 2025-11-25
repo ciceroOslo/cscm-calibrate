@@ -309,7 +309,7 @@ def weight_ensemble_and_draw(
     """
     print("Doing reweighting...")
 
-    store = pd.HDFStore(f"data/data_all_targs_paramats{file_endstring}.h5")
+    store = pd.HDFStore(f"output/data_all_targs_paramats{file_endstring}.h5")
     targ = store["targ"]
     parammat = store["parammat"]
 
@@ -362,7 +362,7 @@ def weight_ensemble_and_draw(
     )
     print(drawn_samples)
     sample_ids = np.load(
-        f"data/valid_sample_ids_all_chunks{file_endstring}.npy", allow_pickle=True
+        f"output/valid_sample_ids_all_chunks{file_endstring}.npy", allow_pickle=True
     )[drawn_samples.index.to_list()]
     make_config_distro_json(
         parammat.iloc[drawn_samples.index.to_list(), :].to_numpy().transpose(),
