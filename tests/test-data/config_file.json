@@ -3,9 +3,9 @@
         "output_ensemble_size": 500
     },
     "prior_configs": {
-        "distnums": 6000000,
-        "max_workers": 100,
-        "chunk_size": 10000,
+        "distnums": 20,
+        "max_workers": 10,
+        "chunk_size": 10,
         "carbon_cycle": "default",
         "prior_distro_dict": {
             "rlamdo": [

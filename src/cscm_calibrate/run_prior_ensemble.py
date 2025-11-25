@@ -98,31 +98,56 @@ def run_prior_ensemble(
     output_dir = os.path.join(project_root, "output")
     os.makedirs(output_dir, exist_ok=True)
 
-    testconfig.make_config_lists(
-        distnums,
-        json_fname=os.path.join(output_dir, f"configs_{distnums}_.json"),
-        max_chunk_size=chunk_size,
-    )
+    # Suppress stdout from config generation to reduce noise
+    old_stdout = sys.stdout
+    sys.stdout = open(os.devnull, 'w')
+    try:
+        testconfig.make_config_lists(
+            distnums,
+            json_fname=os.path.join(output_dir, f"configs_{distnums}_.json"),
+            max_chunk_size=chunk_size,
+        )
+    finally:
+        sys.stdout.close()
+        sys.stdout = old_stdout
+    
     chunk_nums = int(np.ceil(distnums / chunk_size))
+    
+    print(f"\n{'='*60}")
+    print(f"PRIOR ENSEMBLE GENERATION")
+    print(f"{'='*60}")
+    print(f"Total samples: {distnums:,}")
+    print(f"Chunk size: {chunk_size:,}")
+    print(f"Number of chunks: {chunk_nums}")
+    print(f"Parallel workers: {max_workers}")
+    print(f"Output directory: {output_dir}")
+    print(f"{'='*60}\n")
 
     for i in range(chunk_nums):
+        print(f"\n--- Processing Chunk {i+1}/{chunk_nums} ---")
         file_midstring = f"{distnums}_chunk_{i}{startdate}"
-        distrorun1 = DistributionRun(
-            testconfig,
-            json_file_name=os.path.join(output_dir, f"configs_{file_midstring}.json"),
-            numvalues=distnums,
-        )
+        
+        # Suppress stdout from DistributionRun initialization
+        old_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+        try:
+            distrorun1 = DistributionRun(
+                testconfig,
+                json_file_name=os.path.join(output_dir, f"configs_{file_midstring}.json"),
+                numvalues=distnums,
+            )
+        finally:
+            sys.stdout.close()
+            sys.stdout = old_stdout
+        
         output_vars = calibdata["Variable Name"]
+        print(f"Running {chunk_size:,} simulations with {max_workers} workers...")
         results = distrorun1.run_over_distribution(
             scenariodata, output_vars, max_workers=max_workers
         )
 
-        # print(results.head())
-        # print(results.shape)
-
         results_for_fit_dict_1d = {}
         for idx, data in calibdata.iterrows():
-            # print(data)
             results_sub = results.loc[results["variable"] == data["Variable Name"]]
             if (
                 data["Yearstart_norm"] == data["Yearend_norm"]
@@ -132,7 +157,6 @@ def run_prior_ensemble(
                     :, data["Yearstart_change"] - 1750 + 7
                 ].values
             elif data["Yearstart_norm"] == data["Yearend_norm"]:
-                print(results_sub.iloc[:, data["Yearstart_change"] - 1750 + 7])
                 results_for_fit_dict_1d[data["Variable Name"]] = (
                     results_sub.iloc[:, data["Yearstart_change"] - 1750 + 7]
                     - results_sub.iloc[:, data["Yearstart_norm"] - 1750 + 7]
@@ -157,26 +181,18 @@ def run_prior_ensemble(
                     ).mean(axis=1)
                 ).values
 
-        print(f"DEBUG: prunecfgs = {prunecfgs}")
-        print(f"DEBUG: About to save .npy files for {len(prunecfgs)} variables")
-        print(f"DEBUG: Current working directory: {os.getcwd()}")
-        print(f"DEBUG: Saving to output directory: {output_dir}")
+        # Save timeseries output for pruning variables
         for variable, varinfo in prunecfgs.items():
-            print(f"DEBUG: Processing variable '{variable}' with varinfo {varinfo}")
             results_save = results[results["variable"] == varinfo[0]]
-            print(f"DEBUG: results_save shape before filtering: {results_save.shape}")
             ids = results_save["run_id"].to_numpy()
             results_save = results_save.iloc[:, 107:].to_numpy(float)
             filename = os.path.join(
                 output_dir, f"{variable}_{file_midstring}_1850-2023.npy"
             )
-            abs_filename = os.path.abspath(filename)
-            print(f"DEBUG: Saving to {filename} with shape {results_save.shape}")
             np.save(filename, results_save)
             np.save(os.path.join(output_dir, f"sample_ids_{file_midstring}.npy"), ids)
-            print(f"DEBUG: Files saved successfully")
-            print(f"DEBUG: File exists check: {os.path.exists(abs_filename)}")
-        # sys.exit(4)
+
+        # Save constraint targets and parameter matrices
         targ = pd.DataFrame(data=results_for_fit_dict_1d)
         targ.index.set_names("run_id", inplace=True)
         pdict = distrorun1.cfgs
@@ -194,13 +210,16 @@ def run_prior_ensemble(
         pmat = pd.DataFrame(mdict)
 
         parammat = pmat.loc[:, (pmat != pmat.iloc[0]).any()]
-        parammat
 
-        # sys.exit(4)
-        store = pd.HDFStore(os.path.join(output_dir, f"data_{file_midstring}.h5"))
-        store["targ"] = targ
-        store["parammat"] = parammat
-        store.close()
+        h5_file = os.path.join(output_dir, f"data_{file_midstring}.h5")
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=pd.errors.PerformanceWarning)
+            store = pd.HDFStore(h5_file)
+            store["targ"] = targ
+            store["parammat"] = parammat
+            store.close()
+
+        print(f"✓ Chunk {i+1}/{chunk_nums} complete!\n")
 
         # store_long = pd.HDFStore('data/data_long.h5')
         # store_long['results'] = results
