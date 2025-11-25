@@ -4,7 +4,7 @@
     },
     "prior_configs": {
         "distnums": 6000000,
-        "max_workers": 200,
+        "max_workers": 100,
         "chunk_size": 10000,
         "carbon_cycle": "default",
         "prior_distro_dict": {

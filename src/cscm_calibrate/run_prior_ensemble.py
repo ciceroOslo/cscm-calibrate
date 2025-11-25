@@ -47,6 +47,7 @@ def run_prior_ensemble(
     distnums=6000000,
     chunk_size=10000,
     startdate=None,
+    max_workers=200,
 ):
     """
     Run a prior ensemble simulation, processes results, and saves outputs for calibration.
@@ -71,6 +72,8 @@ def run_prior_ensemble(
         Number of distributions to process per chunk (default is 10,000).
     startdate : str or None, optional
         Optional string to append to output filenames for distinguishing runs (default is None).
+    max_workers : int, optional
+        Number of parallel workers to use for ensemble runs (default is 200).
 
     Returns
     -------
@@ -111,7 +114,7 @@ def run_prior_ensemble(
         )
         output_vars = calibdata["Variable Name"]
         results = distrorun1.run_over_distribution(
-            scenariodata, output_vars, max_workers=200
+            scenariodata, output_vars, max_workers=max_workers
         )
 
         # print(results.head())

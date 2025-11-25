@@ -5,50 +5,6 @@ Calibration pipeline for the ciceroscm simple climate model
 
 Work in progress
 
-**Key info :**
-[![Docs](https://readthedocs.org/projects/cscm-calibrate/badge/?version=latest)](https://cscm-calibrate.readthedocs.io)
-[![Main branch: supported Python versions](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2FciceroOslo%2Fcscm-calibrate%2Fmain%2Fpyproject.toml)](https://github.com/ciceroOslo/cscm-calibrate/blob/main/pyproject.toml)
-[![Licence](https://img.shields.io/pypi/l/cscm-calibrate?label=licence)](https://github.com/ciceroOslo/cscm-calibrate/blob/main/LICENCE)
-
-**PyPI :**
-[![PyPI](https://img.shields.io/pypi/v/cscm-calibrate.svg)](https://pypi.org/project/cscm-calibrate/)
-[![PyPI install](https://github.com/ciceroOslo/cscm-calibrate/actions/workflows/install-pypi.yaml/badge.svg?branch=main)](https://github.com/ciceroOslo/cscm-calibrate/actions/workflows/install-pypi.yaml)
-
-**Tests :**
-[![CI](https://github.com/ciceroOslo/cscm-calibrate/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/ciceroOslo/cscm-calibrate/actions/workflows/ci.yaml)
-[![Coverage](https://codecov.io/gh/ciceroOslo/cscm-calibrate/branch/main/graph/badge.svg)](https://codecov.io/gh/ciceroOslo/cscm-calibrate)
-
-**Other info :**
-[![Last Commit](https://img.shields.io/github/last-commit/ciceroOslo/cscm-calibrate.svg)](https://github.com/ciceroOslo/cscm-calibrate/commits/main)
-[![Contributors](https://img.shields.io/github/contributors/ciceroOslo/cscm-calibrate.svg)](https://github.com/ciceroOslo/cscm-calibrate/graphs/contributors)
-## Status
-
-<!---
-
-We recommend having a status line in your repo
-to tell anyone who stumbles on your repository where you're up to.
-Some suggested options:
-
-- prototype: the project is just starting up and the code is all prototype
-- development: the project is actively being worked on
-- finished: the project has achieved what it wanted
-  and is no longer being worked on, we won't reply to any issues
-- dormant: the project is no longer worked on
-  but we might come back to it,
-  if you have questions, feel free to raise an issue
-- abandoned: this project is no longer worked on
-  and we won't reply to any issues
--->
-
-- prototype: the project is just starting up and the code is all prototype
-
-<!--- --8<-- [end:description] -->
-
-Full documentation can be found at:
-[cscm-calibrate.readthedocs.io](https://cscm-calibrate.readthedocs.io/en/latest/).
-We recommend reading the docs there because the internal documentation links
-don't render correctly on GitHub's viewer.
-
 ## Installation
 
 <!--- --8<-- [start:installation] -->
@@ -172,3 +128,107 @@ Unit and integration tests are provided in the `tests/` directory. To run all te
 ```bash
 make test
 ```
+
+---
+
+## Detailed Workflow Description
+
+The CSCM calibration pipeline performs Bayesian calibration of the CICERO Simple Climate Model using observational constraints. The workflow consists of three main stages:
+
+### 1. Prior Ensemble Generation
+
+The pipeline first generates a large ensemble of model runs sampling from prior parameter distributions:
+
+- **Parameter Sampling**: Samples parameters from uniform or custom distributions defined in the config file
+- **Parallel Execution**: Runs the CICERO SCM in parallel across multiple CPU cores (configurable via `max_workers`)
+- **Output Variables**: Saves time series for key climate variables (temperature, ocean heat content, radiative forcing, CO2 concentration, carbon fluxes)
+- **Chunked Processing**: Processes large ensembles in chunks to manage memory (default: 10,000 runs per chunk)
+
+**Key Config Parameters**:
+- `distnums`: Total number of prior ensemble members (e.g., 6,000,000 for production runs)
+- `prior_distro_dict`: Parameter ranges for sampling (climate sensitivity, ocean mixing, aerosol forcing, etc.)
+- `max_workers`: Number of parallel CPU cores to use (e.g., 100 on shared HPC systems)
+- `chunk_size`: Number of ensemble members per processing chunk
+
+### 2. Ensemble Pruning
+
+The pruning step filters the prior ensemble to remove physically implausible runs:
+
+- **Observational Constraints**: Compares model output to historical observations (e.g., GMST time series)
+- **RMSE Filtering**: Removes ensemble members that exceed a threshold RMSE relative to observations
+- **Multi-Variable Support**: Can prune based on multiple observational constraints simultaneously
+- **Baseline Adjustment**: Properly handles anomaly calculations relative to pre-industrial baselines
+
+**Key Config Parameters**:
+- `prune_configs`: Specifies pruning variable, observational data file, and RMSE threshold
+- Example: Temperature RMSE threshold of 0.17°C over 1850-2023
+
+### 3. Posterior Weighting and Drawing
+
+The final stage applies importance weighting to match multiple constraints:
+
+- **Importance Sampling**: Computes weights for each ensemble member based on fit to observational targets
+- **Multi-Constraint Weighting**: Combines constraints from multiple variables (OHC, GMST, aerosol forcing, CO2, carbon fluxes)
+- **Uncertainty Propagation**: Uses observational uncertainties to compute likelihood weights
+- **Final Ensemble**: Draws a smaller posterior ensemble (e.g., 500 members) weighted by fit to constraints
+- **Configuration Output**: Exports the drawn ensemble as a JSON configuration file for future SCM runs
+
+**Key Config Parameters**:
+- `constraint_configs`: Defines observational targets, uncertainties, and normalization periods for each variable
+- `output_ensemble_size`: Number of posterior ensemble members to draw (e.g., 500)
+
+### 4. Full Pipeline Execution
+
+You can run all three stages sequentially:
+
+```python
+from cscm_calibrate.cscm_calibrate import CSCMCalibrationPipeline
+
+# Initialize with config and optional external constraints
+pipeline = CSCMCalibrationPipeline(
+    config_file="path/to/config.json",
+    constraints_to_read_separately="path/to/rcmip_constraints.csv"  # Optional
+)
+
+# Run complete workflow
+pipeline.run_full_calibration_pipeline()
+```
+
+Or run stages individually for debugging/development:
+
+```python
+# Stage 1: Generate prior ensemble
+pipeline._run_prior_ensemble()
+
+# Stage 2: Prune ensemble
+pipeline.prune_distribution()
+
+# Stage 3: Weight and draw posterior
+pipeline.weight_ensemble_and_draw_write_config()
+```
+
+### Output Files
+
+All output files are saved to the `output/` directory in the project root:
+
+- **Prior ensemble**: `{variable}_{samples}_chunk_{N}_{date}_1850-2023.npy` - Time series arrays
+- **Sample IDs**: `sample_ids_{samples}_chunk_{N}_{date}.npy` - Ensemble member identifiers
+- **Target/Parameter matrices**: `data_{samples}_chunk_{N}_{date}.h5` - HDF5 files with constraint targets and parameter values
+- **Pruned ensemble**: `valid_indices_all_chunks_{date}.npy`, `valid_sample_ids_all_chunks_{date}.npy`
+- **Final ensemble**: `draw_samples_{size}_{date}.json` - Posterior ensemble configuration
+
+### Dependencies
+
+The pipeline requires:
+
+- **ciceroscm**: The CICERO Simple Climate Model (must be located at `../ciceroscm` relative to project root)
+- **Input Data**: Emissions, concentrations, and forcing data files (specified in config)
+- **Constraint Data**: Observational time series for pruning and weighting
+
+### Performance Considerations
+
+- **Memory**: Large ensembles (millions of members) require chunked processing
+- **CPU**: Set `max_workers` based on available cores and system sharing policies
+- **Storage**: Prior ensemble files can be large (GBs per chunk); ensure adequate disk space
+- **Runtime**: Full pipeline with 6M prior members can take hours to days depending on hardware
+

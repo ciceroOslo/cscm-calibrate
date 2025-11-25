@@ -198,6 +198,7 @@ class CSCMCalibrationPipeline:
             distnums=prior_cfgs.get("distnums", 6000000),
             chunk_size=prior_cfgs.get("chunk_size", 10000),
             startdate=self.datestr,
+            max_workers=prior_cfgs.get("max_workers", 200),
         )
 
     def prune_distribution(self, file_endstring=None):
