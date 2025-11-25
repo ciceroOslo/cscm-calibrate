@@ -5,10 +5,8 @@ import sys
 import pandas as pd
 import numpy as np
 
-cscm_path = cscm_path = (
-    "/home/masan/gitrepos/ciceroscm"  # os.path.join("..", "..", "..", "ciceroscm")
-)
-
+# Get path to ciceroscm - one level up from project root
+cscm_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ciceroscm"))
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 

@@ -5,6 +5,8 @@
 # mention in paper: skew-normal distribution
 # this is where Zeb earns his corn
 
+import os
+
 import numpy as np
 import pandas as pd
 import scipy.optimize
@@ -15,6 +17,11 @@ from .plot_distributions_w_obs import pam_plotting
 from .shared_functions import make_config_distro_json
 
 NINETY_TO_ONESIGMA = scipy.stats.norm.ppf(0.95)
+
+
+def get_project_root():
+    """Get the project root directory."""
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
 def opt(x, q05_desired, q50_desired, q95_desired):
@@ -309,7 +316,9 @@ def weight_ensemble_and_draw(
     """
     print("Doing reweighting...")
 
-    store = pd.HDFStore(f"output/data_all_targs_paramats{file_endstring}.h5")
+    output_dir = os.path.join(get_project_root(), "output")
+
+    store = pd.HDFStore(os.path.join(output_dir, f"data_all_targs_paramats{file_endstring}.h5"))
     targ = store["targ"]
     parammat = store["parammat"]
 
@@ -361,8 +370,11 @@ def weight_ensemble_and_draw(
         n=output_ensemble_size, replace=False, weights=weights, random_state=10099
     )
     print(drawn_samples)
+    
+    output_dir = os.path.join(get_project_root(), "output")
+    
     sample_ids = np.load(
-        f"output/valid_sample_ids_all_chunks{file_endstring}.npy", allow_pickle=True
+        os.path.join(output_dir, f"valid_sample_ids_all_chunks{file_endstring}.npy"), allow_pickle=True
     )[drawn_samples.index.to_list()]
     make_config_distro_json(
         parammat.iloc[drawn_samples.index.to_list(), :].to_numpy().transpose(),

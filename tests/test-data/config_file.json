@@ -3,7 +3,7 @@
         "output_ensemble_size": 500
     },
     "prior_configs": {
-        "distnums": 6,
+        "distnums": 100,
         "max_workers": 200,
         "chunk_size": 10000,
         "carbon_cycle": "default",

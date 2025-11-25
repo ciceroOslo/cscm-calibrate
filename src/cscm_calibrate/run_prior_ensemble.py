@@ -29,10 +29,8 @@ def get_project_root():
 
 warnings.filterwarnings("ignore", message=".*Parameter.*")
 
-cscm_path = cscm_path = (
-    "/home/masan/gitrepos/ciceroscm"  # os.path.join("..", "..", "..", "ciceroscm")
-)
-
+# Get path to ciceroscm - one level up from project root
+cscm_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ciceroscm"))
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 
