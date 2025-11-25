@@ -108,7 +108,9 @@ def do_pruning_for_chunk(
     return valid_temp, accept_temp, samples[accept_temp]
 
 
-def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples=6000000, file_endstring=""):
+def get_targ_paramat_valid_for_chunk(
+    chunk_num, valid_samples, total_samples=6000000, file_endstring=""
+):
     """
     Retrieve target and parameter matrices for specified valid sample indices from an HDF5 chunk file.
 
@@ -130,7 +132,9 @@ def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples=600
     parammat : pandas.DataFrame
         DataFrame containing the selected rows from the parameter matrix.
     """
-    store = pd.HDFStore(f"output/data_{total_samples}_chunk_{chunk_num}{file_endstring}.h5")
+    store = pd.HDFStore(
+        f"output/data_{total_samples}_chunk_{chunk_num}{file_endstring}.h5"
+    )
     targ = store["targ"]
     parammat = store["parammat"]
     store.close()
@@ -191,7 +195,10 @@ def prune_all_chunks(total_samples, prune_lists, num_chunks=600, file_endstring=
         keep_temp.append(valid_temp)
         keep_samples.append(samples_keep)
         targ_keep, parammat_keep = get_targ_paramat_valid_for_chunk(
-            chunk_num, valid_temp, total_samples=total_samples, file_endstring=file_endstring
+            chunk_num,
+            valid_temp,
+            total_samples=total_samples,
+            file_endstring=file_endstring,
         )
         print(targ_keep.shape)
         print(parammat_keep.shape)

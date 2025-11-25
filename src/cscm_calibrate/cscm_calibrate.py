@@ -120,20 +120,23 @@ class CSCMCalibrationPipeline:
         """
         config_file = os.path.abspath(config_file)
         config_dir = os.path.dirname(config_file)
-        
+
         with open(config_file) as json_config:
             configs_raw = json.load(json_config)
         print(configs_raw)
-        
+
         # Resolve relative paths in prior_configs relative to config file location
-        if "prior_configs" in configs_raw and "input_dir" in configs_raw["prior_configs"]:
+        if (
+            "prior_configs" in configs_raw
+            and "input_dir" in configs_raw["prior_configs"]
+        ):
             input_dir = configs_raw["prior_configs"]["input_dir"]
             if not os.path.isabs(input_dir):
                 # Convert relative path to absolute, relative to config file location
                 configs_raw["prior_configs"]["input_dir"] = os.path.abspath(
                     os.path.join(config_dir, input_dir)
                 )
-        
+
         if constraints_to_read_separately is not None:
             configs_raw["constraint_configs"] = make_constraints_config_from_RCMIP_csv(
                 constraints_from_RCMIP=constraints_to_read_separately
@@ -226,7 +229,9 @@ class CSCMCalibrationPipeline:
             prune_lists.append(
                 [
                     varname,
-                    os.path.join(self.configs['prior_configs']['input_dir'], varinfo[1]),
+                    os.path.join(
+                        self.configs["prior_configs"]["input_dir"], varinfo[1]
+                    ),
                     varinfo[2],
                 ]
             )

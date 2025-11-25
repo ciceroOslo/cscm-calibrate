@@ -26,6 +26,7 @@ def get_project_root():
     # Go up from src/cscm_calibrate/ to the project root
     return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
+
 warnings.filterwarnings("ignore", message=".*Parameter.*")
 
 cscm_path = cscm_path = (
@@ -88,14 +89,16 @@ def run_prior_ensemble(
     """
     if startdate is None:
         startdate = ""
-    
+
     # Ensure we save to project root output directory
     project_root = get_project_root()
     output_dir = os.path.join(project_root, "output")
     os.makedirs(output_dir, exist_ok=True)
-    
+
     testconfig.make_config_lists(
-        distnums, json_fname=os.path.join(output_dir, f"configs_{distnums}_.json"), max_chunk_size=chunk_size
+        distnums,
+        json_fname=os.path.join(output_dir, f"configs_{distnums}_.json"),
+        max_chunk_size=chunk_size,
     )
     chunk_nums = int(np.ceil(distnums / chunk_size))
 
@@ -136,9 +139,7 @@ def run_prior_ensemble(
                     (
                         results_sub.iloc[
                             :,
-                            data["Yearstart_change"]
-                            - 1750
-                            + 7 : data["Yearend_change"]
+                            data["Yearstart_change"] - 1750 + 7 : data["Yearend_change"]
                             - 1750
                             + 8,
                         ]
@@ -146,9 +147,7 @@ def run_prior_ensemble(
                     - (
                         results_sub.iloc[
                             :,
-                            data["Yearstart_norm"]
-                            - 1750
-                            + 7 : data["Yearend_norm"]
+                            data["Yearstart_norm"] - 1750 + 7 : data["Yearend_norm"]
                             - 1750
                             + 8,
                         ]
@@ -165,7 +164,9 @@ def run_prior_ensemble(
             print(f"DEBUG: results_save shape before filtering: {results_save.shape}")
             ids = results_save["run_id"].to_numpy()
             results_save = results_save.iloc[:, 107:].to_numpy(float)
-            filename = os.path.join(output_dir, f"{variable}_{file_midstring}_1850-2023.npy")
+            filename = os.path.join(
+                output_dir, f"{variable}_{file_midstring}_1850-2023.npy"
+            )
             abs_filename = os.path.abspath(filename)
             print(f"DEBUG: Saving to {filename} with shape {results_save.shape}")
             np.save(filename, results_save)
