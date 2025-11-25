@@ -54,7 +54,7 @@ def get_df_from_input_w_data_handler(
     TypeError
         If the processed input is not a pandas DataFrame.
     """
-    valid = ["CH4", "N2O", "emis", "conc", "gases"]
+    valid = ["CH4", "N2O", "emis", "conc", "gases", "gaspam"]
     if case_type not in valid:
         raise ValueError(
             f"case_type: {case_type} must be one of the valid choices {valid}"
@@ -63,10 +63,10 @@ def get_df_from_input_w_data_handler(
         input_concrete = expected_string
     if isinstance(input_concrete, str):
         input_concrete = os.path.join(test_data_dir, input_concrete)
-    if isinstance(input_concrete, os.PathLike):
+    if isinstance(input_concrete, (str, os.PathLike)):
         if case_type in ["CH4", "N2O"]:
             input_concrete = input_handler.read_natural_emissions(
-                input_concrete, "CH4", endyear=nyend
+                input_concrete, case_type, endyear=nyend
             )
         elif case_type == "emis":
             ih = input_handler.InputHandler(
@@ -76,10 +76,14 @@ def get_df_from_input_w_data_handler(
             input_concrete.rename(
                 columns={"CO2": "CO2_FF", "CO2.1": "CO2_AFOLU"}, inplace=True
             )
-        elif case_type == "gases":
+        elif case_type == "conc":
+            # RCMIP format concentration file with 4 header rows
             input_concrete = input_handler.read_inputfile(
-                input_concrete, True, year_end=nyend
+                input_concrete, cut_years=False
             )
+        elif case_type == "gaspam":
+            # Gas parameters file with 1 header row
+            input_concrete = input_handler.read_components(input_concrete)
         else:
             input_concrete = input_handler.read_components(input_concrete)
     if not isinstance(input_concrete, pd.DataFrame):
@@ -99,6 +103,10 @@ def define_scendata_for_scm(
     nyend=2023,
     nystart=1750,
     emstart=1850,
+    sunvolc=0,
+    rf_volc_file=None,
+    rf_solar_file=None,
+    rf_luc_file=None,
 ):
     """
     Prepares and returns scenario data for SCM (Simple Climate Model) calibration runs.
@@ -127,6 +135,14 @@ def define_scendata_for_scm(
         Start year for the scenario data (default is 1750).
     emstart : int, optional
         Start year for emissions data (default is 1850).
+    sunvolc : int, optional
+        Flag for including solar and volcanic forcing (default is 0).
+    rf_volc_file : str or None, optional
+        Filename for volcanic radiative forcing data.
+    rf_solar_file : str or None, optional
+        Filename for solar radiative forcing data.
+    rf_luc_file : str or None, optional
+        Filename for land use change albedo forcing data.
 
     Returns
     -------
@@ -142,7 +158,7 @@ def define_scendata_for_scm(
         nyend=nyend,
         nystart=nystart,
         emstart=emstart,
-        case_type="CH4",
+        case_type="gaspam",
     )
 
     # CH4-block
@@ -180,8 +196,34 @@ def define_scendata_for_scm(
         nyend=nyend,
         nystart=nystart,
         emstart=emstart,
-        case_type="conc",
+        case_type="emis",
     )
+
+    # Load solar and volcanic forcing data if sunvolc flag is set
+    rf_solar_data = None
+    rf_volc_data = None
+    rf_luc_data = None
+
+    if sunvolc == 1:
+        if rf_solar_file:
+            solar_path = os.path.join(test_data_dir, rf_solar_file)
+            if os.path.exists(solar_path):
+                rf_solar_data = pd.read_csv(
+                    solar_path, header=None, delim_whitespace=True
+                )
+
+        if rf_volc_file:
+            volc_path = os.path.join(test_data_dir, rf_volc_file)
+            if os.path.exists(volc_path):
+                rf_volc_data = pd.read_csv(
+                    volc_path, header=None, delim_whitespace=True
+                )
+
+        if rf_luc_file:
+            luc_path = os.path.join(test_data_dir, rf_luc_file)
+            if os.path.exists(luc_path):
+                rf_luc_data = pd.read_csv(luc_path, header=None, delim_whitespace=True)
+
     scenariodata = [
         {
             "gaspam_data": gaspam,
@@ -195,6 +237,10 @@ def define_scendata_for_scm(
             "nat_n2o_data": df_nat_n2o,
             "idtm": 24,
             "scenname": "ssp245-short",
+            "sunvolc": sunvolc,
+            "rf_solar": rf_solar_data,
+            "rf_volc": rf_volc_data,
+            "rf_luc": rf_luc_data,
         }
     ]
     return scenariodata

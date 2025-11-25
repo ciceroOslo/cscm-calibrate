@@ -23,7 +23,7 @@ varname_short_mapping = {
     "Effective Radiative Forcing|Aerosols": "ERFaer",
     "Atmospheric Concentrations|CO2": "CO2conc",
     "Ocean carbon flux": "Oceancarbon",
-    "Biosphere carbon flux": "Biocarbon"
+    "Biosphere carbon flux": "Biocarbon",
 }
 
 RCMIP_NAME_MAPPING = {
@@ -31,7 +31,7 @@ RCMIP_NAME_MAPPING = {
     "Ocean Heat Content|Global|Total": "Heat Content|Ocean",
     "Carbon Flux to Oceans": "Ocean carbon flux",
     "Carbon Flux to Land": "Biosphere carbon flux",
-    }
+}
 
 
 def rmse(obs, mod):
@@ -127,6 +127,7 @@ def make_config_distro_json(
     with open(f"data/{json_name}", "w", encoding="utf-8") as wfile:
         json.dump(config_list, wfile)
 
+
 def make_constraints_config_from_RCMIP_csv(constraints_from_RCMIP):
     """
     Reads constraint data from a CSV file and writes it to a JSON file.
@@ -146,11 +147,8 @@ def make_constraints_config_from_RCMIP_csv(constraints_from_RCMIP):
 
     constraints_df = pd.read_csv(constraints_from_RCMIP)
     constraints_dict = {
-        "Variable Name": [
-        ],
-        "Varname_short":[
-
-        ],
+        "Variable Name": [],
+        "Varname_short": [],
         "Yearstart_norm": [],
         "Yearend_norm": [],
         "Yearstart_change": [],
@@ -158,7 +156,7 @@ def make_constraints_config_from_RCMIP_csv(constraints_from_RCMIP):
         "Central Value": [],
         "lower_sigma": [],
         "upper_sigma": [],
-        "run_experiments": ["historical"]
+        "run_experiments": [],
     }
     print(constraints_df)
     for rownum, row in constraints_df.iterrows():
@@ -167,6 +165,7 @@ def make_constraints_config_from_RCMIP_csv(constraints_from_RCMIP):
             varname = RCMIP_NAME_MAPPING[varname]
         constraints_dict["Variable Name"].append(varname)
         constraints_dict["Varname_short"].append(varname_short_mapping[varname])
+        constraints_dict["run_experiments"].append("historical")
         base_years = row["Baseline_period"].split("-")
         const_years = row["Constraint_period"].split("-")
         try:
@@ -179,9 +178,13 @@ def make_constraints_config_from_RCMIP_csv(constraints_from_RCMIP):
         constraints_dict["Yearend_change"].append(int(const_years[1]))
         central = float(row["Central_estimate"])
         constraints_dict["Central Value"].append(central)
-        constraints_dict["lower_sigma"].append((central - float(row["Lower_bound"]))/SIGMA_TO_90PERCENT)
-        constraints_dict["upper_sigma"].append((float(row["Upper_bound"])- central)/SIGMA_TO_90PERCENT)
+        constraints_dict["lower_sigma"].append(
+            (central - float(row["Lower_bound"])) / SIGMA_TO_90PERCENT
+        )
+        constraints_dict["upper_sigma"].append(
+            (float(row["Upper_bound"]) - central) / SIGMA_TO_90PERCENT
+        )
 
     print(constraints_dict)
-    sys.exit(4)
-    return constraints_dict
+    # Convert to DataFrame for compatibility with run_prior_ensemble
+    return pd.DataFrame(constraints_dict)

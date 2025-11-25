@@ -158,7 +158,7 @@ class CSCMCalibrationPipeline:
             gaspam=prior_cfgs["gases"],
             df_nat_ch4=prior_cfgs["nat_ch4"],
             df_nat_n2o=prior_cfgs["nat_n2o"],
-            df_conc=prior_cfgs["gases"],
+            df_conc=prior_cfgs["conc"],
             df_emis=prior_cfgs["emis"],
             nystart=prior_cfgs["nystart"],
             emstart=prior_cfgs["emstart"],
@@ -174,8 +174,8 @@ class CSCMCalibrationPipeline:
             scenariodata=scenariodata,
             calibdata=self.configs["constraint_configs"],
             prunecfgs=self.configs["prune_configs"],
-            distnums=self.configs.get("distnums", 6000000),
-            chunk_size=self.configs.get("chunk_size", 10000),
+            distnums=prior_cfgs.get("distnums", 6000000),
+            chunk_size=prior_cfgs.get("chunk_size", 10000),
             startdate=self.datestr,
         )
 
@@ -201,8 +201,9 @@ class CSCMCalibrationPipeline:
         """
         if file_endstring is None:
             file_endstring = self.datestr
-        tot_samples = self.configs.get("distnums", 6000000)
-        num_chunks = int(np.ceil(tot_samples / self.configs.get("chunk_size", 10000)))
+        prior_cfgs = self.configs["prior_configs"]
+        tot_samples = prior_cfgs.get("distnums", 6000000)
+        num_chunks = int(np.ceil(tot_samples / prior_cfgs.get("chunk_size", 10000)))
         prune_lists = []
         for varname, varinfo in self.configs["prune_configs"].items():
             prune_lists.append(
