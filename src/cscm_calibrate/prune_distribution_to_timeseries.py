@@ -83,16 +83,22 @@ def do_pruning_for_chunk(
     """
     if file_endstring is None:
         file_endstring = ""
-    
+
     output_dir = os.path.join(get_project_root(), "output")
-    
+
     gmst, weights = prepare_weights_temp(prune_list[1])
     samples = np.load(
-        os.path.join(output_dir, f"sample_ids_{total_samples}_chunk_{chunk_num}{file_endstring}.npy"),
+        os.path.join(
+            output_dir,
+            f"sample_ids_{total_samples}_chunk_{chunk_num}{file_endstring}.npy",
+        ),
         allow_pickle=True,
     )
     temp_in = np.load(
-        os.path.join(output_dir, f"{prune_list[0]}_{total_samples}_chunk_{chunk_num}{file_endstring}_1850-2023.npy")
+        os.path.join(
+            output_dir,
+            f"{prune_list[0]}_{total_samples}_chunk_{chunk_num}{file_endstring}_1850-2023.npy",
+        )
     )
     rmse_accept = prune_list[2]
     print(temp_in.shape)
@@ -144,11 +150,13 @@ def get_targ_paramat_valid_for_chunk(
     """
     if file_endstring is None:
         file_endstring = ""
-    
+
     output_dir = os.path.join(get_project_root(), "output")
-    
+
     store = pd.HDFStore(
-        os.path.join(output_dir, f"data_{total_samples}_chunk_{chunk_num}{file_endstring}.h5")
+        os.path.join(
+            output_dir, f"data_{total_samples}_chunk_{chunk_num}{file_endstring}.h5"
+        )
     )
     targ = store["targ"]
     parammat = store["parammat"]
@@ -221,16 +229,24 @@ def prune_all_chunks(total_samples, prune_lists, num_chunks=600, file_endstring=
         keep_parammat.append(parammat_keep)
 
     valid_temps_all = np.concatenate(keep_temp)
-    
+
     output_dir = os.path.join(get_project_root(), "output")
-    
-    np.save(os.path.join(output_dir, f"valid_indices_all_chunks{file_endstring}.npy"), valid_temps_all)
+
+    np.save(
+        os.path.join(output_dir, f"valid_indices_all_chunks{file_endstring}.npy"),
+        valid_temps_all,
+    )
     valid_ids_all = np.concatenate(keep_samples)
-    np.save(os.path.join(output_dir, f"valid_sample_ids_all_chunks{file_endstring}.npy"), valid_ids_all)
+    np.save(
+        os.path.join(output_dir, f"valid_sample_ids_all_chunks{file_endstring}.npy"),
+        valid_ids_all,
+    )
     all_targs = pd.concat(keep_targ)
     all_paramat = pd.concat(keep_parammat)
 
-    store = pd.HDFStore(os.path.join(output_dir, f"data_all_targs_paramats{file_endstring}.h5"))
+    store = pd.HDFStore(
+        os.path.join(output_dir, f"data_all_targs_paramats{file_endstring}.h5")
+    )
     store["targ"] = all_targs
     store["parammat"] = all_paramat
     store.close()

@@ -318,7 +318,9 @@ def weight_ensemble_and_draw(
 
     output_dir = os.path.join(get_project_root(), "output")
 
-    store = pd.HDFStore(os.path.join(output_dir, f"data_all_targs_paramats{file_endstring}.h5"))
+    store = pd.HDFStore(
+        os.path.join(output_dir, f"data_all_targs_paramats{file_endstring}.h5")
+    )
     targ = store["targ"]
     parammat = store["parammat"]
 
@@ -370,11 +372,12 @@ def weight_ensemble_and_draw(
         n=output_ensemble_size, replace=False, weights=weights, random_state=10099
     )
     print(drawn_samples)
-    
+
     output_dir = os.path.join(get_project_root(), "output")
-    
+
     sample_ids = np.load(
-        os.path.join(output_dir, f"valid_sample_ids_all_chunks{file_endstring}.npy"), allow_pickle=True
+        os.path.join(output_dir, f"valid_sample_ids_all_chunks{file_endstring}.npy"),
+        allow_pickle=True,
     )[drawn_samples.index.to_list()]
     make_config_distro_json(
         parammat.iloc[drawn_samples.index.to_list(), :].to_numpy().transpose(),

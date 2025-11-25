@@ -4,7 +4,9 @@ import sys
 import pandas as pd
 
 # Get path to ciceroscm - one level up from project root
-cscm_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ciceroscm"))
+cscm_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "ciceroscm")
+)
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 
