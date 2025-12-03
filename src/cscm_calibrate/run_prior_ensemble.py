@@ -18,13 +18,9 @@ try:
     from pandas.core.common import SettingWithCopyWarning
 except:
     from pandas.errors import SettingWithCopyWarning
+
+from .shared_functions import get_project_root
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
-
-
-def get_project_root():
-    """Get the project root directory (where this package is installed)."""
-    # Go up from src/cscm_calibrate/ to the project root
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
 warnings.filterwarnings("ignore", message=".*Parameter.*")
@@ -97,20 +93,22 @@ def run_prior_ensemble(
     project_root = get_project_root()
     output_dir = os.path.join(project_root, "output")
     os.makedirs(output_dir, exist_ok=True)
-
+    print("Generating configuration lists...")
     # Suppress stdout from config generation to reduce noise
     old_stdout = sys.stdout
     sys.stdout = open(os.devnull, 'w')
     try:
+
         testconfig.make_config_lists(
             distnums,
             json_fname=os.path.join(output_dir, f"configs_{distnums}_.json"),
             max_chunk_size=chunk_size,
         )
+        del testconfig # Free up memory
     finally:
         sys.stdout.close()
         sys.stdout = old_stdout
-    
+    print("Configuration lists generated.")
     chunk_nums = int(np.ceil(distnums / chunk_size))
     
     print(f"\n{'='*60}")
@@ -125,14 +123,15 @@ def run_prior_ensemble(
 
     for i in range(chunk_nums):
         print(f"\n--- Processing Chunk {i+1}/{chunk_nums} ---")
-        file_midstring = f"{distnums}_chunk_{i}{startdate}"
+        file_midstring = f"{distnums}_chunk_{i}"
+        print(os.path.join(output_dir, f"configs_{file_midstring}.json"))
         
         # Suppress stdout from DistributionRun initialization
         old_stdout = sys.stdout
         sys.stdout = open(os.devnull, 'w')
         try:
             distrorun1 = DistributionRun(
-                testconfig,
+                None,
                 json_file_name=os.path.join(output_dir, f"configs_{file_midstring}.json"),
                 numvalues=distnums,
             )

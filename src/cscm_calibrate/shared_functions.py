@@ -33,6 +33,11 @@ RCMIP_NAME_MAPPING = {
     "Carbon Flux to Land": "Biosphere carbon flux",
 }
 
+def get_project_root():
+    """Get the project root directory (where this package is installed)."""
+    # Go up from src/cscm_calibrate/ to the project root
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
 
 def rmse(obs, mod):
     """
