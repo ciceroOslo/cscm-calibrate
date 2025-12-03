@@ -145,7 +145,7 @@ class CSCMCalibrationPipeline:
             # configs_raw["constraing_configs"] = constraints_raw
         self.configs = configs_raw
 
-    def _run_prior_ensemble(self):
+    def _run_prior_ensemble(self, continue_from_existing= False):
         """
         Runs the prior ensemble simulation using configuration parameters.
 
@@ -189,7 +189,7 @@ class CSCMCalibrationPipeline:
             rf_solar_file=prior_cfgs.get("rf_solar_file", None),
             rf_luc_file=prior_cfgs.get("rf_luc_file", None),
         )
-
+        print("Now running prior ensemble...")
         run_prior_ensemble(
             testconfig=testconfig,
             scenariodata=scenariodata,
@@ -199,6 +199,7 @@ class CSCMCalibrationPipeline:
             chunk_size=prior_cfgs.get("chunk_size", 10000),
             startdate=self.datestr,
             max_workers=prior_cfgs.get("max_workers", 200),
+            continue_from_existing=continue_from_existing
         )
 
     def prune_distribution(self, file_endstring=None):
