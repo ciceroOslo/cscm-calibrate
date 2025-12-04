@@ -35,12 +35,12 @@ def test_rmse_single_value():
 
 def test_make_config_distro_json_basic():
     """Test basic functionality of make_config_distro_json without fixtures."""
-    matrix = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+    matrix = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [3, 26]])
     print(matrix.shape)
-    parameter_names = ["param1", "lambda", "beta_f"]
+    parameter_names = ["param1", "lambda", "beta_f", "rs_tim1"]
     json_name = "test_config.json"
 
-    make_config_distro_json(matrix, parameter_names, json_name)
+    make_config_distro_json(matrix, parameter_names, json_name, output_dir="data")
 
     assert os.path.exists("data/test_config.json")
     with open("data/test_config.json", encoding="utf-8") as rfile:
@@ -55,3 +55,4 @@ def test_make_config_distro_json_basic():
     assert config_list[0]["pamset_udm"]["lambda"] == 3.0
     assert config_list[1]["pamset_carbon"]["beta_f"] == 6.0
     assert config_list[1]["pamset_emiconc"]["param1"] == 2.0
+    assert config_list[1]["pamset_carbon"]["rs_tim1"] == 26.0

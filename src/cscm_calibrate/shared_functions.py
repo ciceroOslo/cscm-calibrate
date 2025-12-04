@@ -71,7 +71,7 @@ def rmse(obs, mod):
 
 
 def make_config_distro_json(
-    matrix, parameter_names, json_name, indexer_pre="", index_list=None
+    matrix, parameter_names, json_name, indexer_pre="", index_list=None, output_dir=None
 ):
     """
     Generates a JSON file containing a list of configuration dictionaries based on the provided parameter matrix.
@@ -121,15 +121,19 @@ def make_config_distro_json(
                 pamset_udm[pam] = value
             elif pam in CARBON_CYCLE_MODEL_REQUIRED_PAMSET:
                 pamset_carbon[pam] = value
+            elif pam.startswith(("rb_", "rs_")):
+                pamset_carbon[pam] = value
             else:
                 pamset_emiconc[pam] = value
         config_list[i] = {
             "pamset_udm": pamset_udm.copy(),
             "pamset_emiconc": pamset_emiconc.copy(),
             "pamset_carbon": pamset_carbon.copy(),
-            "Index": index_list,
+            "Index": index_list[i],
         }
-    with open(f"data/{json_name}", "w", encoding="utf-8") as wfile:
+    if output_dir is None:
+        output_dir = os.path.join(get_project_root(), "output")
+    with open(os.path.join(output_dir, json_name), "w", encoding="utf-8") as wfile:
         json.dump(config_list, wfile)
 
 
@@ -149,7 +153,6 @@ def make_constraints_config_from_RCMIP_csv(constraints_from_RCMIP):
     None
         The function writes the constraints to a JSON file and does not return anything.
     """
-
     constraints_df = pd.read_csv(constraints_from_RCMIP)
     constraints_dict = {
         "Variable Name": [],

@@ -22,9 +22,9 @@ def test_add_entry_to_sample_distributions_normal():
     samples = {}
     constraint_config = {
         "Varname_short": ["testvar"],
-        "lower_sigma": 1.0,
-        "upper_sigma": 1.0,
-        "Central value": 0.0,
+        "lower_sigma": [1.0],
+        "upper_sigma": [1.0],
+        "Central Value": [0.0],
     }
     out = add_entry_to_sample_distributions(samples, constraint_config, 0)
     assert "testvar" in out
@@ -39,9 +39,9 @@ def test_add_entry_to_sample_distributions_skewnorm():
     samples = {}
     constraint_config = {
         "Varname_short": ["testvar"],
-        "lower_sigma": 1.0,
-        "upper_sigma": 2.0,
-        "Central value": 0.0,
+        "lower_sigma": [1.0],
+        "upper_sigma": [2.0],
+        "Central Value": [0.0],
     }
     out = add_entry_to_sample_distributions(samples, constraint_config, 0)
     assert "testvar" in out

@@ -1,11 +1,11 @@
 {
     "meta_configs": {
-        "output_ensemble_size": 500
+        "output_ensemble_size": 5
     },
     "prior_configs": {
-        "distnums": 6000000,
-        "max_workers": 200,
-        "chunk_size": 10000,
+        "distnums": 6000,
+        "max_workers": 20,
+        "chunk_size": 1000,
         "carbon_cycle": "default",
         "prior_distro_dict": {
             "rlamdo": [

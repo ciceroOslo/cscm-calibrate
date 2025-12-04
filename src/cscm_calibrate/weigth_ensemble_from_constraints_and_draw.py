@@ -14,14 +14,9 @@ import scipy.stats
 from tqdm.auto import tqdm
 
 from .plot_distributions_w_obs import pam_plotting
-from .shared_functions import make_config_distro_json
+from .shared_functions import make_config_distro_json, get_project_root
 
 NINETY_TO_ONESIGMA = scipy.stats.norm.ppf(0.95)
-
-
-def get_project_root():
-    """Get the project root directory."""
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
 def opt(x, q05_desired, q50_desired, q95_desired):
@@ -76,7 +71,7 @@ def add_entry_to_sample_distributions(samples, constraint_config, varnum):
     constraint_config : dict
         Dictionary containing constraint information for variables. Must include the keys:
         "Varname_short" (list of variable names), "lower_sigma" (float), "upper_sigma" (float),
-        and "Central value" (float).
+        and "Central Value" (float).
     varnum : int
         Index of the variable in "Varname_short" to process.
 
@@ -92,10 +87,11 @@ def add_entry_to_sample_distributions(samples, constraint_config, varnum):
     - The function assumes the existence of an `opt` function for optimization and that
       `scipy.stats` and `scipy.optimize` are imported.
     """
+    print(varnum)
     name = constraint_config["Varname_short"][varnum]
-    lower_sigma = constraint_config["lower_sigma"]
-    upper_sigma = constraint_config["upper_sigma"]
-    central = constraint_config["Central value"]
+    lower_sigma = constraint_config["lower_sigma"][varnum]
+    upper_sigma = constraint_config["upper_sigma"][varnum]
+    central = constraint_config["Central Value"][varnum]
     if lower_sigma == upper_sigma:
         samples[name] = scipy.stats.norm.rvs(
             loc=central, scale=lower_sigma, size=10**5, random_state=43178
@@ -333,9 +329,12 @@ def weight_ensemble_and_draw(
     data_in_dict = {}
     samples = {}
     ar_distributions = {}
-    for varnum, constraint in enumerate(constraint_config["Variable_short"]):
-        data_in_dict[constraint_config[constraint][varnum]] = targ[
-            "Variable Name"
+    for varnum, constraint in enumerate(constraint_config["Varname_short"]):
+        print(targ)
+        print(constraint)
+        print(constraint_config["Variable Name"][varnum])
+        data_in_dict[constraint] = targ[
+            constraint_config["Variable Name"][varnum]  
         ].to_numpy()
         samples = add_entry_to_sample_distributions(
             samples=samples, constraint_config=constraint_config, varnum=varnum

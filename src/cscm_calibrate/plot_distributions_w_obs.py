@@ -108,7 +108,8 @@ def pam_plotting(parammat, weights=None, name_epithet=""):
     None
         The function saves the generated plot as a PNG file and does not return any value.
     """
-    fig, axs = plt.subplots(nrows=5, ncols=5, figsize=(30, 30))
+    fig, axs = plt.subplots(nrows=7, ncols=7, figsize=(30, 30))
+    print(len(parammat.columns))
     for i, param in enumerate(parammat.columns):
         axnow = axs[i // 5, i % 5]
         if weights is None:

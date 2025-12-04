@@ -223,7 +223,7 @@ class CSCMCalibrationPipeline:
         configuration dictionary.
         """
         if file_endstring is None:
-            file_endstring = self.datestr
+            file_endstring = ""# self.datestr
         prior_cfgs = self.configs["prior_configs"]
         tot_samples = prior_cfgs.get("distnums", 6000000)
         num_chunks = int(np.ceil(tot_samples / prior_cfgs.get("chunk_size", 10000)))
@@ -263,7 +263,8 @@ class CSCMCalibrationPipeline:
         None
         """
         if file_endstring is None:
-            file_endstring = self.datestr
+            file_endstring = ""#self.datestr
+        print(self.configs["constraint_configs"])
         weight_ensemble_and_draw(
             constraint_config=self.configs["constraint_configs"],
             file_endstring=file_endstring,

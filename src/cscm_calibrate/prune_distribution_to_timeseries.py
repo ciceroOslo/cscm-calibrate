@@ -4,13 +4,7 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 
-from .shared_functions import rmse
-
-
-def get_project_root():
-    """Get the project root directory."""
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-
+from .shared_functions import rmse, get_project_root
 
 def prepare_weights_temp(data_path, data_varname="GMST"):
     """
