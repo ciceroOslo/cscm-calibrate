@@ -7,10 +7,10 @@
 # In[1]:
 
 
+import glob
 import os
 import sys
 import warnings
-import glob
 
 import numpy as np
 import pandas as pd
@@ -21,6 +21,7 @@ except:
     from pandas.errors import SettingWithCopyWarning
 
 from .shared_functions import get_project_root
+
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 
 
@@ -35,38 +36,39 @@ sys.path.insert(0, os.path.join(cscm_path, "src"))
 
 from ciceroscm.parallel.distributionrun import DistributionRun
 
+
 def _generate_prior_ensemble_parameters(
-    testconfig, 
-    output_dir,
-    distnums,
-    chunk_size,
-    continue_from_existing=False
+    testconfig, output_dir, distnums, chunk_size, continue_from_existing=False
 ):
     if continue_from_existing:
         if os.path.exists(output_dir):
             chunk_nums = int(np.ceil(distnums / chunk_size))
-            if os.path.exists(os.path.join(output_dir, f"configs_{distnums}_chunk_{chunk_nums-1}.json")):
+            if os.path.exists(
+                os.path.join(
+                    output_dir, f"configs_{distnums}_chunk_{chunk_nums - 1}.json"
+                )
+            ):
                 print("Using preexisting config files")
                 return
     os.makedirs(output_dir, exist_ok=True)
     print("Generating configuration lists...")
     # Suppress stdout from config generation to reduce noise
     old_stdout = sys.stdout
-    sys.stdout = open(os.devnull, 'w')
+    sys.stdout = open(os.devnull, "w")
     try:
-
         testconfig.make_config_lists(
             distnums,
             json_fname=os.path.join(output_dir, f"configs_{distnums}_.json"),
             max_chunk_size=chunk_size,
         )
-        del testconfig # Free up memory
+        del testconfig  # Free up memory
     finally:
         sys.stdout.close()
         sys.stdout = old_stdout
     print("Configuration lists generated.")
 
     return
+
 
 def run_prior_ensemble(
     testconfig,
@@ -77,7 +79,7 @@ def run_prior_ensemble(
     chunk_size=10000,
     startdate=None,
     max_workers=200,
-    continue_from_existing=False
+    continue_from_existing=False,
 ):
     """
     Run a prior ensemble simulation, processes results, and saves outputs for calibration.
@@ -127,52 +129,59 @@ def run_prior_ensemble(
     project_root = get_project_root()
     output_dir = os.path.join(project_root, "output")
     _generate_prior_ensemble_parameters(
-        testconfig=testconfig, 
-        output_dir=output_dir, 
-        distnums=distnums, 
-        chunk_size=chunk_size, 
-        continue_from_existing=continue_from_existing
-        )
+        testconfig=testconfig,
+        output_dir=output_dir,
+        distnums=distnums,
+        chunk_size=chunk_size,
+        continue_from_existing=continue_from_existing,
+    )
     chunk_nums = int(np.ceil(distnums / chunk_size))
     sample_max = -1
     if continue_from_existing:
-        sample_dumps_existing = glob.glob(f"{output_dir}/sample_ids_{distnums}_chunk_*.npy")
+        sample_dumps_existing = glob.glob(
+            f"{output_dir}/sample_ids_{distnums}_chunk_*.npy"
+        )
         if len(sample_dumps_existing) > 0:
-            sample_dumps_existing = [int(fpath.split("_")[-1].split(".")[0]) for fpath in sample_dumps_existing]
+            sample_dumps_existing = [
+                int(fpath.split("_")[-1].split(".")[0])
+                for fpath in sample_dumps_existing
+            ]
             sample_dumps_existing.sort()
             sample_max = sample_dumps_existing[-1]
-    
-    print(f"\n{'='*60}")
-    print(f"PRIOR ENSEMBLE GENERATION")
-    print(f"{'='*60}")
+
+    print(f"\n{'=' * 60}")
+    print("PRIOR ENSEMBLE GENERATION")
+    print(f"{'=' * 60}")
     print(f"Total samples: {distnums:,}")
     print(f"Chunk size: {chunk_size:,}")
     print(f"Number of chunks: {chunk_nums}")
     print(f"Parallel workers: {max_workers}")
     print(f"Output directory: {output_dir}")
     if continue_from_existing:
-        print(f"Continuing from chunk {sample_max +1}")
-    print(f"{'='*60}\n")
-    #sys.exit(4)
+        print(f"Continuing from chunk {sample_max + 1}")
+    print(f"{'=' * 60}\n")
+    # sys.exit(4)
 
     for i in range(sample_max + 1, chunk_nums):
-        print(f"\n--- Processing Chunk {i+1}/{chunk_nums} ---")
+        print(f"\n--- Processing Chunk {i + 1}/{chunk_nums} ---")
         file_midstring = f"{distnums}_chunk_{i}"
         print(os.path.join(output_dir, f"configs_{file_midstring}.json"))
-        
+
         # Suppress stdout from DistributionRun initialization
         old_stdout = sys.stdout
-        sys.stdout = open(os.devnull, 'w')
+        sys.stdout = open(os.devnull, "w")
         try:
             distrorun1 = DistributionRun(
                 None,
-                json_file_name=os.path.join(output_dir, f"configs_{file_midstring}.json"),
+                json_file_name=os.path.join(
+                    output_dir, f"configs_{file_midstring}.json"
+                ),
                 numvalues=distnums,
             )
         finally:
             sys.stdout.close()
             sys.stdout = old_stdout
-        
+
         output_vars = calibdata["Variable Name"]
         print(f"Running {chunk_size:,} simulations with {max_workers} workers...")
         results = distrorun1.run_over_distribution(
@@ -246,13 +255,13 @@ def run_prior_ensemble(
 
         h5_file = os.path.join(output_dir, f"data_{file_midstring}.h5")
         with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=pd.errors.PerformanceWarning)
+            warnings.filterwarnings("ignore", category=pd.errors.PerformanceWarning)
             store = pd.HDFStore(h5_file)
             store["targ"] = targ
             store["parammat"] = parammat
             store.close()
 
-        print(f"✓ Chunk {i+1}/{chunk_nums} complete!\n")
+        print(f"✓ Chunk {i + 1}/{chunk_nums} complete!\n")
 
         # store_long = pd.HDFStore('data/data_long.h5')
         # store_long['results'] = results

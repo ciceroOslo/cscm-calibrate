@@ -5,13 +5,12 @@ import warnings
 from datetime import date
 
 import numpy as np
-import pandas as pd
 
 from .prune_distribution_to_timeseries import prune_all_chunks
 from .run_prior_ensemble import run_prior_ensemble
 from .set_up_calibration_configs_and_run import define_scendata_for_scm
-from .weigth_ensemble_from_constraints_and_draw import weight_ensemble_and_draw
 from .shared_functions import make_constraints_config_from_RCMIP_csv
+from .weigth_ensemble_from_constraints_and_draw import weight_ensemble_and_draw
 
 try:
     from pandas.core.common import SettingWithCopyWarning
@@ -145,7 +144,7 @@ class CSCMCalibrationPipeline:
             # configs_raw["constraing_configs"] = constraints_raw
         self.configs = configs_raw
 
-    def _run_prior_ensemble(self, continue_from_existing= False):
+    def _run_prior_ensemble(self, continue_from_existing=False):
         """
         Runs the prior ensemble simulation using configuration parameters.
 
@@ -199,7 +198,7 @@ class CSCMCalibrationPipeline:
             chunk_size=prior_cfgs.get("chunk_size", 10000),
             startdate=self.datestr,
             max_workers=prior_cfgs.get("max_workers", 200),
-            continue_from_existing=continue_from_existing
+            continue_from_existing=continue_from_existing,
         )
 
     def prune_distribution(self, file_endstring=None):
@@ -223,7 +222,7 @@ class CSCMCalibrationPipeline:
         configuration dictionary.
         """
         if file_endstring is None:
-            file_endstring = ""# self.datestr
+            file_endstring = ""  # self.datestr
         prior_cfgs = self.configs["prior_configs"]
         tot_samples = prior_cfgs.get("distnums", 6000000)
         num_chunks = int(np.ceil(tot_samples / prior_cfgs.get("chunk_size", 10000)))
@@ -263,7 +262,7 @@ class CSCMCalibrationPipeline:
         None
         """
         if file_endstring is None:
-            file_endstring = ""#self.datestr
+            file_endstring = ""  # self.datestr
         print(self.configs["constraint_configs"])
         weight_ensemble_and_draw(
             constraint_config=self.configs["constraint_configs"],

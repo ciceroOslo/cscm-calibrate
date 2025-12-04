@@ -14,7 +14,7 @@ import scipy.stats
 from tqdm.auto import tqdm
 
 from .plot_distributions_w_obs import pam_plotting
-from .shared_functions import make_config_distro_json, get_project_root
+from .shared_functions import get_project_root, make_config_distro_json
 
 NINETY_TO_ONESIGMA = scipy.stats.norm.ppf(0.95)
 
@@ -334,7 +334,7 @@ def weight_ensemble_and_draw(
         print(constraint)
         print(constraint_config["Variable Name"][varnum])
         data_in_dict[constraint] = targ[
-            constraint_config["Variable Name"][varnum]  
+            constraint_config["Variable Name"][varnum]
         ].to_numpy()
         samples = add_entry_to_sample_distributions(
             samples=samples, constraint_config=constraint_config, varnum=varnum

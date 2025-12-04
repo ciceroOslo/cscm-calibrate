@@ -1,7 +1,6 @@
-import pytest
 import numpy as np
 import pandas as pd
-from unittest.mock import patch, MagicMock
+
 import cscm_calibrate.plot_distributions_w_obs as pdwo
 
 

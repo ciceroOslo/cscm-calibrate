@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 
-from .shared_functions import rmse, get_project_root
+from .shared_functions import get_project_root, rmse
+
 
 def prepare_weights_temp(data_path, data_varname="GMST"):
     """

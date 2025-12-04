@@ -1,7 +1,8 @@
+from unittest.mock import MagicMock
+
 import numpy as np
 import pandas as pd
-import pytest
-from unittest.mock import MagicMock
+
 from cscm_calibrate.run_prior_ensemble import run_prior_ensemble
 
 

@@ -303,5 +303,5 @@ def plot_distributions(results, name_epithet):
         fig.set_title(variable)
         fig.set_ylabel(group.iloc[0, 6])
         fig.legend()
-        plt.savefig(f"{variable.replace(' ','').replace('|', '')}_{name_epithet}.png")
+        plt.savefig(f"{variable.replace(' ', '').replace('|', '')}_{name_epithet}.png")
         plt.clf()

@@ -62,16 +62,22 @@ def get_df_from_input_w_data_handler(
         )
     if input_concrete is None:
         input_concrete = expected_string
+    print(input_concrete)
+    print(test_data_dir)
     if isinstance(input_concrete, str):
+        print("Hello")
+        print(test_data_dir)
         input_concrete = os.path.join(test_data_dir, input_concrete)
+        print(input_concrete)
     if isinstance(input_concrete, (str, os.PathLike)):
+        print(input_concrete)
         if case_type in ["CH4", "N2O"]:
             input_concrete = input_handler.read_natural_emissions(
                 input_concrete, case_type, endyear=nyend
             )
         elif case_type == "emis":
             ih = input_handler.InputHandler(
-                {"nyend": nyend, "nystart": nystart, "emstart": nyend}
+                {"nyend": nyend, "nystart": nystart, "emstart": emstart}
             )
             input_concrete = ih.read_emissions(input_concrete)
             input_concrete.rename(
@@ -166,7 +172,7 @@ def define_scendata_for_scm(
     df_nat_ch4 = get_df_from_input_w_data_handler(
         df_nat_ch4,
         test_data_dir,
-        "/natemis_CH4_ode_method_from_Sep2025_updates.txt",
+        "natemis_CH4_ode_method_from_Sep2025_updates.txt",
         nyend=nyend,
         nystart=nystart,
         emstart=emstart,
@@ -175,7 +181,7 @@ def define_scendata_for_scm(
     df_nat_n2o = get_df_from_input_w_data_handler(
         df_nat_n2o,
         test_data_dir,
-        "/natemis_N2O_ode_method_from_Sep2025_updates.txt",
+        "natemis_N2O_ode_method_from_Sep2025_updates.txt",
         nyend=nyend,
         nystart=nystart,
         emstart=emstart,
@@ -184,7 +190,7 @@ def define_scendata_for_scm(
     df_conc = get_df_from_input_w_data_handler(
         df_conc,
         test_data_dir,
-        "/igcc_historical_conc_gases_vupdate_2024_WMO_added_new.txt",
+        "historical_conc_gases_vupdate_2024_WMO_added_new.txt",
         nyend=nyend,
         nystart=nystart,
         emstart=emstart,
@@ -193,7 +199,7 @@ def define_scendata_for_scm(
     df_emis = get_df_from_input_w_data_handler(
         df_emis,
         test_data_dir,
-        "/historical_em_gases_vupdate_2024_WMO_added_new.txt",
+        "historical_em_gases_vupdate_2024_WMO_added_new.txt",
         nyend=nyend,
         nystart=nystart,
         emstart=emstart,

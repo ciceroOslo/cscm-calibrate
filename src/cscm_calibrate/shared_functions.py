@@ -2,8 +2,8 @@ import json
 import os
 import sys
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 # Get path to ciceroscm - one level up from project root
 cscm_path = os.path.abspath(
@@ -32,6 +32,7 @@ RCMIP_NAME_MAPPING = {
     "Carbon Flux to Oceans": "Ocean carbon flux",
     "Carbon Flux to Land": "Biosphere carbon flux",
 }
+
 
 def get_project_root():
     """Get the project root directory (where this package is installed)."""

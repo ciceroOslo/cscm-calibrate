@@ -1,9 +1,9 @@
 import numpy as np
 import scipy.stats
-import pytest
+
 from cscm_calibrate.weigth_ensemble_from_constraints_and_draw import (
-    opt,
     add_entry_to_sample_distributions,
+    opt,
 )
 
 
