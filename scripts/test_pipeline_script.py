@@ -28,4 +28,5 @@ calibration_pipeline._run_prior_ensemble(
     continue_from_existing=True
 )  # Generate prior ensemble
 calibration_pipeline.prune_distribution()  # Prune ensemble based on constraints
-calibration_pipeline.weight_ensemble_and_draw_write_config()  # Weight and draw final ensemble
+# Weight and draw final ensemble
+calibration_pipeline.weight_ensemble_and_draw_write_config()

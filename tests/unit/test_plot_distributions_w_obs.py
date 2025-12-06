@@ -85,8 +85,10 @@ def test_get_data_for_plots(monkeypatch):
 
 
 def test_plot_distributions_calls(monkeypatch):
+    rng = np.random.default_rng(seed=123)
+
     dummy_results = pd.DataFrame(
-        np.random.rand(2, 8),
+        rng.standard_normal((2, 8)),
         columns=[f"c{i}" for i in range(5)] + [str(2000 + i) for i in range(3)],
     )
 

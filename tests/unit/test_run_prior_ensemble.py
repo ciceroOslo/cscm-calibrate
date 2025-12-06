@@ -50,7 +50,8 @@ def test_run_prior_ensemble_minimal(monkeypatch, tmp_path):
         "cscm_calibrate.run_prior_ensemble.DistributionRun", DummyDistributionRun
     )
 
-    # Minimal calibdata and prunecfgs, matching the mock years but with Yearstart/Yearend >= 1750
+    # Minimal calibdata and prunecfgs, matching the mock years
+    # but with Yearstart/Yearend >= 1750
     calibdata = pd.DataFrame(
         {
             "Variable Name": ["var1"],
@@ -145,7 +146,8 @@ def test_run_prior_ensemble_realistic_shape(monkeypatch, tmp_path):
         "cscm_calibrate.run_prior_ensemble.DistributionRun", DummyDistributionRun
     )
 
-    # Calibdata with different year logic, matching the mock years but with Yearstart/Yearend >= 1750
+    # Calibdata with different year logic, matching the mock years
+    #  but with Yearstart/Yearend >= 1750
     calibdata = pd.DataFrame(
         {
             "Variable Name": ["var1", "var2", "var1"],

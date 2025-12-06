@@ -1,3 +1,7 @@
+"""
+Set up calibration configs for running calibrations
+"""
+
 import os
 import sys
 
@@ -11,10 +15,10 @@ cscm_path = os.path.abspath(
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 
 
-from ciceroscm import input_handler
+from ciceroscm import input_handler  # noqa: E402
 
 
-def get_df_from_input_w_data_handler(
+def get_df_from_input_w_data_handler(  # noqa: PLR0913
     input_concrete,
     test_data_dir,
     expected_string,
@@ -24,12 +28,16 @@ def get_df_from_input_w_data_handler(
     case_type="CH4",
 ):
     """
-    Loads and processes input data for calibration using the input_handler module.
+    Load and process input data for calibration
+
+    Loads and processes input data for calibration
+    using the input_handler module.
 
     Parameters
     ----------
     input_concrete : str, os.PathLike, pd.DataFrame or None
-        The input data, which can be a file path, DataFrame, or None. If None, uses `expected_string`.
+        The input data, which can be a file path, DataFrame, or None.
+        If None, uses `expected_string`.
     test_data_dir : str or os.PathLike
         Directory where test data files are located.
     expected_string : str
@@ -41,7 +49,8 @@ def get_df_from_input_w_data_handler(
     emstart : int, optional
         Emissions start year (default is 1850).
     case_type : str, optional
-        Type of data to process. Must be one of ["CH4", "N2O", "emis", "conc", "gases"] (default is "CH4").
+        Type of data to process. Must be one of
+        ["CH4", "N2O", "emis", "conc", "gases"] (default is "CH4").
 
     Returns
     -------
@@ -57,20 +66,14 @@ def get_df_from_input_w_data_handler(
     """
     valid = ["CH4", "N2O", "emis", "conc", "gases", "gaspam"]
     if case_type not in valid:
-        raise ValueError(
+        raise ValueError(  # noqa: TRY003
             f"case_type: {case_type} must be one of the valid choices {valid}"
         )
     if input_concrete is None:
         input_concrete = expected_string
-    print(input_concrete)
-    print(test_data_dir)
     if isinstance(input_concrete, str):
-        print("Hello")
-        print(test_data_dir)
         input_concrete = os.path.join(test_data_dir, input_concrete)
-        print(input_concrete)
     if isinstance(input_concrete, (str, os.PathLike)):
-        print(input_concrete)
         if case_type in ["CH4", "N2O"]:
             input_concrete = input_handler.read_natural_emissions(
                 input_concrete, case_type, endyear=nyend
@@ -94,13 +97,13 @@ def get_df_from_input_w_data_handler(
         else:
             input_concrete = input_handler.read_components(input_concrete)
     if not isinstance(input_concrete, pd.DataFrame):
-        raise TypeError(
-            f"input_concrete for {case_type} must be either a str, a path or a DataFrame"
+        raise TypeError(  # noqa: TRY003
+            f"input_concrete for {case_type} must be either a str, a path or a DataFrame"  # noqa: E501
         )
     return input_concrete
 
 
-def define_scendata_for_scm(
+def define_scendata_for_scm(  # noqa: PLR0913
     test_data_dir,
     gaspam=None,
     df_nat_ch4=None,
@@ -116,26 +119,37 @@ def define_scendata_for_scm(
     rf_luc_file=None,
 ):
     """
-    Prepares and returns scenario data for SCM (Simple Climate Model) calibration runs.
+    Prepare and returns scenario data for SCM
 
-    This function loads and processes various input datasets required for SCM calibration,
-    including gas parameters, natural emissions, concentrations, and historical emissions.
-    It returns a list containing a dictionary with all relevant scenario data.
+    Prepare and returns scenario data for SCM
+    (Simple Climate Model ciceroscm) calibration runs.
+
+    This function loads and processes various
+    input datasets required for SCM calibration,
+    including gas parameters, natural emissions,
+    concentrations, and historical emissions.
+    It returns a list containing a dictionary with
+    all relevant scenario data.
 
     Parameters
     ----------
     test_data_dir : str
         Path to the directory containing test data files.
     gaspam : pandas.DataFrame or None, optional
-        DataFrame containing gas parameter data. If None, data will be loaded from file.
+        DataFrame containing gas parameter data.
+        If None, data will be loaded from file.
     df_nat_ch4 : pandas.DataFrame or None, optional
-        DataFrame containing natural CH4 emissions data. If None, data will be loaded from file.
+        DataFrame containing natural CH4 emissions data.
+        If None, data will be loaded from file.
     df_nat_n2o : pandas.DataFrame or None, optional
-        DataFrame containing natural N2O emissions data. If None, data will be loaded from file.
+        DataFrame containing natural N2O emissions data.
+        If None, data will be loaded from file.
     df_conc : pandas.DataFrame or None, optional
-        DataFrame containing historical gas concentrations. If None, data will be loaded from file.
+        DataFrame containing historical gas concentrations.
+        If None, data will be loaded from file.
     df_emis : pandas.DataFrame or None, optional
-        DataFrame containing historical emissions data. If None, data will be loaded from file.
+        DataFrame containing historical emissions data.
+        If None, data will be loaded from file.
     nyend : int, optional
         End year for the scenario data (default is 2023).
     nystart : int, optional
@@ -154,8 +168,10 @@ def define_scendata_for_scm(
     Returns
     -------
     scenariodata : list of dict
-        A list containing a single dictionary with all scenario data required for SCM calibration.
-        The dictionary includes gas parameters, natural emissions, concentrations, emissions,
+        A list containing a single dictionary with all
+        scenario data required for SCM calibration.
+        The dictionary includes gas parameters,
+        natural emissions, concentrations, emissions,
         and scenario metadata.
     """
     gaspam = get_df_from_input_w_data_handler(
@@ -215,21 +231,17 @@ def define_scendata_for_scm(
         if rf_solar_file:
             solar_path = os.path.join(test_data_dir, rf_solar_file)
             if os.path.exists(solar_path):
-                rf_solar_data = pd.read_csv(
-                    solar_path, header=None, delim_whitespace=True
-                )
+                rf_solar_data = pd.read_csv(solar_path, header=None, sep=r"\s+")
 
         if rf_volc_file:
             volc_path = os.path.join(test_data_dir, rf_volc_file)
             if os.path.exists(volc_path):
-                rf_volc_data = pd.read_csv(
-                    volc_path, header=None, delim_whitespace=True
-                )
+                rf_volc_data = pd.read_csv(volc_path, header=None, sep=r"\s+")
 
         if rf_luc_file:
             luc_path = os.path.join(test_data_dir, rf_luc_file)
             if os.path.exists(luc_path):
-                rf_luc_data = pd.read_csv(luc_path, header=None, delim_whitespace=True)
+                rf_luc_data = pd.read_csv(luc_path, header=None, sep=r"\s+")
 
     scenariodata = [
         {
