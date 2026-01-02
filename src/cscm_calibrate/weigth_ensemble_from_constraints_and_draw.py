@@ -360,7 +360,6 @@ def weight_ensemble_and_draw(
             weights=np.minimum(weights, 1),
             name_epithet=f"post2{file_endstring}",
         )
-
     effective_samples = int(np.floor(np.sum(np.minimum(weights, 1))))
     print("Number of effective samples:", effective_samples)
 
