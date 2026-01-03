@@ -5,11 +5,13 @@ import warnings
 from datetime import date
 
 import numpy as np
+import pandas as pd
 
 from .prune_distribution_to_timeseries import prune_all_chunks
 from .run_prior_ensemble import run_prior_ensemble
 from .set_up_calibration_configs_and_run import define_scendata_for_scm
 from .weigth_ensemble_from_constraints_and_draw import weight_ensemble_and_draw
+from .shared_functions import make_constraints_config_from_RCMIP_csv
 
 try:
     from pandas.core.common import SettingWithCopyWarning
@@ -65,7 +67,7 @@ class CSCMCalibrationPipeline:
         Runs the complete calibration pipeline: prior ensemble, pruning, and weighting/drawing.
     """
 
-    def __init__(self, config_file):
+    def __init__(self, config_file, constraints_to_read_separately=None):
         """
         Initialize the calibration class with configuration parameters.
         Reads in configuration settings from the specified file, sets up calibration parameters,
@@ -93,10 +95,10 @@ class CSCMCalibrationPipeline:
         # Also get the path to the correct version of cscm-code to use
         # should possibly include some setup and cloning from tag and include environment or at least
         # version check written to metadata...?
-        self.read_in_configs(config_file=config_file)
+        self.read_in_configs(config_file=config_file, constraints_to_read_separately=constraints_to_read_separately)
         self.datestr = f"_{date.today().strftime('%Y%m%d')}"
 
-    def read_in_configs(self, config_file):
+    def read_in_configs(self, config_file, constraints_to_read_separately=None):
         """
         Reads configuration settings from a JSON file and stores them in the instance.
 
@@ -115,6 +117,11 @@ class CSCMCalibrationPipeline:
         """
         with open(config_file) as json_config:
             configs_raw = json.load(json_config)
+        print(configs_raw)
+        if constraints_to_read_separately is not None:
+            configs_raw["constraint_configs"] = make_constraints_config_from_RCMIP_csv(
+                constraints_from_RCMIP=constraints_to_read_separately)
+            #configs_raw["constraing_configs"] = constraints_raw
         self.configs = configs_raw
 
     def _run_prior_ensemble(self):
@@ -156,12 +163,16 @@ class CSCMCalibrationPipeline:
             nystart=prior_cfgs["nystart"],
             emstart=prior_cfgs["emstart"],
             nyend=prior_cfgs["nyend"],
+            sunvolc=prior_cfgs.get("sunvolc", 0),
+            rf_volc_file=prior_cfgs.get("rf_volc_file", None),
+            rf_solar_file=prior_cfgs.get("rf_solar_file", None),
+            rf_luc_file=prior_cfgs.get("rf_luc_file", None),
         )
 
         run_prior_ensemble(
             testconfig=testconfig,
             scenariodata=scenariodata,
-            calibdata=self.configs["constraing_configs"],
+            calibdata=self.configs["constraint_configs"],
             prunecfgs=self.configs["prune_configs"],
             distnums=self.configs.get("distnums", 6000000),
             chunk_size=self.configs.get("chunk_size", 10000),
