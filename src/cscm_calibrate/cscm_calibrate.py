@@ -1,3 +1,7 @@
+"""
+Main calibration pipeline class for CSCM calibration.
+"""
+
 import json
 import os
 import sys
@@ -5,17 +9,16 @@ import warnings
 from datetime import date
 
 import numpy as np
-import pandas as pd
 
 from .prune_distribution_to_timeseries import prune_all_chunks
 from .run_prior_ensemble import run_prior_ensemble
 from .set_up_calibration_configs_and_run import define_scendata_for_scm
-from .weigth_ensemble_from_constraints_and_draw import weight_ensemble_and_draw
 from .shared_functions import make_constraints_config_from_RCMIP_csv
+from .weigth_ensemble_from_constraints_and_draw import weight_ensemble_and_draw
 
 try:
     from pandas.core.common import SettingWithCopyWarning
-except:
+except:  # noqa: E722
     from pandas.errors import SettingWithCopyWarning
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 warnings.filterwarnings("ignore", message=".*Parameter.*")
@@ -27,21 +30,26 @@ cscm_path = os.path.abspath(
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 
-from ciceroscm.parallel._configdistro import _ConfigDistro
+from ciceroscm.parallel._configdistro import (  # noqa: E402
+    _ConfigDistro,
+)
 
 
 class CSCMCalibrationPipeline:
     """
     CSCMCalibrationPipeline
 
-    A pipeline class for running the full calibration process of the CSCM (Climate System Calibration Model).
-    This class handles configuration loading, prior ensemble generation, distribution pruning, ensemble weighting,
+    A pipeline class for running the full calibration process of the CSCM
+    (Climate System Calibration Model).
+    This class handles configuration loading, prior ensemble generation,
+    distribution pruning, ensemble weighting,
     and orchestrates the full calibration workflow.
 
     Parameters
     ----------
     config_file : str
-        Path to the JSON configuration file containing all necessary calibration parameters and settings.
+        Path to the JSON configuration file containing all necessary
+        calibration parameters and settings.
 
     Attributes
     ----------
@@ -59,42 +67,51 @@ class CSCMCalibrationPipeline:
         Generates the prior ensemble based on the configuration and scenario data.
 
     prune_distribution(file_endstring=None)
-        Prunes the generated distribution according to specified constraints and configuration.
+        Prunes the generated distribution according to
+        specified constraints and configuration.
 
     weight_ensemble_and_draw_write_config(file_endstring=None)
-        Weights the ensemble, draws samples, and writes the resulting configuration.
+        Weights the ensemble, draws samples,
+        and writes the resulting configuration.
 
     run_full_calibration_pipeline()
-        Runs the complete calibration pipeline: prior ensemble, pruning, and weighting/drawing.
+        Runs the complete calibration pipeline: prior ensemble, pruning,
+        and weighting/drawing.
     """
 
     def __init__(self, config_file, constraints_to_read_separately=None):
         """
         Initialize the calibration class with configuration parameters.
-        Reads in configuration settings from the specified file, sets up calibration parameters,
-        constraints, and other necessary setup for the calibration process. Also generates a date
+
+        Reads in configuration settings from the specified file,
+        sets up calibration parameters, constraints, and other necessary setup
+        for the calibration process. Also generates a date
         string for metadata or output file naming.
 
         Parameters
         ----------
         config_file : str
-            Path to the configuration file containing calibration parameters and settings.
+            Path to the configuration file containing
+            calibration parameters and settings.
 
         Attributes
         ----------
         datestr : str
-            String representing the current date in the format '_YYYYMMDD', used for metadata or output files.
+            String representing the current date in the format '_YYYYMMDD',
+            used for metadata or output files.
 
         Notes
         -----
-        Additional setup such as environment checks, version control, or cloning from a specific tag
+        Additional setup such as environment checks, version control,
+        or cloning from a specific tag
         may be performed within this initializer.
         """
         # Initialise with the parameters and ranges to calibrate on
         # Pass the constraints to fit to
         # Possibly a pruning timeseries of data
         # Also get the path to the correct version of cscm-code to use
-        # should possibly include some setup and cloning from tag and include environment or at least
+        # should possibly include some setup and cloning from tag
+        # and include environment or at least
         # version check written to metadata...?
         self.read_in_configs(
             config_file=config_file,
@@ -104,7 +121,7 @@ class CSCMCalibrationPipeline:
 
     def read_in_configs(self, config_file, constraints_to_read_separately=None):
         """
-        Reads configuration settings from a JSON file and stores them in the instance.
+        Read configuration settings from a JSON file and store them in the instance.
 
         Parameters
         ----------
@@ -145,13 +162,15 @@ class CSCMCalibrationPipeline:
             # configs_raw["constraing_configs"] = constraints_raw
         self.configs = configs_raw
 
-    def _run_prior_ensemble(self, continue_from_existing= False):
+    def _run_prior_ensemble(self, continue_from_existing=False):
         """
-        Runs the prior ensemble simulation using configuration parameters.
+        Run the prior ensemble simulation using configuration parameters.
 
-        This method initializes the prior configuration distribution, prepares scenario data,
-        and executes the prior ensemble run with the specified calibration and pruning configurations.
-        It also supports optional parameters for the number of distributions and chunk size.
+        This method initializes the prior configuration distribution,
+        prepares scenario data, and executes the prior ensemble run
+        with the specified calibration and pruning configurations.
+        It also supports optional parameters for the number of distributions
+        and chunk size.
 
         Parameters
         ----------
@@ -161,13 +180,16 @@ class CSCMCalibrationPipeline:
         Returns
         -------
         None
-            This method does not return a value. It performs the prior ensemble run as a side effect.
+            This method does not return a value.
+            It performs the prior ensemble run and dumps output as files.
 
         Notes
         -----
-        - Requires the following keys in `self.configs`: "prior_configs", "constraing_configs", "prune_configs".
+        - Requires the following keys in `self.configs`: "prior_configs",
+          "constraing_configs", "prune_configs".
         - Optional keys: "distnums", "chunk_size".
-        - Relies on external functions: `_ConfigDistro`, `define_scendata_for_scm`, and `run_prior_ensemble`.
+        - Relies on external functions: `_ConfigDistro`, `define_scendata_for_scm`,
+          and `run_prior_ensemble`.
         """
         prior_cfgs = self.configs["prior_configs"]
         testconfig = _ConfigDistro(
@@ -199,12 +221,17 @@ class CSCMCalibrationPipeline:
             chunk_size=prior_cfgs.get("chunk_size", 10000),
             startdate=self.datestr,
             max_workers=prior_cfgs.get("max_workers", 200),
-            continue_from_existing=continue_from_existing
+            continue_from_existing=continue_from_existing,
         )
 
     def prune_distribution(self, file_endstring=None):
         """
-        Prunes a distribution by processing and filtering samples in chunks according to configuration.
+        Prune a distribution by processing and filtering samples
+
+        Prune a distribution by processing and filtering samples
+        To avoid memory issues when running the prior
+        the output is assumed to be in chunks according
+        to the configuration.
 
         Parameters
         ----------
@@ -217,13 +244,14 @@ class CSCMCalibrationPipeline:
 
         Notes
         -----
-        This method prepares a list of variables and their associated pruning information
-        from the configuration, then calls `prune_all_chunks` to process the distribution
-        in manageable chunks. The number of samples and chunk size are determined by the
+        This method prepares a list of variables and their associated
+        pruning information from the configuration, then calls `prune_all_chunks`
+        to process the distribution in manageable chunks.
+        The number of samples and chunk size are determined by the
         configuration dictionary.
         """
         if file_endstring is None:
-            file_endstring = ""# self.datestr
+            file_endstring = ""  # self.datestr
         prior_cfgs = self.configs["prior_configs"]
         tot_samples = prior_cfgs.get("distnums", 6000000)
         num_chunks = int(np.ceil(tot_samples / prior_cfgs.get("chunk_size", 10000)))
@@ -247,23 +275,28 @@ class CSCMCalibrationPipeline:
 
     def weight_ensemble_and_draw_write_config(self, file_endstring=None):
         """
-        Weights the ensemble, draws samples, and writes the configuration using the specified file end string.
+        Weight the ensemble, draw samples, and write the configurations
 
-        This method calls the `weight_ensemble_and_draw` function with the appropriate configuration parameters.
+        Weights the ensemble, draws samples, and writes the configurations
+        using the specified file end string.
+
+        This method calls the `weight_ensemble_and_draw` function
+        with the appropriate configuration parameters.
         If no file end string is provided, it defaults to the instance's date string.
 
 
         Parameters
         ----------
         file_endstring : str, optional
-            The string to append to the output file name. If None, uses the instance's `datestr` attribute.
+            The string to append to the output file name.
+            If None, uses the instance's `datestr` attribute.
 
         Returns
         -------
         None
         """
         if file_endstring is None:
-            file_endstring = ""#self.datestr
+            file_endstring = ""  # self.datestr
         print(self.configs["constraint_configs"])
         weight_ensemble_and_draw(
             constraint_config=self.configs["constraint_configs"],
@@ -273,7 +306,10 @@ class CSCMCalibrationPipeline:
 
     def run_full_calibration_pipeline(self):
         """
-        Runs the complete calibration pipeline, including prior ensemble generation, distribution pruning,
+        Run the complete calibration pipeline,
+
+        Runs the complete calibration pipeline
+        including prior ensemble generation, distribution pruning,
         and ensemble weighting/drawing.
 
         This method executes the full sequence of calibration steps in order:

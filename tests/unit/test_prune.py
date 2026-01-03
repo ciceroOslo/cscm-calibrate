@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
-import pytest
-from unittest.mock import patch, MagicMock
+
 import cscm_calibrate.prune_distribution_to_timeseries as prune
 
 

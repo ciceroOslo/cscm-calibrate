@@ -2,8 +2,6 @@ import json
 import os
 import tempfile
 
-import pytest
-
 from cscm_calibrate.cscm_calibrate import CSCMCalibrationPipeline
 
 
@@ -44,6 +42,7 @@ def test_calibration_setup(test_data_dir):
     assert set(calibration_pipeline.configs.keys()) == set(
         ["meta_configs", "prior_configs", "prune_configs", "constraint_configs"]
     )
+
 
 def test_pipeline_minimal(monkeypatch):
     # Create a minimal config file

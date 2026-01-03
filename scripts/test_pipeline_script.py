@@ -28,7 +28,9 @@ calibration_pipeline = CSCMCalibrationPipeline(
     config_file=config_file, constraints_to_read_separately=constraints_from_RCMIP
 )
 print("Initialized CSCMCalibrationPipeline with config file:", config_file)
-#sys.exit(4)
-calibration_pipeline._run_prior_ensemble(continue_from_existing=True)  # Generate prior ensemble
+calibration_pipeline._run_prior_ensemble(
+    continue_from_existing=True
+)  # Generate prior ensemble
 calibration_pipeline.prune_distribution()  # Prune ensemble based on constraints
-calibration_pipeline.weight_ensemble_and_draw_write_config()  # Weight and draw final ensemble
+# Weight and draw final ensemble
+calibration_pipeline.weight_ensemble_and_draw_write_config()
