@@ -9,7 +9,11 @@ from cscm_calibrate.cscm_calibrate import CSCMCalibrationPipeline
 
 # Configuration files setup
 config_file = os.path.join(
-    os.path.dirname(__file__), "..", "tests", "test-data", "config_file.json"
+    os.path.dirname(__file__), "..", "test-data" "config_file.json"
+)
+# Alternative config file for old model version
+config_file = os.path.join(
+    os.path.dirname(__file__), "config_file_oldmodel.json"
 )
 constraints_from_RCMIP = os.path.join(
     os.path.dirname(__file__),
@@ -24,6 +28,7 @@ calibration_pipeline = CSCMCalibrationPipeline(
     config_file=config_file, constraints_to_read_separately=constraints_from_RCMIP
 )
 print("Initialized CSCMCalibrationPipeline with config file:", config_file)
+#sys.exit(4)
 calibration_pipeline._run_prior_ensemble(continue_from_existing=True)  # Generate prior ensemble
 calibration_pipeline.prune_distribution()  # Prune ensemble based on constraints
 calibration_pipeline.weight_ensemble_and_draw_write_config()  # Weight and draw final ensemble
