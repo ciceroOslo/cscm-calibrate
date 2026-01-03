@@ -210,20 +210,20 @@ def define_scendata_for_scm(
             solar_path = os.path.join(test_data_dir, rf_solar_file)
             if os.path.exists(solar_path):
                 rf_solar_data = pd.read_csv(
-                    solar_path, header=None, delim_whitespace=True
+                    solar_path, header=None, sep='\s+'
                 )
 
         if rf_volc_file:
             volc_path = os.path.join(test_data_dir, rf_volc_file)
             if os.path.exists(volc_path):
                 rf_volc_data = pd.read_csv(
-                    volc_path, header=None, delim_whitespace=True
+                    volc_path, header=None, sep='\s+'
                 )
 
         if rf_luc_file:
             luc_path = os.path.join(test_data_dir, rf_luc_file)
             if os.path.exists(luc_path):
-                rf_luc_data = pd.read_csv(luc_path, header=None, delim_whitespace=True)
+                rf_luc_data = pd.read_csv(luc_path, header=None, sep='\s+')
 
     scenariodata = [
         {
