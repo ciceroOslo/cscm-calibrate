@@ -1,30 +1,42 @@
+"""
+Prune distribution of model runs to match temperature timeseries constraints.
+"""
+
+import os
+
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 
-from .shared_functions import rmse
+from .shared_functions import get_project_root, rmse
 
 
 def prepare_weights_temp(data_path, data_varname="GMST"):
     """
-    Prepares weights and extracts a temperature time series from a CSV file.
-    This function reads a CSV file containing temperature data, extracts the specified variable as a NumPy array,
-    and generates a corresponding weights array for use in temperature pruning. The weights array is initialized
-    with ones, except for the first element (set to 0.5) and the last element (set to 0.0).
+    Prepare weights and extract a temperature time series from a CSV file.
+
+    This function reads a CSV file containing variable data
+    (temperature is the expected example),
+    extracts the specified variable as a NumPy array,
+    and generates a corresponding weights array for use in pruning.
+    The weights array is initialized with ones,
+    except for the first element (set to 0.5) and the last element (set to 0.0).
 
     Parameters
     ----------
     data_path : str
         Path to the CSV file containing the temperature data.
     data_varname : str, optional
-        Name of the column in the CSV file to extract as the temperature time series (default is "GMST").
+        Name of the column in the CSV file to extract as the
+        variable (temperature) time series (default is "GMST").
 
     Returns
     -------
     gmst : numpy.ndarray
-        Array containing the extracted temperature time series.
+        Array containing the extracted variable (temperature) time series.
     weights : numpy.ndarray
-        Array of weights for the temperature time series, with custom values at the first and last positions.
+        Array of weights for the variable (temperature) time series,
+        with custom values at the first and last positions.
     """
     weights = np.ones(52)
     weights[0] = 0.5
@@ -40,9 +52,12 @@ def do_pruning_for_chunk(
     chunk_num, prune_list, file_endstring=None, total_samples=6000000
 ):
     """
-    Prunes a chunk of temperature timeseries samples based on RMSE constraints.
-    Loads temperature samples and corresponding sample IDs for a given chunk, computes the RMSE
-    between each sample's temperature timeseries and observed GMST (after baseline adjustment),
+    Prune a chunk of temperature timeseries samples based on RMSE constraints.
+
+    Loads temperature (or other variable )samples
+    and corresponding sample IDs for a given chunk,
+    computes the RMSE between each sample's temperature timeseries
+    and observed GMST (after baseline adjustment),
     and returns the indices and IDs of samples passing the RMSE threshold.
 
     Parameters
@@ -70,32 +85,45 @@ def do_pruning_for_chunk(
 
     Notes
     -----
-    - The function assumes temperature data is aligned to time bounds, while observations are at midyears.
-    - Baseline adjustment is performed using the average over the first 52 time steps, weighted by `weights`.
-    - The function prints diagnostic information about shapes and the number of passing samples.
+    - The function assumes temperature data is aligned to time bounds,
+      while observations are at midyears.
+    - Baseline adjustment is performed using the average over the first 52 time steps,
+      weighted by `weights`.
+    - The function prints diagnostic information about shapes
+      and the number of passing samples.
     """
     if file_endstring is None:
         file_endstring = ""
+
+    output_dir = os.path.join(get_project_root(), "output")
+
     gmst, weights = prepare_weights_temp(prune_list[1])
     samples = np.load(
-        f"data/sample_ids_{total_samples}_chunk_{chunk_num}{file_endstring}.npy",
+        os.path.join(
+            output_dir,
+            f"sample_ids_{total_samples}_chunk_{chunk_num}{file_endstring}.npy",
+        ),
         allow_pickle=True,
     )
     temp_in = np.load(
-        f"data/{prune_list[0]}_{total_samples}_chunk_{chunk_num}_1850-2023.npy"
+        os.path.join(
+            output_dir,
+            f"{prune_list[0]}_{total_samples}_chunk_{chunk_num}{file_endstring}_1850-2023.npy",
+        )
     )
     rmse_accept = prune_list[2]
     print(temp_in.shape)
     print(samples.shape)
     # temperature is on timebounds, and observations are midyears
-    # but, this is OK, since we are subtracting a consistent baseline (1850-1900, weighting
-    # the bounding timebounds as 0.5)
+    # but, this is OK, since we are subtracting a consistent baseline
+    # (1850-1900, weighting the bounding timebounds as 0.5)
     # e.g. 1993.0 timebound has big pinatubo hit, timebound 143
     # in obs this is 1992.5, timepoint 142
-    # compare the timebound after the obs, since the forcing has had chance to affect both
+    # compare the timebound after the obs, since the forcing
+    # has had chance to affect both
     # the obs timepoint and the later timebound.
-    # the goal of RMSE is as much to match the shape of warming as the magnitude; we do not
-    # want to average out internal variability in the model or the obs.
+    # the goal of RMSE is as much to match the shape of warming as the magnitude;
+    # we do not want to average out internal variability in the model or the obs.
     rmse_temp = np.zeros(len(samples))
     for i in tqdm(range(len(samples))):
         rmse_temp[i] = rmse(
@@ -108,9 +136,14 @@ def do_pruning_for_chunk(
     return valid_temp, accept_temp, samples[accept_temp]
 
 
-def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples=6000000):
+def get_targ_paramat_valid_for_chunk(
+    chunk_num, valid_samples, total_samples=6000000, file_endstring=""
+):
     """
-    Retrieve target and parameter matrices for specified valid sample indices from an HDF5 chunk file.
+    Retrieve target and parameter matrices for specified valid sample indices
+
+    Retrieve target and parameter matrices for specified valid sample indices
+    from an HDF5 chunk file.
 
     Parameters
     ----------
@@ -120,6 +153,8 @@ def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples=600
         Indices of valid samples to select from the target and parameter matrices.
     total_samples : int, optional
         The total number of samples used in the filename pattern (default is 6,000,000).
+    file_endstring : str, optional
+        Optional suffix to append to filenames (default is "").
 
     Returns
     -------
@@ -128,7 +163,16 @@ def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples=600
     parammat : pandas.DataFrame
         DataFrame containing the selected rows from the parameter matrix.
     """
-    store = pd.HDFStore(f"data/data_{total_samples}_chunk_{chunk_num}.h5")
+    if file_endstring is None:
+        file_endstring = ""
+
+    output_dir = os.path.join(get_project_root(), "output")
+
+    store = pd.HDFStore(
+        os.path.join(
+            output_dir, f"data_{total_samples}_chunk_{chunk_num}{file_endstring}.h5"
+        )
+    )
     targ = store["targ"]
     parammat = store["parammat"]
     store.close()
@@ -142,7 +186,10 @@ def get_targ_paramat_valid_for_chunk(chunk_num, valid_samples, total_samples=600
 
 def prune_all_chunks(total_samples, prune_lists, num_chunks=600, file_endstring=None):
     """
-    Prunes samples across multiple data chunks and aggregates valid indices, sample IDs, targets, and parameter matrices.
+    Prune samples across multiple data chunks and aggregate
+
+    Prune samples across multiple data chunks and aggregate
+    valid indices, sample IDs, targets, and parameter matrices.
 
     Parameters
     ----------
@@ -162,9 +209,12 @@ def prune_all_chunks(total_samples, prune_lists, num_chunks=600, file_endstring=
 
     Notes
     -----
-    - Currently, pruning for multiple variables (i.e., when `len(prune_lists) > 1`) is not implemented.
-    - The function relies on external functions `do_pruning_for_chunk` and `get_targ_paramat_valid_for_chunk`.
-    - Output files are saved in the `data/` directory with names including `file_endstring` if provided.
+    - Currently, pruning for multiple variables
+      (i.e., when `len(prune_lists) > 1`) is not implemented.
+    - The function relies on external functions `do_pruning_for_chunk`
+      and `get_targ_paramat_valid_for_chunk`.
+    - Output files are saved in the `data/` directory with names including
+      `file_endstring` if provided.
     """
     keep_temp = []
     keep_samples = []
@@ -189,7 +239,10 @@ def prune_all_chunks(total_samples, prune_lists, num_chunks=600, file_endstring=
         keep_temp.append(valid_temp)
         keep_samples.append(samples_keep)
         targ_keep, parammat_keep = get_targ_paramat_valid_for_chunk(
-            chunk_num, valid_temp, total_samples=6000000
+            chunk_num,
+            valid_temp,
+            total_samples=total_samples,
+            file_endstring=file_endstring,
         )
         print(targ_keep.shape)
         print(parammat_keep.shape)
@@ -197,13 +250,24 @@ def prune_all_chunks(total_samples, prune_lists, num_chunks=600, file_endstring=
         keep_parammat.append(parammat_keep)
 
     valid_temps_all = np.concatenate(keep_temp)
-    np.save(f"data/valid_indices_all_chunks{file_endstring}.npy", valid_temps_all)
+
+    output_dir = os.path.join(get_project_root(), "output")
+
+    np.save(
+        os.path.join(output_dir, f"valid_indices_all_chunks{file_endstring}.npy"),
+        valid_temps_all,
+    )
     valid_ids_all = np.concatenate(keep_samples)
-    np.save(f"data/valid_sample_ids_all_chunks{file_endstring}.npy", valid_ids_all)
+    np.save(
+        os.path.join(output_dir, f"valid_sample_ids_all_chunks{file_endstring}.npy"),
+        valid_ids_all,
+    )
     all_targs = pd.concat(keep_targ)
     all_paramat = pd.concat(keep_parammat)
 
-    store = pd.HDFStore(f"data/data_all_targs_paramats{file_endstring}.h5")
+    store = pd.HDFStore(
+        os.path.join(output_dir, f"data_all_targs_paramats{file_endstring}.h5")
+    )
     store["targ"] = all_targs
     store["parammat"] = all_paramat
     store.close()

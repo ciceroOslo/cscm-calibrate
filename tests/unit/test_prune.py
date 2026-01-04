@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
-import pytest
-from unittest.mock import patch, MagicMock
+
 import cscm_calibrate.prune_distribution_to_timeseries as prune
 
 
@@ -70,7 +69,7 @@ def test_prune_all_chunks(monkeypatch):
     monkeypatch.setattr(
         prune,
         "get_targ_paramat_valid_for_chunk",
-        lambda chunk_num, valid_samples, total_samples: (
+        lambda chunk_num, valid_samples, total_samples, file_endstring: (
             pd.DataFrame({"A": [1, 2]}),
             pd.DataFrame({"B": [3, 4]}),
         ),

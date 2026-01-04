@@ -1,9 +1,15 @@
 import json
 import os
+from unittest.mock import patch
 
 import numpy as np
+import pandas as pd
 
-from cscm_calibrate.shared_functions import make_config_distro_json, rmse
+from cscm_calibrate.shared_functions import (
+    make_config_distro_json,
+    make_constraints_config_from_RCMIP_csv,
+    rmse,
+)
 
 
 def test_rmse_basic_calculation():
@@ -35,12 +41,12 @@ def test_rmse_single_value():
 
 def test_make_config_distro_json_basic():
     """Test basic functionality of make_config_distro_json without fixtures."""
-    matrix = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+    matrix = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [3, 26]])
     print(matrix.shape)
-    parameter_names = ["param1", "lambda", "beta_f"]
+    parameter_names = ["param1", "lambda", "beta_f", "rs_tim1"]
     json_name = "test_config.json"
 
-    make_config_distro_json(matrix, parameter_names, json_name)
+    make_config_distro_json(matrix, parameter_names, json_name, output_dir="data")
 
     assert os.path.exists("data/test_config.json")
     with open("data/test_config.json", encoding="utf-8") as rfile:
@@ -55,3 +61,39 @@ def test_make_config_distro_json_basic():
     assert config_list[0]["pamset_udm"]["lambda"] == 3.0
     assert config_list[1]["pamset_carbon"]["beta_f"] == 6.0
     assert config_list[1]["pamset_emiconc"]["param1"] == 2.0
+    assert config_list[1]["pamset_carbon"]["rs_tim1"] == 26.0
+
+
+def test_make_constraints_config_from_RCMIP_csv():
+    """Test parsing RCMIP CSV constraints into config DataFrame."""
+    # Sample CSV data as DataFrame
+    sample_df = pd.DataFrame(
+        {
+            "Variable": ["Atmospheric Concentrations|CO2"],
+            "Baseline_period": ["1850-1900"],
+            "Constraint_period": ["2000-2010"],
+            "Central_estimate": [400.0],
+            "Lower_bound": [380.0],
+            "Upper_bound": [420.0],
+        }
+    )
+
+    with patch("pandas.read_csv", return_value=sample_df):
+        result = make_constraints_config_from_RCMIP_csv("dummy_path.csv")
+
+    # Check the resulting DataFrame
+    assert isinstance(result, pd.DataFrame)
+    assert len(result) == 1
+    assert result["Variable Name"].iloc[0] == "Atmospheric Concentrations|CO2"
+    assert result["Varname_short"].iloc[0] == "CO2conc"
+    assert result["Yearstart_norm"].iloc[0] == 1850
+    assert result["Yearend_norm"].iloc[0] == 1900
+    assert result["Yearstart_change"].iloc[0] == 2000
+    assert result["Yearend_change"].iloc[0] == 2010
+    assert result["Central Value"].iloc[0] == 400.0
+    # Check sigma calculations (using SIGMA_TO_90PERCENT ≈ 1.645)
+    expected_lower_sigma = (400.0 - 380.0) / 1.6448536269514722
+    expected_upper_sigma = (420.0 - 400.0) / 1.6448536269514722
+    assert np.isclose(result["lower_sigma"].iloc[0], expected_lower_sigma)
+    assert np.isclose(result["upper_sigma"].iloc[0], expected_upper_sigma)
+    assert result["run_experiments"].iloc[0] == "historical"
