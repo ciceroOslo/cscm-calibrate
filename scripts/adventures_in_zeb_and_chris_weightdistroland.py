@@ -1,3 +1,7 @@
+"""
+Adventures in Zeb and Chris' weight distroland.
+"""
+
 import sys
 
 import matplotlib.pyplot as plt
@@ -9,6 +13,7 @@ from tqdm.auto import tqdm
 
 
 def plot_weights(bins, weights, weights_plots_num, unique_code):
+    """Plot weights for visualization purposes."""
     plt.scatter(bins, weights)
     plt.title(f"Weight plot number {weights_plots_num} last added {unique_code}")
     plt.savefig(f"weight_plot_{weights_plots_num}_uncorr.png")
@@ -16,6 +21,7 @@ def plot_weights(bins, weights, weights_plots_num, unique_code):
 
 
 def calculate_sample_weights(distributions, samples, niterations=50):
+    """Calculate sample weights iteratively."""
     weights_plots_num = 0
     weights = np.ones(samples.shape[0])
     gofs = []
@@ -71,11 +77,16 @@ def calculate_sample_weights(distributions, samples, niterations=50):
     return (
         weights_final,
         pd.DataFrame(np.array(gofs), columns=unique_codes),
-        pd.DataFrame(np.array(gofs_full), columns=["Target marginal"] + unique_codes),
+        pd.DataFrame(np.array(gofs_full), columns=["Target marginal", *unique_codes]),
     )
 
 
-def get_unique_code_weights(unique_code, distributions, samples, weights, j, k):
+def get_unique_code_weights(  # noqa: PLR0913
+    unique_code, distributions, samples, weights, j, k
+):
+    """
+    Get weights for a single unique code based on distributions and samples.
+    """
     bin_edges = distributions[unique_code]["bins"]
     # print(samples.columns)
     # print(samples[unique_code])

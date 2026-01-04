@@ -2,8 +2,6 @@ import json
 import os
 import tempfile
 
-import pytest
-
 from cscm_calibrate.cscm_calibrate import CSCMCalibrationPipeline
 
 
@@ -21,6 +19,7 @@ class DummyConfig:
                 "nat_ch4": None,
                 "nat_n2o": None,
                 "emis": None,
+                "conc": None,
                 "nystart": 1750,
                 "emstart": 1850,
                 "nyend": 2023,
@@ -45,7 +44,6 @@ def test_calibration_setup(test_data_dir):
     )
 
 
-@pytest.mark.integration
 def test_pipeline_minimal(monkeypatch):
     # Create a minimal config file
     with tempfile.TemporaryDirectory() as tmpdir:

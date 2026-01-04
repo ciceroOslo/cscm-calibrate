@@ -1,3 +1,6 @@
+# Output files
+output/
+
 # Notebooks
 *.ipynb
 
@@ -155,3 +158,6 @@ dmypy.json
 
 # Mac stuff
 *.DS_Store
+
+#VSCode
+.vscode/
