@@ -173,9 +173,12 @@ def get_targ_paramat_valid_for_chunk(
             output_dir, f"data_{total_samples}_chunk_{chunk_num}{file_endstring}.h5"
         )
     )
+    print("Keys in HDF5 store:")
+    print(store.keys())
     targ = store["targ"]
     parammat = store["parammat"]
     store.close()
+    #sys.exit(4)
     # print(targ.shape)
     # print(targ.head())
     # print(parammat.shape)
