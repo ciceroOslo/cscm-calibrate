@@ -64,6 +64,7 @@ def get_df_from_input_w_data_handler(  # noqa: PLR0913
     TypeError
         If the processed input is not a pandas DataFrame.
     """
+    # print(input_concrete)
     valid = ["CH4", "N2O", "emis", "conc", "gases", "gaspam"]
     if case_type not in valid:
         raise ValueError(  # noqa: TRY003
@@ -76,8 +77,9 @@ def get_df_from_input_w_data_handler(  # noqa: PLR0913
     if isinstance(input_concrete, (str, os.PathLike)):
         if case_type in ["CH4", "N2O"]:
             input_concrete = input_handler.read_natural_emissions(
-                input_concrete, case_type, endyear=nyend
+                input_concrete, case_type  # ,endyear=nyend
             )
+            input_concrete = input_concrete.loc[:nyend]
         elif case_type == "emis":
             ih = input_handler.InputHandler(
                 {"nyend": nyend, "nystart": nystart, "emstart": emstart}
@@ -98,7 +100,7 @@ def get_df_from_input_w_data_handler(  # noqa: PLR0913
             input_concrete = input_handler.read_components(input_concrete)
     if not isinstance(input_concrete, pd.DataFrame):
         raise TypeError(  # noqa: TRY003
-            f"input_concrete for {case_type} must be either a str, a path or a DataFrame"  # noqa: E501
+            f"input_concrete for {case_type} must be either a str, a path or a DataFrame, got {input_concrete}"  # noqa: E501
         )
     return input_concrete
 
@@ -174,6 +176,8 @@ def define_scendata_for_scm(  # noqa: PLR0913
         natural emissions, concentrations, emissions,
         and scenario metadata.
     """
+    # print("Hello from define_scendata_for_scm")
+    # print(gaspam)
     gaspam = get_df_from_input_w_data_handler(
         gaspam,
         test_data_dir,
@@ -246,7 +250,7 @@ def define_scendata_for_scm(  # noqa: PLR0913
     scenariodata = [
         {
             "gaspam_data": gaspam,
-            "emstart": 1850,
+            "emstart": emstart,
             "conc_run": False,
             "nystart": 1750,
             "nyend": nyend,

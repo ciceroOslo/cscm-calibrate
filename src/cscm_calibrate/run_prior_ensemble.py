@@ -24,9 +24,8 @@ warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 warnings.filterwarnings("ignore", message=".*Parameter.*")
 
 # Get path to ciceroscm - one level up from project root
-cscm_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "..", "ciceroscm")
-)
+cscm_path = os.path.abspath(get_project_root(), "..", "ciceroscm")
+
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 
@@ -214,7 +213,6 @@ def run_prior_ensemble(  # noqa: PLR0913, PLR0915
             chunk_size=chunk_size,
             plot=plot
         )
-
         print(f"✓ Chunk {i + 1}/{chunk_nums} complete!\n")
 
 def merge_dicts(dc):
