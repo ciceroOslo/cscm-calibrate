@@ -1,12 +1,15 @@
 """
 Functions to plot distributions of climate model results
 """
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-datadir = "/home/masan/gitrepos/cscm-calibration/data/calibration_data_Sep2025/"
+from .shared_functions import get_project_root
+
+datadir = os.path.join(get_project_root(), "data", "calibration_data_Sep2025")
 
 
 def read_noaa_gml_ml_means(timeres):
@@ -35,7 +38,7 @@ def read_noaa_gml_ml_means(timeres):
         "month": ["mm", 38, ["decimal", "average"]],
     }
     data = pd.read_csv(
-        f"{datadir}/co2_{timeres_dict[timeres][0]}_gl.csv",
+        os.path.join(datadir, f"co2_{timeres_dict[timeres][0]}_gl.csv"),
         skiprows=timeres_dict[timeres][1],
     )
     return data[timeres_dict[timeres][2]].values.transpose()
@@ -59,7 +62,7 @@ def read_gcb_data():
         "emissions_tot" and "fossil emissions".
     """
     data_xls = pd.read_excel(
-        f"{datadir}/Global_Carbon_Budget_2024_v1.02.xlsx",
+        os.path.join(datadir, "Global_Carbon_Budget_2024_v1.02.xlsx"),
         sheet_name="Historical Budget",
         skiprows=15,
     ).fillna(0.0)
@@ -90,7 +93,7 @@ def read_gcb_ocean_carbon_data():
         A DataFrame containing the processed ocean carbon sink data.
     """
     data_xls = pd.read_excel(
-        f"{datadir}/Global_Carbon_Budget_2024_v1.02.xlsx",
+        os.path.join(datadir, "Global_Carbon_Budget_2024_v1.02.xlsx"),
         sheet_name="Ocean Sink",
         skiprows=31,
         nrows=65,
@@ -169,16 +172,14 @@ def get_data_for_plots():
     The function expects certain file paths and directory variables
     (e.g., `datadir`) to be defined in the scope.
     """
-    temp_data = pd.read_csv(f"{datadir}annual_averages.csv")
+    temp_data = pd.read_csv(os.path.join(datadir, "annual_averages.csv"))
     co2_conc = read_noaa_gml_ml_means("year")
     data_gcb = read_gcb_data()
-    data_aer_best = pd.read_csv(
-        "../../data/calibration_data_Sep2025/ERF_best_1750-2024.csv"
-    )
-    data_aer_5 = pd.read_csv(f"{datadir}ERF_p05_aggregates_1750-2024.csv")
-    data_aer_95 = pd.read_csv(f"{datadir}ERF_p95_aggregates_1750-2024.csv")
+    data_aer_best = pd.read_csv(os.path.join(datadir, "ERF_best_1750-2024.csv"))
+    data_aer_5 = pd.read_csv(os.path.join(datadir, "ERF_p05_aggregates_1750-2024.csv"))
+    data_aer_95 = pd.read_csv(os.path.join(datadir, "ERF_p95_aggregates_1750-2024.csv"))
     data_ohc = pd.read_csv(
-        f"{datadir}AR6_OHC_ensemble_IGCC_update_2024-04-13.csv", skiprows=[0]
+        os.path.join(datadir, "AR6_OHC_ensemble_IGCC_update_2024-04-13.csv"), skiprows=[0]
     )
     print(data_aer_5.shape)
     print(data_aer_best.shape)

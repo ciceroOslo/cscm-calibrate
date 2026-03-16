@@ -1,0 +1,1 @@
+../../../../CSCM_temp/RCMIP_inputs/LUCalbedo_RCMIP_historical_RCMIP3.txt

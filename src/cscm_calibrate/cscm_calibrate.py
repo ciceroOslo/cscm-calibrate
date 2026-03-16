@@ -162,7 +162,7 @@ class CSCMCalibrationPipeline:
             # configs_raw["constraing_configs"] = constraints_raw
         self.configs = configs_raw
 
-    def _run_prior_ensemble(self, continue_from_existing=False):
+    def _run_prior_ensemble(self, continue_from_existing=False, plot=False):
         """
         Run the prior ensemble simulation using configuration parameters.
 
@@ -222,6 +222,7 @@ class CSCMCalibrationPipeline:
             startdate=self.datestr,
             max_workers=prior_cfgs.get("max_workers", 200),
             continue_from_existing=continue_from_existing,
+            plot=plot,
         )
 
     def prune_distribution(self, file_endstring=None):
