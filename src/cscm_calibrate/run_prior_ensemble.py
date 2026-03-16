@@ -23,9 +23,8 @@ warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 warnings.filterwarnings("ignore", message=".*Parameter.*")
 
 # Get path to ciceroscm - one level up from project root
-cscm_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "..", "ciceroscm")
-)
+cscm_path = os.path.abspath(get_project_root(), "..", "ciceroscm")
+
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
 
@@ -213,7 +212,9 @@ def run_prior_ensemble(  # noqa: PLR0913, PLR0915
                     (
                         results_sub.iloc[
                             :,
-                            data["Yearstart_change"] - 1750 + 7 : data["Yearend_change"]
+                            data["Yearstart_change"]
+                            - 1750
+                            + 7 : data["Yearend_change"]
                             - 1750
                             + 8,
                         ]
@@ -221,7 +222,9 @@ def run_prior_ensemble(  # noqa: PLR0913, PLR0915
                     - (
                         results_sub.iloc[
                             :,
-                            data["Yearstart_norm"] - 1750 + 7 : data["Yearend_norm"]
+                            data["Yearstart_norm"]
+                            - 1750
+                            + 7 : data["Yearend_norm"]
                             - 1750
                             + 8,
                         ]
