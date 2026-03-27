@@ -1,1 +1,1 @@
-../../../../CSCM_temp/RCMIP_inputs/historical_em_gases_vupdate_2024_WMO_added_new.txt
+../../../temp_indata/historical_em_gases_vupdate_2024_WMO_added_new.txt

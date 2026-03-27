@@ -1,1 +1,1 @@
-../../../../CSCM_temp/RCMIP_inputs/solar_RCMIP_historical_RCMIP3.txt
+../../../temp_indata/solar_RCMIP_historical_RCMIP3.txt

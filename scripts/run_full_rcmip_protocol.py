@@ -8,8 +8,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../", "src"))
 
 from cscm_calibrate.set_up_calibration_configs_and_run import define_scendata_for_scm, get_df_from_input_w_data_handler
 
-cscm_root = "../ciceroscm/"
-#cscm_root = "/div/no-backup-nac/users/masan/GRAFITE/ciceroscm/"
+#cscm_root = "../ciceroscm/"
+cscm_root = "/div/no-backup-nac/users/masan/GRAFITE/ciceroscm/"
 # cscm_root = "/div/no-backup/git-repos/ciceroscm/"
 # Adding location of source code to system path
 # os.path.dirname(__file__) gives the directory of
@@ -24,8 +24,6 @@ from ciceroscm.parallel.distributionrun import DistributionRun
 
 special_scen_skip = ["1pctCO2-bgc", "1pctCO2-rad"]
 special_mapping = {"hist":"historical", "hist-cmip6": "historical-cmip6"}
-
-#  TODO: Fix Volcano, solar and LUCAlbedo inputs
 
 def check_if_inspected(scenario_name):
     if not os.path.exists("scenarios_inspected.txt"):
@@ -96,7 +94,8 @@ def read_output_variables_from_protocol(excel_file_path):
 ystart = 1750
 yendmax= 2500
 emistart = 1850
-input_dir = "/home/masan/temp/rcmip_inputs_cscm/"
+#input_dir = "/home/masan/temp/rcmip_inputs_cscm/"
+input_dir = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata/"
 gases_ep = "gases_vupdate_2024_WMO_added_new.txt"
 gases_df = get_df_from_input_w_data_handler(
     os.path.join(input_dir, gases_ep), 
@@ -128,12 +127,7 @@ conc_piControl = get_df_from_input_w_data_handler(
     f"piControl_conc_{gases_ep}", 
     nyend=yendmax, nystart=ystart, case_type="conc"
     )
-lucalbedo_piControl = get_df_from_input_w_data_handler(
-    None, 
-    input_dir, 
-    f"LUCalbedo_RCMIP_constant_zero_RCMIP3.txt", 
-    nyend=yendmax, nystart=ystart, case_type="rf_luc"
-    )
+lucalbedo_piControl = os.path.join(input_dir,"LUCalbedo_RCMIP_constant_zero_RCMIP3.txt") 
 
 # Not system independent, can only be run on amoc or qbo
 # If running on different system, this must be changed
@@ -147,6 +141,7 @@ lucalbedo_piControl = get_df_from_input_w_data_handler(
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/src/cscm_calibrate/data/draw_samples_500_w_ecs.json")
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json")
 json_file = "../../flat10_runs_repo/draw_samples_just2.json"
+json_file= "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json"
 distrorun = DistributionRun(None, json_file_name=json_file)
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup/users/masan/SCM_stuff/subset_cscm_configfile_for_py_small.json")
 def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, dont_run=False):
@@ -260,7 +255,7 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
     print(row["Type"])
     print(scendata)
     results = distrorun.run_over_distribution(
-        scendata, output_vars=variables, max_workers=1#50
+        scendata, output_vars=variables, max_workers=20
     )
     # Figure out what variables to output
     # Run over with distrorun, save outputs and move on
@@ -275,7 +270,8 @@ dont_run = False
 
 if __name__ == "__main__":
     #input_dir = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata"
-    protocol_file = os.path.join("..", "..","rcmip-phase-3/RCMIP3_input_datafiles/", "rcmip_phase3_protocol_v1.1.0.xlsx")
+    #protocol_file = os.path.join("..", "..","rcmip-phase-3/RCMIP3_input_datafiles/", "rcmip_phase3_protocol_v1.1.0.xlsx")
+    protocol_file = os.path.join(input_dir, "rcmip_phase3_protocol_v1.1.0.xlsx")
     variables_all, variables_non_idealised, variables_non_idealised_emi, variables_non_idealised_conc =  read_output_variables_from_protocol(protocol_file)
     experiment_out = {
         "idealised":{
@@ -289,6 +285,8 @@ if __name__ == "__main__":
             "other": variables_non_idealised_conc,
         }
     }
+    skip = []
+    #skip = ["esm-1pct-brch-1000PgC"]
     split_experiment_dfs = load_and_process_protocol(protocol_file)
     for key1 in split_experiment_dfs:
         for key2 in split_experiment_dfs[key1]:
@@ -299,6 +297,14 @@ if __name__ == "__main__":
                 outpath = f"out_file_dump/{row['Scenario']}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv"
                 if os.path.exists(outpath):
                     print(f"Output file {outpath} already exists, skipping run")
+                    continue
+                print(outpath)
+                #sys.exit(4)
+                if key1 == "idealised":
+                    print(f"Skipping scenario {row['Scenario']} as it's idealised")
+                    continue
+                if row["Scenario"] in skip:
+                    print(f"Skipping scenario {row['Scenario']} as it's in the skip list")
                     continue
                 if row["Scenario"] in special_scen_skip or "scen7" in row["Scenario"]:
                     print(f"Skipping special scenario {row['Scenario']}")
