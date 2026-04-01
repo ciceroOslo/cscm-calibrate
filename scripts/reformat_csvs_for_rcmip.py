@@ -3,6 +3,13 @@ from pathlib import Path
 
 import pandas as pd
 
+s_pr_yr = 3600*24*365
+sea_surface_fraction = 0.61*0.5+0.81*0.5
+earth_surface = 5.101e14
+conv_factor = s_pr_yr*sea_surface_fraction*earth_surface/1.e21
+print(conv_factor)
+
+
 
 def move_ensemble_member_after_unit(df: pd.DataFrame) -> pd.DataFrame:
 	"""Rename run_id to ensemble_member and place it after the unit column."""
@@ -24,8 +31,28 @@ def move_ensemble_member_after_unit(df: pd.DataFrame) -> pd.DataFrame:
 def build_output_name(input_name: str, today_str: str) -> str:
 	return input_name.replace("draw_samples_just2", f"ciceroscm_{today_str}")
 
+def convert_heat_uptake(df: pd.DataFrame) -> pd.DataFrame:
+	"""Convert heat uptake rows to ZJ/yr using conv_factor for year columns."""
+	if "variable" not in df.columns:
+		return df
+	if "unit" not in df.columns:
+		return df
 
-def main() -> None:
+	heat_mask = df["variable"] == "Heat Uptake"
+	if not heat_mask.any():
+		return df
+
+	year_cols = [col for col in df.columns if len(str(col)) == 4 and str(col).isdigit()]
+
+	df.loc[heat_mask, "unit"] = "ZJ/yr"
+	for col in year_cols:
+		df.loc[heat_mask, col] = pd.to_numeric(df.loc[heat_mask, col], errors="coerce") * conv_factor
+
+	return df
+
+
+
+def main(delete_after = False) -> None:
 	script_dir = Path(__file__).resolve().parent
 	input_dir = script_dir / "out_file_dump"
 	today_str = date.today().strftime("%Y%m%d")
@@ -34,15 +61,22 @@ def main() -> None:
 	if not csv_files:
 		print(f"No CSV files found in {input_dir}")
 		return
-
+	delete_list = []
 	for csv_path in csv_files:
 		df = pd.read_csv(csv_path, index_col=0)
 		df = move_ensemble_member_after_unit(df)
+		df = convert_heat_uptake(df)
 
 		output_name = build_output_name(csv_path.name, today_str)
 		output_path = input_dir / output_name
 		df.to_csv(output_path)
 		print(f"Wrote: {output_path}")
+		if delete_after:
+			delete_list.append(csv_path)
+	if delete_after:
+		for csv_path in delete_list:
+			csv_path.unlink()    
+			print(f"Deleted: {csv_path}")
 
 
 if __name__ == "__main__":
