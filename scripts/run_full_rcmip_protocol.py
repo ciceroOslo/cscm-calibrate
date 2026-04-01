@@ -22,7 +22,7 @@ print(sys.path)
 
 from ciceroscm.parallel.distributionrun import DistributionRun
 
-special_scen_skip = ["1pctCO2-bgc", "1pctCO2-rad"]
+special_scen_skip = ["1pctCO2-bgc", "1pctCO2-rad", "scen7-LC", "scen7-HLC", "scen7-MLC", "scen7-LNC", "scen7-MC", "esm-scen7-L", "esm-scen7-HL", "esm-scen7-ML", "esm-scen7-LN", "esm-scen7-M"]
 special_mapping = {"hist":"historical", "hist-cmip6": "historical-cmip6"}
 
 def check_if_inspected(scenario_name):
@@ -149,6 +149,8 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
     yend = row["Duration of scenario"] + ystart - 1
     scen_name = row["Scenario"]
     scen_name_strip = scen_name.split("esm-")[-1].split("allGHG-")[-1]
+    if scen_name_strip.startswith("scen7") and scen_name_strip.endswith("C"):
+        scen_name_strip = scen_name_strip[:-1]
     if run_type == "esm-allghg":
         emistart = 1850
     else:
@@ -192,6 +194,10 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
             arg_dict["rf_luc_file"] = f"LUCalbedo_RCMIP_{scen_name_strip.split('-')[0]}_RCMIP3.txt"
         elif scen_name.startswith("methanemip") and os.path.exists(os.path.join(input_dir, f"LUCalbedo_RCMIP_ssp245_RCMIP3.txt")):
             arg_dict["rf_luc_file"] = f"LUCalbedo_RCMIP_ssp245_RCMIP3.txt"
+        elif scen_name == "esm-allGHG-scen7-H-CH4L_rcmip_draw_samples_500.csv":
+            arg_dict["rf_luc_file"] = "LUCalbedo_RCMIP_scen7-H_RCMIP3.txt"
+        elif scen_name == "esm-allGHG-scen7-L-CH4H_rcmip_draw_samples_500.csv":
+            arg_dict["rf_luc_file"] = "LUCalbedo_RCMIP_scen7-L_RCMIP3.txt"
         else:
             # TODO check if this is appropriate in all cases
             arg_dict["rf_luc_file"] = "LUCalbedo_RCMIP_historical_RCMIP3.txt"
@@ -254,9 +260,14 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
     print(scen_name)
     print(row["Type"])
     print(scendata)
+    #try:
     results = distrorun.run_over_distribution(
         scendata, output_vars=variables, max_workers=20
     )
+    # except Exception as e:
+    #     print(f"Error running scenario {scen_name}: {e}")
+    #     del scendata
+    #     return pd.DataFrame()
     # Figure out what variables to output
     # Run over with distrorun, save outputs and move on
 
@@ -288,6 +299,8 @@ if __name__ == "__main__":
     skip = []
     #skip = ["esm-1pct-brch-1000PgC"]
     split_experiment_dfs = load_and_process_protocol(protocol_file)
+    print(split_experiment_dfs)
+    #sys.exit(4)
     for key1 in split_experiment_dfs:
         for key2 in split_experiment_dfs[key1]:
             print(f"{key1} - {key2} : {split_experiment_dfs[key1][key2].shape}")
@@ -300,13 +313,15 @@ if __name__ == "__main__":
                     continue
                 print(outpath)
                 #sys.exit(4)
-                if key1 == "idealised":
-                    print(f"Skipping scenario {row['Scenario']} as it's idealised")
-                    continue
+                # if key1 == "idealised":
+                #     print(f"Skipping scenario {row['Scenario']} as it's idealised")
+                #     continue
                 if row["Scenario"] in skip:
                     print(f"Skipping scenario {row['Scenario']} as it's in the skip list")
                     continue
-                if row["Scenario"] in special_scen_skip or "scen7" in row["Scenario"]:
+                print(row["Scenario"])
+                print(special_scen_skip)
+                if row["Scenario"] in special_scen_skip:
                     print(f"Skipping special scenario {row['Scenario']}")
                     continue
                 if dont_run:
