@@ -77,6 +77,7 @@ def plot_per_variable(files):
         plt.close(fig)
 
     print(f"Saved per-variable plots to {var_plot_dir}")
+    
 
 
 def plot_four_panel(files):
