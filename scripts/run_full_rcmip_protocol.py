@@ -3,6 +3,7 @@ import sys
 
 import pandas as pd
 import numpy as np
+import xarray as xr
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../", "src"))
 
@@ -272,6 +273,13 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
     return results
 
 dont_run = False
+
+def dump_results_to_netcdf(results, scenario_name):
+    outpath = f"out_file_dump/{scenario_name}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv"
+    if os.path.exists(outpath):
+        print(f"Output file {outpath} already exists, skipping dump")
+        return
+    results.to_csv(outpath)
 
 if __name__ == "__main__":
     #input_dir = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata"

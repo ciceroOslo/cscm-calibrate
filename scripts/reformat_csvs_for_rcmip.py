@@ -50,6 +50,14 @@ def convert_heat_uptake(df: pd.DataFrame) -> pd.DataFrame:
 
 	return df
 
+def rename_pg_c_unit(df: pd.DataFrame) -> pd.DataFrame:
+    """Rename PgC unit to GtC."""
+    if "unit" not in df.columns:
+        return df
+
+    pg_mask = df["unit"] == "Pg_C / yr"
+    df.loc[pg_mask, "unit"] = "Gt C/yr"
+    return df
 
 
 def main(delete_after = False) -> None:
@@ -66,7 +74,7 @@ def main(delete_after = False) -> None:
 		df = pd.read_csv(csv_path, index_col=0)
 		df = move_ensemble_member_after_unit(df)
 		df = convert_heat_uptake(df)
-
+		df = rename_pg_c_unit(df)
 		output_name = build_output_name(csv_path.name, today_str)
 		output_path = input_dir / output_name
 		df.to_csv(output_path)
