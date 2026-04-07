@@ -29,7 +29,7 @@ def move_ensemble_member_after_unit(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_output_name(input_name: str, today_str: str) -> str:
-	return input_name.replace("draw_samples_just2", f"ciceroscm_{today_str}")
+	return input_name.replace("draw_samples_500", f"ciceroscm_{today_str}")
 
 def convert_heat_uptake(df: pd.DataFrame) -> pd.DataFrame:
 	"""Convert heat uptake rows to ZJ/yr using conv_factor for year columns."""
@@ -43,16 +43,23 @@ def convert_heat_uptake(df: pd.DataFrame) -> pd.DataFrame:
 		return df
 
 	year_cols = [col for col in df.columns if len(str(col)) == 4 and str(col).isdigit()]
-
-	df.loc[heat_mask, "unit"] = "ZJ/yr"
-	for col in year_cols:
-		df.loc[heat_mask, col] = pd.to_numeric(df.loc[heat_mask, col], errors="coerce") * conv_factor
+	if df.loc[heat_mask, "unit"] != "ZJ/yr":
+		df.loc[heat_mask, "unit"] = "ZJ/yr"
+		for col in year_cols:
+			df.loc[heat_mask, col] = pd.to_numeric(df.loc[heat_mask, col], errors="coerce") * conv_factor
 
 	return df
 
+def rename_pg_c_unit(df: pd.DataFrame) -> pd.DataFrame:
+    """Rename PgC unit to GtC."""
+    if "unit" not in df.columns:
+        return df
 
+    pg_mask = df["unit"] == "Pg_C / yr"
+    df.loc[pg_mask, "unit"] = "Gt C/yr"
+    return df
 
-def main(delete_after = False) -> None:
+def main(delete_after = False, convert_heat_uptake = False) -> None:
 	script_dir = Path(__file__).resolve().parent
 	input_dir = script_dir / "out_file_dump"
 	today_str = date.today().strftime("%Y%m%d")
@@ -64,8 +71,11 @@ def main(delete_after = False) -> None:
 	delete_list = []
 	for csv_path in csv_files:
 		df = pd.read_csv(csv_path, index_col=0)
-		df = move_ensemble_member_after_unit(df)
-		df = convert_heat_uptake(df)
+		#df = move_ensemble_member_after_unit(df)
+		if convert_heat_uptake:
+			df = convert_heat_uptake(df)
+		df = rename_pg_c_unit(df)
+
 
 		output_name = build_output_name(csv_path.name, today_str)
 		output_path = input_dir / output_name

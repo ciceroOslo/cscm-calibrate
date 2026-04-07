@@ -145,7 +145,7 @@ json_file= "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_sa
 distrorun = DistributionRun(None, json_file_name=json_file)
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup/users/masan/SCM_stuff/subset_cscm_configfile_for_py_small.json")
 def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, dont_run=False):
-    #print(row)
+    print(row)
     yend = row["Duration of scenario"] + ystart - 1
     scen_name = row["Scenario"]
     scen_name_strip = scen_name.split("esm-")[-1].split("allGHG-")[-1]
@@ -210,6 +210,7 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
     elif scen_name.startswith("esm-allGHG") and os.path.exists(os.path.join(input_dir, f"esm-{scen_name_strip}_em_{gases_ep}")):
         arg_dict["df_emis"] = f"esm-{scen_name_strip}_em_{gases_ep}"
     elif scen_name_strip in special_mapping and os.path.exists(os.path.join(input_dir, f"{special_mapping[scen_name_strip]}_em_{gases_ep}")):
+        print("Went and got correct emissions")
         arg_dict["df_emis"] = f"{special_mapping[scen_name_strip]}_em_{gases_ep}"
     elif not scen_name.startswith("esm-") and row["Type"] == "idealised":
         arg_dict["df_emis"] = em_piControl
@@ -227,6 +228,7 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
     elif os.path.exists(os.path.join(input_dir, f"{scen_name_strip}_conc_{gases_ep}")):
         arg_dict["df_conc"] = f"{scen_name_strip}_conc_{gases_ep}"
     elif scen_name_strip in special_mapping and os.path.exists(os.path.join(input_dir, f"{special_mapping[scen_name_strip]}_conc_{gases_ep}")):
+        print("Went and got correct concentrations")
         arg_dict["df_conc"] = f"{special_mapping[scen_name_strip]}_conc_{gases_ep}"
     elif scen_name.startswith("esm-") and row["Type"] == "idealised":
         arg_dict["df_conc"] = conc_piControl
@@ -250,6 +252,12 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
     if dont_run:
         with open("scenarios_inspected.txt", "a") as f:
             f.write(f"{scen_name}, {yend}, {emistart}, {ystart}, {scendata[0]['conc_run']}, {len(scendata)}\n")
+        if scen_name == "esm-hist":
+            print(row)
+            print(scen_name)
+            print(scen_name_strip)
+            print(arg_dict)
+            sys.exit(4)
         return pd.DataFrame()
     
     # if row["Type"] == "idealised" or "piControl" in scen_name:
@@ -288,7 +296,7 @@ if __name__ == "__main__":
         "idealised":{
             "esm_all": variables_all,
             "esm_other": variables_all,
-            "other": variables_all,
+            "other": variables_all + ["Emissions|CO2"],
         },
         "non_idealised":{
             "esm_all": variables_non_idealised_emi,
@@ -308,7 +316,8 @@ if __name__ == "__main__":
             for index,row in split_experiment_dfs[key1][key2].iterrows():
                 print(row["Scenario"])
                 outpath = f"out_file_dump/{row['Scenario']}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv"
-                if os.path.exists(outpath):
+                outpath_processed = f"out_file_dump/{row['Scenario']}_rcmip_ciceroscm_20260401.csv"
+                if os.path.exists(outpath) or os.path.exists(outpath_processed):
                     print(f"Output file {outpath} already exists, skipping run")
                     continue
                 print(outpath)
