@@ -77,7 +77,7 @@ def get_df_from_input_w_data_handler(  # noqa: PLR0913
     if isinstance(input_concrete, (str, os.PathLike)):
         if case_type in ["CH4", "N2O"]:
             input_concrete = input_handler.read_natural_emissions(
-                input_concrete, case_type  # ,endyear=nyend
+                input_concrete, case_type#,endyear=nyend
             )
             input_concrete = input_concrete.loc[:nyend]
         elif case_type == "emis":
@@ -192,7 +192,7 @@ def define_scendata_for_scm(  # noqa: PLR0913
     df_nat_ch4 = get_df_from_input_w_data_handler(
         df_nat_ch4,
         test_data_dir,
-        "natemis_CH4_ode_method_from_Sep2025_updates.txt",
+        "natemis_CH4_ode_method_from_March2026_vupdate_2024_WMO_added_new.txt",
         nyend=nyend,
         nystart=nystart,
         emstart=emstart,
@@ -201,7 +201,7 @@ def define_scendata_for_scm(  # noqa: PLR0913
     df_nat_n2o = get_df_from_input_w_data_handler(
         df_nat_n2o,
         test_data_dir,
-        "natemis_N2O_ode_method_from_Sep2025_updates.txt",
+        "natemis_N2O_ode_method_from_March2026_vupdate_2024_WMO_added_new.txt",
         nyend=nyend,
         nystart=nystart,
         emstart=emstart,

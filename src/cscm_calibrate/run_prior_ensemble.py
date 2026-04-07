@@ -24,7 +24,7 @@ warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 warnings.filterwarnings("ignore", message=".*Parameter.*")
 
 # Get path to ciceroscm - one level up from project root
-cscm_path = os.path.abspath(get_project_root(), "..", "ciceroscm")
+cscm_path = os.path.abspath(os.path.join(get_project_root(), "..", "ciceroscm"))
 
 
 sys.path.insert(0, os.path.join(cscm_path, "src"))
@@ -310,6 +310,7 @@ def run_single_chunk(
         np.save(os.path.join(output_dir, f"sample_ids_{file_midstring}.npy"), ids)
 
     # Save constraint targets and parameter matrices
+    print(results_for_fit_dict_1d)
     targ = pd.DataFrame(data=results_for_fit_dict_1d)
     targ.index.set_names("run_id", inplace=True)
     pdict = distrorun1.cfgs

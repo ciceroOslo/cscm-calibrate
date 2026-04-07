@@ -1,1 +1,1 @@
-../../../../CSCM_temp/RCMIP_inputs/VOLC_RCMIP_historical_RCMIP3.txt
+../../../temp_indata/VOLC_RCMIP_historical_RCMIP3.txt

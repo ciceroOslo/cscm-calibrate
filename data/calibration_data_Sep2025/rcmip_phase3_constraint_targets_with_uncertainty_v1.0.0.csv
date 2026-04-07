@@ -1,7 +1,0 @@
-Model,Scenario,Region,Variable,Unit,Activity_Id,Source,Version,Baseline_period,Constraint_period,Central_estimate,Lower_bound,Upper_bound
-Global Carbon Budget,historical,World,Global Mean Surface Temperature (GMST),degC,Constraining Data,IGCC2024,RCMIP Phase 3 v1.0.0,1850-1900,2014-2023,1.19,1.0,1.4
-Global Carbon Budget,historical,World,Ocean Heat Content|Global|Total,ZJ,Constraining Data,IGCC2024,RCMIP Phase 3 v1.0.0,1971-1971,2020-2020,435.1049033,315.8424033,560.4539028065001
-Global Carbon Budget,historical,World,Atmospheric Concentrations|CO2,ppm,Constraining Data,NOA_GML,RCMIP Phase 3 v1.0.0,nan-nan,2014-2023,408.649,407.049,410.249
-Global Carbon Budget,historical,World,Carbon Flux to Oceans,Pg/y,Constraining Data,GCB2024,RCMIP Phase 3 v1.0.0,nan-nan,2014-2023,2.9,2.242,3.558
-Global Carbon Budget,historical,World,Carbon Flux to Land,Pg/y,Constraining Data,GCB2024,RCMIP Phase 3 v1.0.0,nan-nan,2014-2023,3.2,1.7194999999999996,4.680499999999999
-Global Carbon Budget,historical,World,Effective Radiative Forcing|Aerosols,W/m2,Constraining Data,AR6,RCMIP Phase 3 v1.0.0,1850-1900,2005-2014,-1.3,-2.0,-0.6

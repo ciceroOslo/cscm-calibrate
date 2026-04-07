@@ -28,17 +28,18 @@ SIGMA_TO_90PERCENT = 1.6448536269514722
 varname_short_mapping = {
     "Heat Content|Ocean": "OHC",
     "Surface Air Ocean Blended Temperature Change": "GMST",
-    "Effective Radiative Forcing|Aerosols": "ERFaer",
+    "Effective Radiative Forcing|Anthropogenic|Aerosol": "ERFaer",
     "Atmospheric Concentrations|CO2": "CO2conc",
-    "Ocean carbon flux": "Oceancarbon",
-    "Biosphere carbon flux": "Biocarbon",
+    "Carbon Flux|Ocean": "Oceancarbon",
+    "Carbon Flux|Land": "Biocarbon",
 }
 
 RCMIP_NAME_MAPPING = {
     "Global Mean Surface Temperature (GMST)": "Surface Air Ocean Blended Temperature Change",  # noqa: E501
     "Ocean Heat Content|Global|Total": "Heat Content|Ocean",
-    "Carbon Flux to Oceans": "Ocean carbon flux",
-    "Carbon Flux to Land": "Biosphere carbon flux",
+    "Carbon Flux to Oceans": "Carbon Flux|Ocean",
+    "Carbon Flux to Land": "Carbon Flux|Land",
+    "Effective Radiative Forcing|Aerosols": "Effective Radiative Forcing|Anthropogenic|Aerosol",
 }
 
 

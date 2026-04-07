@@ -21,7 +21,7 @@ constraints_from_RCMIP = os.path.join(
     "..",
     "data",
     "calibration_data_Sep2025",
-    "rcmip_phase3_constraint_targets_with_uncertainty_v1.0.0.csv",
+    "rcmip_phase3_constraint_targets_with_uncertainty_v1.1.1.csv",
 )
 
 # Initialize calibration pipeline
@@ -30,7 +30,7 @@ calibration_pipeline = CSCMCalibrationPipeline(
 )
 print("Initialized CSCMCalibrationPipeline with config file:", config_file)
 calibration_pipeline._run_prior_ensemble(
-    continue_from_existing=False, #plot=True
+    continue_from_existing=True, #plot=True
 )  # Generate prior ensemble
 print(config_file)
 with open(config_file) as json_config:
