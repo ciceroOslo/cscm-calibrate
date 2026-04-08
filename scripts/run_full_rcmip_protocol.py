@@ -3,6 +3,7 @@ import sys
 
 import pandas as pd
 import numpy as np
+#import xarray as xr
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../", "src"))
 
@@ -94,8 +95,8 @@ def read_output_variables_from_protocol(excel_file_path):
 ystart = 1750
 yendmax= 2500
 emistart = 1850
-#input_dir = "/home/masan/temp/rcmip_inputs_cscm/"
-input_dir = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata/"
+input_dir = "/home/masan/temp/rcmip_inputs_cscm/"
+#input_dir = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata/"
 gases_ep = "gases_vupdate_2024_WMO_added_new.txt"
 gases_df = get_df_from_input_w_data_handler(
     os.path.join(input_dir, gases_ep), 
@@ -141,16 +142,12 @@ lucalbedo_piControl = os.path.join(input_dir,"LUCalbedo_RCMIP_constant_zero_RCMI
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/src/cscm_calibrate/data/draw_samples_500_w_ecs.json")
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json")
 json_file = "../../flat10_runs_repo/draw_samples_just2.json"
-json_file= "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json"
+#json_file= "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json"
+json_file = "draw_samples_500.json"
 distrorun = DistributionRun(None, json_file_name=json_file)
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup/users/masan/SCM_stuff/subset_cscm_configfile_for_py_small.json")
-def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, dont_run=False):
-    print(row)
-    yend = row["Duration of scenario"] + ystart - 1
-    scen_name = row["Scenario"]
-    scen_name_strip = scen_name.split("esm-")[-1].split("allGHG-")[-1]
-    if scen_name_strip.startswith("scen7") and scen_name_strip.endswith("C"):
-        scen_name_strip = scen_name_strip[:-1]
+
+def make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend):
     if run_type == "esm-allghg":
         emistart = 1850
     else:
@@ -240,7 +237,17 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
     # Need to set this to correct version
     else:
         arg_dict["df_conc"] = fallback_concentrations
-    
+    return arg_dict
+
+
+def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, dont_run=False):
+    print(row)
+    yend = row["Duration of scenario"] + ystart - 1
+    scen_name = row["Scenario"]
+    scen_name_strip = scen_name.split("esm-")[-1].split("allGHG-")[-1]
+    if scen_name_strip.startswith("scen7") and scen_name_strip.endswith("C"):
+        scen_name_strip = scen_name_strip[:-1]
+    arg_dict = make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend)
     # TODO: Deal with natural emissions of ch4 and n2
     # Run conc, esm or esm-allghg
     #print(arg_dict)
@@ -286,6 +293,13 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
     return results
 
 dont_run = False
+
+def dump_results_to_netcdf(results, scenario_name):
+    outpath = f"out_file_dump/{scenario_name}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv"
+    if os.path.exists(outpath):
+        print(f"Output file {outpath} already exists, skipping dump")
+        return
+    results.to_csv(outpath)
 
 if __name__ == "__main__":
     #input_dir = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata"
