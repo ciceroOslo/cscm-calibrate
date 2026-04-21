@@ -64,14 +64,14 @@ def main(delete_after = False, convert_heat_uptake = False) -> None:
 	input_dir = script_dir / "out_file_dump"
 	today_str = date.today().strftime("%Y%m%d")
 
-	csv_files = sorted(input_dir.glob("*.csv"))
+	csv_files = sorted(input_dir.glob("*draw_samples_500.csv"))
 	if not csv_files:
 		print(f"No CSV files found in {input_dir}")
 		return
 	delete_list = []
 	for csv_path in csv_files:
 		df = pd.read_csv(csv_path, index_col=0)
-		#df = move_ensemble_member_after_unit(df)
+		df = move_ensemble_member_after_unit(df)
 		if convert_heat_uptake:
 			df = convert_heat_uptake(df)
 		df = rename_pg_c_unit(df)
@@ -90,5 +90,5 @@ def main(delete_after = False, convert_heat_uptake = False) -> None:
 
 
 if __name__ == "__main__":
-	main()
+	main(convert_heat_uptake=False)
 

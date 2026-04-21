@@ -11,12 +11,13 @@ from ciceroscm.carbon_cycle.carbon_cycle_mod import CarbonCycleModel
 from run_full_rcmip_protocol import read_output_variables_from_protocol, make_scenariodata_argdict
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../", "src"))
-from cscm_calibrate.set_up_calibration_configs_and_run import define_scendata_for_scm, get_df_from_input_w_data_handler
+from cscm_calibrate.set_up_calibration_configs_and_run import define_scendata_for_scm
 
 
 INPUT_FILENAME = "1pctCO2_rcmip_draw_samples_500.csv"
 EXCEEDANCE_THRESHOLDS_PG_C = [750, 1000, 2000]
-INPUT_DIR = "/home/masan/temp/rcmip_inputs_cscm/"
+#INPUT_DIR = "/home/masan/temp/rcmip_inputs_cscm/"
+INPUT_DIR = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata/"
 CONFIG_NAME = "draw_samples_500"
 
 
@@ -229,9 +230,9 @@ def format_carbon_cycle_output_for_saving(
 	"variable", "unit", "year", "value", and any other relevant metadata.
 	"""
 	carbon_cycle_map = {
-		"Biosphere carbon flux": ["Carbon Flux|Land", "Pg C / yr"],
-		"Ocean carbon flux": ["Carbon Flux|Ocean", "Pg C / yr"],
-		"Airborne fraction CO2": ["Airborne fraction CO2", "Unitless"],
+		#"Biosphere carbon flux": ["Carbon Flux|Land", "Pg C / yr"],
+		#"Ocean carbon flux": ["Carbon Flux|Ocean", "Pg C / yr"],
+		#"Airborne fraction CO2": ["Airborne fraction CO2", "Unitless"],
 		"Biosphere carbon pool": ["Carbon Pool|Land", "Pg C"],
 		"Ocean carbon pool": ["Carbon Pool|Ocean", "Pg C"],
 		"Net flux to atmosphere": ["Net Flux to Atmosphere|CO2", "Pg C / yr"],
@@ -243,6 +244,8 @@ def format_carbon_cycle_output_for_saving(
 			series = carbon_cycle_output[variable]
 		elif variable == "Net flux to atmosphere":
 			series = - carbon_cycle_output["Biosphere carbon flux"] - carbon_cycle_output["Ocean carbon flux"]
+		elif variable.replace("pool", "flux") in carbon_cycle_output:
+			series = np.cumsum(carbon_cycle_output[variable.replace("pool", "flux")])
 		data = [
 			"CICERO-SCM-PY",
 			"ciceroscm",
@@ -316,9 +319,9 @@ def main() -> None:
 	print(f"Wrote output with threshold rows to: {threshold_output_path}")
 	print(f"Wrote exceedance years to: {exceedance_output_path}")
 	default_scendata = get_default_inputs()
-	variables_list = read_output_variables_from_protocol("../../rcmip-phase-3/RCMIP3_input_datafiles/rcmip_phase3_protocol_v1.1.3.xlsx")
+	variables_list = read_output_variables_from_protocol(os.path.join(INPUT_DIR, "rcmip_phase3_protocol_v1.1.0.xlsx"))
 	print(variables_list)
-	save_data_dict = process_runs_from_json(df_with_threshold_rows, Path(f"{CONFIG_NAME}.json"), default_scendata, exceedance_years_df, variables_list[0])
+	save_data_dict = process_runs_from_json(df_with_threshold_rows, Path(f"../output/{CONFIG_NAME}.json"), default_scendata, exceedance_years_df, variables_list[0])
 	write_df_per_experiment_to_file(save_data_dict)
 
 

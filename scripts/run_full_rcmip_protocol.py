@@ -23,7 +23,7 @@ print(sys.path)
 
 from ciceroscm.parallel.distributionrun import DistributionRun
 
-special_scen_skip = ["1pctCO2-bgc", "1pctCO2-rad", "scen7-LC", "scen7-HLC", "scen7-MLC", "scen7-LNC", "scen7-MC", "esm-scen7-L", "esm-scen7-HL", "esm-scen7-ML", "esm-scen7-LN", "esm-scen7-M"]
+special_scen_skip = ["1pctCO2-bgc", "1pctCO2-rad"]#, "scen7-LC", "scen7-HLC", "scen7-MLC", "scen7-LNC", "scen7-MC", "esm-scen7-L", "esm-scen7-HL", "esm-scen7-ML", "esm-scen7-LN", "esm-scen7-M"]
 special_mapping = {"hist":"historical", "hist-cmip6": "historical-cmip6"}
 
 def check_if_inspected(scenario_name):
@@ -95,8 +95,8 @@ def read_output_variables_from_protocol(excel_file_path):
 ystart = 1750
 yendmax= 2500
 emistart = 1850
-input_dir = "/home/masan/temp/rcmip_inputs_cscm/"
-#input_dir = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata/"
+#input_dir = "/home/masan/temp/rcmip_inputs_cscm/"
+input_dir = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata/"
 gases_ep = "gases_vupdate_2024_WMO_added_new.txt"
 gases_df = get_df_from_input_w_data_handler(
     os.path.join(input_dir, gases_ep), 
@@ -141,9 +141,9 @@ lucalbedo_piControl = os.path.join(input_dir,"LUCalbedo_RCMIP_constant_zero_RCMI
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/src/cscm_calibrate/data/draw_samples_500.json")
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/src/cscm_calibrate/data/draw_samples_500_w_ecs.json")
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json")
-json_file = "../../flat10_runs_repo/draw_samples_just2.json"
-#json_file= "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json"
-json_file = "draw_samples_500.json"
+#json_file = "../../flat10_runs_repo/draw_samples_just2.json"
+json_file= "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json"
+#json_file = "draw_samples_500.json"
 distrorun = DistributionRun(None, json_file_name=json_file)
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup/users/masan/SCM_stuff/subset_cscm_configfile_for_py_small.json")
 
@@ -304,8 +304,10 @@ def dump_results_to_netcdf(results, scenario_name):
 if __name__ == "__main__":
     #input_dir = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata"
     #protocol_file = os.path.join("..", "..","rcmip-phase-3/RCMIP3_input_datafiles/", "rcmip_phase3_protocol_v1.1.0.xlsx")
-    protocol_file = os.path.join(input_dir, "rcmip_phase3_protocol_v1.1.0.xlsx")
+    protocol_file = os.path.join(input_dir, "rcmip_phase3_protocol_v1.1.6.xlsx")
     variables_all, variables_non_idealised, variables_non_idealised_emi, variables_non_idealised_conc =  read_output_variables_from_protocol(protocol_file)
+    print(variables_all)
+    print(variables_non_idealised_emi)
     experiment_out = {
         "idealised":{
             "esm_all": variables_all,
@@ -319,7 +321,7 @@ if __name__ == "__main__":
         }
     }
     skip = []
-    #skip = ["esm-1pct-brch-1000PgC"]
+    skip = ["esm-1pct-brch-1000PgC", "esm-1pct-brch-2000PgC", "esm-1pct-brch-750PgC"]
     split_experiment_dfs = load_and_process_protocol(protocol_file)
     print(split_experiment_dfs)
     #sys.exit(4)
