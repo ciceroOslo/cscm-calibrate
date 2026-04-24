@@ -270,14 +270,34 @@ def run_single_chunk(
             data["Yearstart_norm"] == data["Yearend_norm"]
             and data["Yearstart_norm"] == syear
         ):
-            results_for_fit_dict_1d[data["Variable Name"]] = results_sub.iloc[
-                :, data["Yearstart_change"] - syear + 7
-            ].values
+            if data["Yearstart_change"] == data["Yearend_change"]:
+                results_for_fit_dict_1d[data["Variable Name"]] = results_sub.iloc[
+                    :, data["Yearstart_change"] - syear + 7
+                ].values
+            else:
+                results_for_fit_dict_1d[data["Variable Name"]] = (
+                    results_sub.iloc[
+                        :,
+                        data["Yearstart_change"] - syear + 7 : data["Yearend_change"]
+                        - syear
+                        + 8,
+                    ]
+                ).mean(axis=1).values
         elif data["Yearstart_norm"] == data["Yearend_norm"]:
-            results_for_fit_dict_1d[data["Variable Name"]] = (
-                results_sub.iloc[:, data["Yearstart_change"] - 1750 + 7]
-                - results_sub.iloc[:, data["Yearstart_norm"] - 1750 + 7]
-            ).values
+            if data["Yearstart_change"] == data["Yearend_change"]:
+                results_for_fit_dict_1d[data["Variable Name"]] = (
+                    results_sub.iloc[:, data["Yearstart_change"] - 1750 + 7]
+                    - results_sub.iloc[:, data["Yearstart_norm"] - 1750 + 7]
+                ).values
+            else:
+                results_for_fit_dict_1d[data["Variable Name"]] = (
+                    results_sub.iloc[
+                        :,
+                        data["Yearstart_change"] - 1750 + 7 : data["Yearend_change"]
+                        - 1750
+                        + 8,
+                    ]
+                ).mean(axis=1).values - results_sub.iloc[:, data["Yearstart_norm"] - 1750 + 7].values
         else:
             results_for_fit_dict_1d[data["Variable Name"]] = (
                 (
