@@ -160,7 +160,7 @@ def make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend):
     }
 
     # Deal with natural forcings:
-    if row["Type"] == "idealised":
+    if row["Type"] == "idealised" or scen_name.endswith("piControl"):
         arg_dict["sunvolc"] = 0
         arg_dict["rf_luc_file"] = lucalbedo_piControl
         arg_dict["df_nat_ch4"] = make_dataframe_of_zeros("CH4", ystart, yend)

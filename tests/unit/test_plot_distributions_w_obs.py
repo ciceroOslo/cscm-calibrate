@@ -60,11 +60,51 @@ def test_pam_plotting_creates_figure(monkeypatch):
     monkeypatch.setattr(
         pdwo.plt,
         "subplots",
-        lambda nrows, ncols, figsize: (DummyFig(), np.array([[DummyAx()] * 5] * 5)),
+        lambda nrows, ncols, figsize: (
+            DummyFig(),
+            np.array([[DummyAx() for _ in range(7)] for _ in range(nrows)]),
+        ),
     )
     monkeypatch.setattr(pdwo.plt, "clf", lambda: None)
     parammat = pd.DataFrame({f"p{i}": np.arange(10) for i in range(25)})
     pdwo.pam_plotting(parammat)
+
+
+def test_pam_plotting_with_weights(monkeypatch):
+    """Cover the weighted-histogram branch of pam_plotting."""
+
+    received = []
+
+    class DummyFig:
+        def suptitle(self, *a, **k):
+            pass
+
+        def savefig(self, *a, **k):
+            pass
+
+    class DummyAx:
+        def hist(self, *a, **k):
+            received.append(k.get("weights"))
+
+        def set_title(self, *a, **k):
+            pass
+
+    monkeypatch.setattr(
+        pdwo.plt,
+        "subplots",
+        lambda nrows, ncols, figsize: (
+            DummyFig(),
+            np.array([[DummyAx() for _ in range(7)] for _ in range(nrows)]),
+        ),
+    )
+    monkeypatch.setattr(pdwo.plt, "clf", lambda: None)
+    weights = np.ones(10) * 0.5
+    parammat = pd.DataFrame({f"p{i}": np.arange(10) for i in range(3)})
+    pdwo.pam_plotting(parammat, weights=weights, name_epithet="weighted")
+    # all three columns plotted with the supplied weights
+    assert len(received) == 3
+    for w in received:
+        assert w is weights or np.array_equal(w, weights)
 
 
 def test_get_data_for_plots(monkeypatch):

@@ -36,6 +36,10 @@
                 75,
                 150
             ],
+            "delta_lambda_aero": [
+               -0.7,
+               3.4 
+            ],
             "qo3": [
                 0.4,
                 0.6
@@ -155,8 +159,7 @@
             "ldtime": 12,
             "qbmb": 0,
             "solubility_limit": 0.1,
-            "ml_t_half": 0,
-            "delta_lambda_aero": 0.0,
+            "ml_t_half": 0
         },
         "input_dir": "../../data/calibration_data_RCMIP/",
         "gases": "gases_vupdate_2024_WMO_added_new.txt",
