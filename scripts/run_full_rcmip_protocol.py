@@ -26,6 +26,8 @@ from ciceroscm.parallel.distributionrun import DistributionRun
 special_scen_skip = ["1pctCO2-bgc", "1pctCO2-rad"]#, "scen7-LC", "scen7-HLC", "scen7-MLC", "scen7-LNC", "scen7-MC", "esm-scen7-L", "esm-scen7-HL", "esm-scen7-ML", "esm-scen7-LN", "esm-scen7-M"]
 special_mapping = {"hist":"historical", "hist-cmip6": "historical-cmip6"}
 
+outpath_main = "out_file_dump"
+
 def check_if_inspected(scenario_name):
     if not os.path.exists("scenarios_inspected.txt"):
         return False
@@ -143,7 +145,7 @@ lucalbedo_piControl = os.path.join(input_dir,"LUCalbedo_RCMIP_constant_zero_RCMI
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json")
 #json_file = "../../flat10_runs_repo/draw_samples_just2.json"
 json_file= "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json"
-#json_file = "draw_samples_500.json"
+#json_file = "offending_member.json"
 distrorun = DistributionRun(None, json_file_name=json_file)
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup/users/masan/SCM_stuff/subset_cscm_configfile_for_py_small.json")
 
@@ -273,8 +275,8 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
 
     #print(variables)
     print(scen_name)
-    print(row["Type"])
-    print(scendata)
+    #print(row["Type"])
+    #print(scendata)
     #try:
     results = distrorun.run_over_distribution(
         scendata, output_vars=variables, max_workers=20
@@ -295,7 +297,7 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
 dont_run = False
 
 def dump_results_to_netcdf(results, scenario_name):
-    outpath = f"out_file_dump/{scenario_name}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv"
+    outpath = f"{outpath_main}/{scenario_name}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv"
     if os.path.exists(outpath):
         print(f"Output file {outpath} already exists, skipping dump")
         return
@@ -331,8 +333,8 @@ if __name__ == "__main__":
             print("---------------------------------------------------------")
             for index,row in split_experiment_dfs[key1][key2].iterrows():
                 print(row["Scenario"])
-                outpath = f"out_file_dump/{row['Scenario']}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv"
-                outpath_processed = f"out_file_dump/{row['Scenario']}_rcmip_ciceroscm_20260401.csv"
+                outpath = f"{outpath_main}/{row['Scenario']}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv"
+                outpath_processed = f"{outpath_main}/{row['Scenario']}_rcmip_ciceroscm_20260401.csv"
                 if os.path.exists(outpath) or os.path.exists(outpath_processed):
                     print(f"Output file {outpath} already exists, skipping run")
                     continue
@@ -360,7 +362,7 @@ if __name__ == "__main__":
                 #print(results.head())
                 #sys.exit(4)
                 if not results.empty:
-                    results.to_csv(f"out_file_dump/{row['Scenario']}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv")
+                    results.to_csv(f"{outpath_main}/{row['Scenario']}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv")
                 del results
         # #sys.exit(4)
     print("Done all scenarios")
