@@ -29,7 +29,7 @@ def move_ensemble_member_after_unit(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_output_name(input_name: str, today_str: str) -> str:
-	return input_name.replace("draw_samples_500", f"ciceroscm_{today_str}")
+	return input_name.replace("draw_samples_delta_aero_and_efficacy_wide_lambda_500", f"ciceroscm_{today_str}")
 
 def convert_heat_uptake(df: pd.DataFrame) -> pd.DataFrame:
 	"""Convert heat uptake rows to ZJ/yr using conv_factor for year columns."""
@@ -64,7 +64,7 @@ def main(delete_after = False, convert_heat_uptake = False) -> None:
 	input_dir = script_dir / "out_file_dump"
 	today_str = date.today().strftime("%Y%m%d")
 
-	csv_files = sorted(input_dir.glob("*draw_samples_500.csv"))
+	csv_files = sorted(input_dir.glob("*draw_samples_delta_aero_and_efficacy_wide_lambda_500.csv"))
 	if not csv_files:
 		print(f"No CSV files found in {input_dir}")
 		return

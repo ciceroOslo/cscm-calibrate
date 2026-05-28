@@ -28,14 +28,18 @@ import seaborn as sns
 # ---------------------------------------------------------------------------
 SCRIPT_DIR = Path(__file__).resolve().parent
 DUMP_WIDE = SCRIPT_DIR / "out_file_dump"
-DUMP_OLD = SCRIPT_DIR / "out_file_dump_patternv1"
-DUMP_NEW = SCRIPT_DIR / "out_file_dump_new_preCO2"
+DUMP_OLD = SCRIPT_DIR / "out_file_dump_nopattern"
+DUMP_NEW = SCRIPT_DIR / "out_file_dump_nopattern_noefficacy"
 FIG_ROOT = SCRIPT_DIR / "figures"
 FIG_COMPARE = FIG_ROOT / "comparisons"
 FIG_COMPARE_BY_VAR = FIG_COMPARE / "by_variable"
 FIG_FLAT10 = FIG_ROOT / "flat10"
 
-CSV_SUFFIX = "_rcmip_draw_samples_500.csv"
+CSV_SUFFIX = {
+    "pattern": "_rcmip_draw_samples_delta_aero_and_efficacy_wide_lambda_500.csv",
+    "nopattern": "_rcmip_draw_samples_no_delta_aero_wide_lambda_400.csv",
+    "nopattern_noefficacy": "_rcmip_draw_samples_no_efficacy_no_pattern_wide_lambda_400.csv",
+}
 
 YEAR_START = 1750
 YEAR_END = 2169  # inclusive
@@ -114,20 +118,20 @@ def slugify(name: str) -> str:
     return s.strip("_")
 
 
-def list_scenarios(folder: Path) -> set[str]:
+def list_scenarios(folder: Path, label:str) -> set[str]:
     """Return the set of scenario stems available in ``folder``."""
     out = set()
-    for p in folder.glob(f"*{CSV_SUFFIX}"):
+    for p in folder.glob(f"*{CSV_SUFFIX[label]}"):
         if "_exceedance_years" in p.name:
             continue
-        stem = p.name[: -len(CSV_SUFFIX)]
+        stem = p.name[: -len(CSV_SUFFIX[label])]
         out.add(stem)
     return out
 
 
-def load_scenario_csv(folder: Path, scenario: str) -> pd.DataFrame | None:
+def load_scenario_csv(folder: Path, scenario: str, label: str) -> pd.DataFrame | None:
     """Load a scenario CSV (or return None if missing)."""
-    path = folder / f"{scenario}{CSV_SUFFIX}"
+    path = folder / f"{scenario}{CSV_SUFFIX[label]}"
     if not path.exists():
         return None
     return pd.read_csv(path, index_col=0)
@@ -162,9 +166,9 @@ def make_comparison_plots(resume: bool = False) -> None:
     FIG_COMPARE.mkdir(parents=True, exist_ok=True)
     FIG_COMPARE_BY_VAR.mkdir(parents=True, exist_ok=True)
 
-    old = list_scenarios(DUMP_OLD)
-    new = list_scenarios(DUMP_NEW)
-    wide = list_scenarios(DUMP_WIDE)
+    old = list_scenarios(DUMP_OLD, "nopattern")
+    new = list_scenarios(DUMP_NEW, "nopattern_noefficacy")
+    wide = list_scenarios(DUMP_WIDE, "pattern")
     common = sorted(old & new & wide)
     only_old = sorted(old - new - wide)
     only_new = sorted(new - old - wide)
@@ -190,11 +194,11 @@ def make_comparison_plots(resume: bool = False) -> None:
         def _ensure_loaded():
             nonlocal df_old, df_new, df_wide
             if df_old is None:
-                df_old = load_scenario_csv(DUMP_OLD, scenario)
+                df_old = load_scenario_csv(DUMP_OLD, scenario, "nopattern")
             if df_new is None:
-                df_new = load_scenario_csv(DUMP_NEW, scenario)
+                df_new = load_scenario_csv(DUMP_NEW, scenario, "nopattern_noefficacy")
             if df_wide is None:
-                df_wide = load_scenario_csv(DUMP_WIDE, scenario)
+                df_wide = load_scenario_csv(DUMP_WIDE, scenario, "pattern")
             return df_old is not None and df_new is not None and df_wide is not None
 
         # Get the variable list cheaply: in resume mode we only need it if at
@@ -202,7 +206,7 @@ def make_comparison_plots(resume: bool = False) -> None:
         if resume:
             # Use the new dump as the reference for which variables to plot;
             # if everything for this scenario already exists, skip the load.
-            ref_df = load_scenario_csv(DUMP_NEW, scenario)
+            ref_df = load_scenario_csv(DUMP_NEW, scenario, "nopattern_noefficacy")
             if ref_df is None:
                 continue
             ref_vars = sorted(ref_df["variable"].unique())
@@ -255,9 +259,9 @@ def make_comparison_plots(resume: bool = False) -> None:
             p05_w, p50_w, p95_w = percentile_band(arr_w)
 
             fig, ax = plt.subplots(figsize=(8, 4.5))
-            plot_band(ax, years_o, p05_o, p50_o, p95_o, color="C0", label="pattern v1")
-            plot_band(ax, years_n, p05_n, p50_n, p95_n, color="C1", label="new preCO2")
-            plot_band(ax, years_n, p05_n, p50_n, p95_n, color="C1", label="pattern wide lambda")
+            plot_band(ax, years_n, p05_n, p50_n, p95_n, color="C0", label="no pattern, no efficacy")
+            plot_band(ax, years_o, p05_o, p50_o, p95_o, color="C1", label="no pattern")
+            plot_band(ax, years_w, p05_w, p50_w, p95_w, color="C2", label="pattern and efficacy")
             ax.set_title(f"{scenario} — {variable}")
             ax.set_xlabel("Year")
             unit_series = df_new.loc[df_new["variable"] == variable, "unit"]
@@ -275,13 +279,13 @@ def make_comparison_plots(resume: bool = False) -> None:
 # ---------------------------------------------------------------------------
 # Phase 3: flat10 replication
 # ---------------------------------------------------------------------------
-def build_flat10_long_df(folder: Path, scenarios: list[str]) -> pd.DataFrame:
+def build_flat10_long_df(folder: Path, scenarios: list[str], label:str) -> pd.DataFrame:
     """Concatenate per-scenario CSVs into a single long-form DataFrame matching
     the schema used by flat10_trials/make_timeseries_plots.py (year columns
     start at index 7)."""
     frames = []
     for scen in scenarios:
-        df = load_scenario_csv(folder, scen)
+        df = load_scenario_csv(folder, scen, label)
         if df is None:
             print(f"[flat10] missing scenario CSV: {scen}")
             continue
@@ -494,7 +498,7 @@ def flat10_gregory_plots(folders_by_source: dict) -> None:
         fig, ax = plt.subplots(figsize=(6, 5))
         plotted = False
         for src_label, folder in folders_by_source.items():
-            df = load_scenario_csv(folder, scen)
+            df = load_scenario_csv(folder, scen, src_label)
             if df is None:
                 print(f"[flat10] gregory: missing {scen} in {src_label}")
                 continue
@@ -527,11 +531,11 @@ def flat10_gregory_plots(folders_by_source: dict) -> None:
 def make_flat10_replication() -> None:
     FIG_FLAT10.mkdir(parents=True, exist_ok=True)
 
-    sources = {"new_preCO2": DUMP_NEW, "pattern": DUMP_OLD, "pattern_wide": DUMP_WIDE}
+    sources = {"nopattern_noefficacy": DUMP_NEW, "nopattern": DUMP_OLD, "pattern": DUMP_WIDE}
     dfs_by_source = {}
     for label, folder in sources.items():
         try:
-            dfs_by_source[label] = build_flat10_long_df(folder, FLAT10_SCENARIOS)
+            dfs_by_source[label] = build_flat10_long_df(folder, FLAT10_SCENARIOS, label)
         except RuntimeError as exc:
             print(f"[flat10] could not load {label}: {exc}")
     if not dfs_by_source:

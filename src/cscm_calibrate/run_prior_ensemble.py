@@ -15,7 +15,7 @@ try:
 except:  # noqa: E722
     from pandas.errors import SettingWithCopyWarning
 
-from .shared_functions import get_project_root
+from .shared_functions import get_project_root, compute_ecs_gregory
 from .plot_distributions_w_obs import plot_distributions  # noqa: F401
 
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
@@ -96,6 +96,8 @@ def run_prior_ensemble(  # noqa: PLR0913, PLR0915
     max_workers=200,
     continue_from_existing=False,
     plot=False,
+    scenariodata_idealised_experiments=None,
+    calibdata_idealised_experiments=None,
 ):
     """
     Run a prior ensemble simulatio and process results
@@ -203,7 +205,11 @@ def run_prior_ensemble(  # noqa: PLR0913, PLR0915
         print(f"\n--- Processing Chunk {i + 1}/{chunk_nums} ---")
         file_midstring = f"{distnums}_chunk_{i}"
         print(os.path.join(output_dir, f"configs_{file_midstring}.json"))
-        run_single_chunk(
+        if scenariodata_idealised_experiments is not None and calibdata_idealised_experiments is not None:
+            run_idealised = True
+        else:
+            run_idealised = False
+        targ, pdict = run_single_chunk(
             output_dir, 
             file_midstring, 
             scenariodata, 
@@ -211,8 +217,21 @@ def run_prior_ensemble(  # noqa: PLR0913, PLR0915
             prunecfgs, 
             max_workers, 
             chunk_size=chunk_size,
-            plot=plot
+            plot=plot,
+            skip_idealised_experiments=run_idealised
         )
+        if run_idealised:
+            targ_ideal = run_single_chunk_idealised_experiments(
+                scenariodata_idealised_experiments, 
+                max_workers, 
+                output_dir, 
+                file_midstring, 
+                calibdata_idealised_experiments, 
+                chunk_size=chunk_size
+            )
+            targ = pd.concat([targ, targ_ideal], axis=1)
+        print(targ)
+        store_h5_data(pdict, targ, output_dir, file_midstring)
         print(f"✓ Chunk {i + 1}/{chunk_nums} complete!\n")
 
 def merge_dicts(dc):
@@ -232,7 +251,8 @@ def run_single_chunk(
         prunecfgs, 
         max_workers, 
         chunk_size=10000,
-        plot=False
+        plot=False,
+        skip_idealised_experiments=False
         ):  # noqa: PLR0913
     """
     Example function to run a single chunk of the prior ensemble for testing purposes.
@@ -265,6 +285,8 @@ def run_single_chunk(
     syear = 1750
     results_for_fit_dict_1d = {}
     for idx, data in calibdata.iterrows():
+        print(results)
+        print(data)
         results_sub = results.loc[results["variable"] == data["Variable Name"]]
         if (
             data["Yearstart_norm"] == data["Yearend_norm"]
@@ -331,9 +353,19 @@ def run_single_chunk(
 
     # Save constraint targets and parameter matrices
     print(results_for_fit_dict_1d)
+    pop_keys = []
+    if skip_idealised_experiments:
+        for key,data in results_for_fit_dict_1d.items():
+            if len(data) < 1:
+                pop_keys.append(key)
+        for key in pop_keys:
+            results_for_fit_dict_1d.pop(key)
     targ = pd.DataFrame(data=results_for_fit_dict_1d)
     targ.index.set_names("run_id", inplace=True)
     pdict = distrorun1.cfgs
+    return targ, pdict
+
+def store_h5_data(pdict, targ, output_dir, file_midstring):
 
     mdict = [merge_dicts(d) for d in pdict]
     pmat = pd.DataFrame(mdict)
@@ -347,3 +379,65 @@ def run_single_chunk(
         store["targ"] = targ
         store["parammat"] = parammat
         store.close()
+
+def run_single_chunk_idealised_experiments(
+    scenariodata, 
+    max_workers,
+    output_dir,
+    file_midstring,
+    calib_data,
+    output_vars = None,
+    chunk_size=10000):  # noqa: PLR0913
+    """
+    Example function to run a single chunk of the prior ensemble for testing purposes.
+    This version is set up to run idealised experiments with hardcoded parameters.
+    """
+    # This function can be implemented similarly to run_prior_ensemble but with hardcoded parameters for a single chunk.
+
+    # Suppress stdout from DistributionRun initialization
+    old_stdout = sys.stdout
+    sys.stdout = open(os.devnull, "w")
+    try:
+        distrorun1 = DistributionRun(
+            None,
+            json_file_name=os.path.join(
+                output_dir, f"configs_{file_midstring}.json"
+            ),
+            numvalues=chunk_size, # used to be distnums but we want to run one chunk at a time here
+        )
+    finally:
+        sys.stdout.close()
+        sys.stdout = old_stdout
+    print(distrorun1.cfgs)
+
+    #sys.exit(4)
+    if output_vars is None:
+        output_vars = ["Surface Air Ocean Blended Temperature Change",
+                       "Heat Content|Ocean"
+                       ]
+    for scenarios in scenariodata:
+        if "ref_yr" in scenarios.keys():
+            for i, cfg in enumerate(distrorun1.cfgs):
+                distrorun1.cfgs[i]["pamset_emiconc"]["ref_yr"] = scenarios["ref_yr"]
+        print(scenarios.keys())
+        print(scenarios["scenname"])
+        print(scenarios["rf_luc_data"])
+    print(f"Running {chunk_size:,} simulations with {max_workers} workers...")
+    results = distrorun1.run_over_distribution(
+        scenariodata, output_vars, max_workers=max_workers
+    )
+    targ_list = []
+
+
+    for i, experiment in enumerate(calib_data["Experiments"]):
+        results_sub = results.loc[results["scenario"] == experiment]
+        targ_comp = calib_data["Varname_short"][i]
+        if targ_comp == "ECS":
+            targ_list.append(compute_ecs_gregory(results_sub, calib_data["Yearstart_change"][i], calib_data["Yearend_change"][i]))
+        elif targ_comp == "TCR" or targ_comp == "TCRE":
+            targ_np = results_sub.loc[results_sub["variable"]=="Surface Air Ocean Blended Temperature Change"][calib_data["Yearend_change"][i]].values - results_sub.loc[results_sub["variable"]=="Surface Air Ocean Blended Temperature Change"][calib_data["Yearstart_norm"][i]].values
+            targ_np = pd.Series(targ_np, name=targ_comp)
+            targ_np.index.set_names("run_id", inplace=True)
+            targ_list.append(targ_np)
+            
+    return pd.concat(targ_list, axis=1)

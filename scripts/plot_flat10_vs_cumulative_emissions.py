@@ -32,8 +32,8 @@ INDATA_DIR = Path("/div/no-backup-nac/users/masan/GRAFITE/temp_indata")
 INPUT_SUFFIX = "_em_gases_vupdate_2024_WMO_added_new.txt"
 FIG_OUT = FIG_FLAT10 / "cumulative_emissions"
 
-SOURCES = {"new_preCO2": DUMP_NEW, "pattern": DUMP_OLD, "pattern_wide": DUMP_WIDE}
-SOURCE_COLOURS = {"new_preCO2": "C0", "pattern": "C1", "pattern_wide": "C2"}
+SOURCES = {"nopattern_noefficacy": DUMP_NEW, "nopattern": DUMP_OLD, "pattern": DUMP_WIDE}
+SOURCE_COLOURS = {"nopattern_noefficacy": "C0", "nopattern": "C1", "pattern": "C2"}
 
 # Map output-CSV scenario name -> emissions input file stem in INDATA_DIR.
 # Defaults to identity (so flat10 scenarios just use their own name).
@@ -109,7 +109,7 @@ def plot_scenario(scenario: str) -> None:
 
     dfs = {}
     for label, folder in SOURCES.items():
-        df = load_scenario_csv(folder, scenario)
+        df = load_scenario_csv(folder, scenario, label)
         if df is None:
             print(f"[cum_emis] no output CSV for {scenario} in {label}")
             continue

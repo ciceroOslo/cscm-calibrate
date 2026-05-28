@@ -26,7 +26,7 @@ from ciceroscm.parallel.distributionrun import DistributionRun
 special_scen_skip = ["1pctCO2-bgc", "1pctCO2-rad"]#, "scen7-LC", "scen7-HLC", "scen7-MLC", "scen7-LNC", "scen7-MC", "esm-scen7-L", "esm-scen7-HL", "esm-scen7-ML", "esm-scen7-LN", "esm-scen7-M"]
 special_mapping = {"hist":"historical", "hist-cmip6": "historical-cmip6"}
 
-outpath_main = "out_file_dump"
+outpath_main = "out_file_dump_nopattern"
 
 def check_if_inspected(scenario_name):
     if not os.path.exists("scenarios_inspected.txt"):
@@ -48,7 +48,7 @@ def make_dataframe_of_zeros(varname, start_year, end_year):
 # split each subframe by Scenario prefix groups
 def _split_by_scenario_prefix(subdf):
     s = subdf['Scenario'].astype(str).str.lower().str.strip()
-    mask_esm_all = s.str.startswith('esm-allghg')
+    mask_esm_all = s.str.startswith('esm-allGHG')
     mask_esm = s.str.startswith('esm-') & ~mask_esm_all
     mask_other = ~s.str.startswith('esm-')
     return subdf[mask_esm_all].copy(), subdf[mask_esm].copy(), subdf[mask_other].copy()
@@ -121,7 +121,7 @@ fallback_concentrations = get_df_from_input_w_data_handler(
 em_piControl = get_df_from_input_w_data_handler(
     None, 
     input_dir, 
-    f"esm-picontrol_idealised_em_{gases_ep}", 
+    f"esm-piControl_em_{gases_ep}", 
     nyend=yendmax, nystart=ystart, case_type="emis"
     )
 conc_piControl = get_df_from_input_w_data_handler(
@@ -144,13 +144,16 @@ lucalbedo_piControl = os.path.join(input_dir,"LUCalbedo_RCMIP_constant_zero_RCMI
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/src/cscm_calibrate/data/draw_samples_500_w_ecs.json")
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json")
 #json_file = "../../flat10_runs_repo/draw_samples_just2.json"
-json_file= "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json"
+#json_file= "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json"
+json_file = "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/draw_samples_archive/draw_samples_no_delta_aero_wide_lambda_400.json"
 #json_file = "offending_member.json"
 distrorun = DistributionRun(None, json_file_name=json_file)
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup/users/masan/SCM_stuff/subset_cscm_configfile_for_py_small.json")
 
 def make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend):
-    if run_type == "esm-allghg":
+    print(run_type)
+    if scen_name.startswith("esm-allGHG"):
+        print("Hello")
         emistart = 1850
     else:
         emistart = yend
@@ -165,8 +168,8 @@ def make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend):
     if row["Type"] == "idealised" or scen_name.endswith("piControl"):
         arg_dict["sunvolc"] = 0
         arg_dict["rf_luc_file"] = lucalbedo_piControl
-        arg_dict["df_nat_ch4"] = make_dataframe_of_zeros("CH4", ystart, yend)
-        arg_dict["df_nat_n2o"] = make_dataframe_of_zeros("N2O", ystart, yend)
+        arg_dict["df_nat_ch4"] = make_dataframe_of_zeros("CH4", ystart, yend+1)
+        arg_dict["df_nat_n2o"] = make_dataframe_of_zeros("N2O", ystart, yend+1)
     else:
         arg_dict["sunvolc"] = 1
         if os.path.exists(os.path.join(input_dir, f"solar_RCMIP_{scen_name_strip}_RCMIP3.txt")):
@@ -213,11 +216,15 @@ def make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend):
         arg_dict["df_emis"] = f"{special_mapping[scen_name_strip]}_em_{gases_ep}"
     elif not scen_name.startswith("esm-") and row["Type"] == "idealised":
         arg_dict["df_emis"] = em_piControl
+    elif os.path.exists(os.path.join(input_dir, f"esm-{scen_name_strip}_em_{gases_ep}")):
+        print("Picked emissions file based on esm- prefix")
+        arg_dict["df_emis"] = f"esm-{scen_name_strip}_em_{gases_ep}"
     elif scen_name != scen_name_strip:
         print(f"Emissions file missing for scenario {scen_name}")
         sys.exit(4)
     else:
         # TODO check if this is ok...
+        print("Went and got fallback emissions")
         arg_dict["df_emis"] = fallback_emissions
     #print(arg_dict["df_emis"])
 
@@ -250,6 +257,9 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
     if scen_name_strip.startswith("scen7") and scen_name_strip.endswith("C"):
         scen_name_strip = scen_name_strip[:-1]
     arg_dict = make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend)
+    # print(arg_dict.keys())
+    # print(arg_dict["rf_luc_file"])
+    #sys.exit(4)
     # TODO: Deal with natural emissions of ch4 and n2
     # Run conc, esm or esm-allghg
     #print(arg_dict)
@@ -274,9 +284,11 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
 
 
     #print(variables)
-    print(scen_name)
-    #print(row["Type"])
-    #print(scendata)
+    # print(scen_name)
+    # #print(row["Type"])
+    # print(scendata[0]["emstart"])
+    # print(scendata)
+    #sys.exit(4)
     #try:
     results = distrorun.run_over_distribution(
         scendata, output_vars=variables, max_workers=20
