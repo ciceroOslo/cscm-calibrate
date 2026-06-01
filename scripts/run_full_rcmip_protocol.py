@@ -26,7 +26,7 @@ from ciceroscm.parallel.distributionrun import DistributionRun
 special_scen_skip = ["1pctCO2-bgc", "1pctCO2-rad"]#, "scen7-LC", "scen7-HLC", "scen7-MLC", "scen7-LNC", "scen7-MC", "esm-scen7-L", "esm-scen7-HL", "esm-scen7-ML", "esm-scen7-LN", "esm-scen7-M"]
 special_mapping = {"hist":"historical", "hist-cmip6": "historical-cmip6"}
 
-outpath_main = "out_file_dump_nopattern"
+outpath_main = "out_file_dump_nopattern_noefficacy"
 
 def check_if_inspected(scenario_name):
     if not os.path.exists("scenarios_inspected.txt"):
@@ -145,7 +145,7 @@ lucalbedo_piControl = os.path.join(input_dir,"LUCalbedo_RCMIP_constant_zero_RCMI
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json")
 #json_file = "../../flat10_runs_repo/draw_samples_just2.json"
 #json_file= "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json"
-json_file = "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/draw_samples_archive/draw_samples_no_delta_aero_wide_lambda_400.json"
+json_file = "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/draw_samples_archive/draw_samples_no_efficacy_no_pattern_wide_lambda_400.json"
 #json_file = "offending_member.json"
 distrorun = DistributionRun(None, json_file_name=json_file)
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup/users/masan/SCM_stuff/subset_cscm_configfile_for_py_small.json")

@@ -78,7 +78,7 @@ def get_df_from_input_w_data_handler(  # noqa: PLR0913
         if case_type in ["CH4", "N2O"]:
             print(nyend)
             input_concrete = input_handler.read_natural_emissions(
-                input_concrete, case_type#,endyear=nyend
+                input_concrete, case_type,endyear=nyend
             )
             input_concrete = input_concrete.loc[:nyend]
         elif case_type == "emis":
