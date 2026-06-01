@@ -1,0 +1,5 @@
+,Variable Name,Varname_short,Yearstart_norm,Yearend_norm,Yearstart_change,Yearend_change,Central Value,lower_sigma,upper_sigma,run_experiments
+0,Atmospheric Concentrations|CO2,CO2conc,1850,1900,2014,2014,397.0,1.2159136638235384,1.2159136638235384,historical
+1,Heat Content|Ocean,OHC,1971,1971,2018,2018,330.0,79.03438814852998,79.03438814852998,historical
+2,Effective Radiative Forcing|Anthropogenic|Aerosol,ERFaer,1750,1750,2014,2014,-1.3,0.4255697823382384,0.42556978233823844,historical
+3,Surface Air Ocean Blended Temperature Change,GMST,1850,1900,2010,2019,1.06,0.12767093470147156,0.1276709347014715,historical

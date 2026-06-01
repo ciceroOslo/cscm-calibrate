@@ -12,13 +12,18 @@ import pandas as pd
 
 try:
     from pandas.core.common import SettingWithCopyWarning
-except:  # noqa: E722
-    from pandas.errors import SettingWithCopyWarning
+except ImportError:
+    try:
+        from pandas.errors import SettingWithCopyWarning
+    except ImportError:
+        # pandas >= 3.0 removed SettingWithCopyWarning entirely.
+        SettingWithCopyWarning = None
 
 from .shared_functions import get_project_root, compute_ecs_gregory
 from .plot_distributions_w_obs import plot_distributions  # noqa: F401
 
-warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
+if SettingWithCopyWarning is not None:
+    warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 
 
 warnings.filterwarnings("ignore", message=".*Parameter.*")

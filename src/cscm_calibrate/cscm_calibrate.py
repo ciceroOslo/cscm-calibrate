@@ -18,9 +18,14 @@ from .weigth_ensemble_from_constraints_and_draw import weight_ensemble_and_draw
 
 try:
     from pandas.core.common import SettingWithCopyWarning
-except:  # noqa: E722
-    from pandas.errors import SettingWithCopyWarning
-warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
+except ImportError:
+    try:
+        from pandas.errors import SettingWithCopyWarning
+    except ImportError:
+        # pandas >= 3.0 removed SettingWithCopyWarning entirely.
+        SettingWithCopyWarning = None
+if SettingWithCopyWarning is not None:
+    warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 warnings.filterwarnings("ignore", message=".*Parameter.*")
 
 # Get path to ciceroscm - one level up from project root
@@ -212,7 +217,7 @@ class CSCMCalibrationPipeline:
             rf_luc_file=prior_cfgs.get("rf_luc_file", None),
         )
         print(type(scenariodata))
-        scenariodata_ideadlised_experiments = None
+        scenariodata_idealised_experiments = None
         calibdata_idealised_experiments = None
         if "constraint_configs_idealised" in self.configs:
             scenariodata_idealised_experiments = []

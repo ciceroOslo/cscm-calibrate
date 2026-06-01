@@ -113,14 +113,14 @@ def test_define_scendata_for_scm(monkeypatch, tmp_path):
         "idtm",
         "scenname",
         "sunvolc",
-        "rf_solar",
-        "rf_volc",
-        "rf_luc",
+        "rf_solar_data",
+        "rf_volc_data",
+        "rf_luc_data",
     }
     assert set(entry.keys()) == expected_keys
     assert entry["sunvolc"] == 1
     # forcing files were loaded as DataFrames
-    for k in ("rf_solar", "rf_volc", "rf_luc"):
+    for k in ("rf_solar_data", "rf_volc_data", "rf_luc_data"):
         assert isinstance(entry[k], pd.DataFrame)
         assert entry[k].shape == (3, 2)
 
@@ -141,9 +141,9 @@ def test_define_scendata_for_scm_sunvolc_zero(monkeypatch, tmp_path):
 
     scen_data = define_scendata_for_scm(str(tmp_path), sunvolc=0)
     entry = scen_data[0]
-    assert entry["rf_solar"] is None
-    assert entry["rf_volc"] is None
-    assert entry["rf_luc"] is None
+    assert entry["rf_solar_data"] is None
+    assert entry["rf_volc_data"] is None
+    assert entry["rf_luc_data"] is None
 
 
 def test_define_scendata_for_scm_sunvolc_one_missing_files(monkeypatch, tmp_path):
@@ -162,9 +162,9 @@ def test_define_scendata_for_scm_sunvolc_one_missing_files(monkeypatch, tmp_path
         rf_luc_file="absent_luc.txt",
     )
     entry = scen_data[0]
-    assert entry["rf_solar"] is None
-    assert entry["rf_volc"] is None
-    assert entry["rf_luc"] is None
+    assert entry["rf_solar_data"] is None
+    assert entry["rf_volc_data"] is None
+    assert entry["rf_luc_data"] is None
 
 
 def test_case_type_n2o_uses_loc_slice(monkeypatch):
