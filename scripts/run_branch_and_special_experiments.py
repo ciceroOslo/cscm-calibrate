@@ -15,7 +15,7 @@ from cscm_calibrate.set_up_calibration_configs_and_run import define_scendata_fo
 
 
 INPUT_DIR = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata/"
-CONFIG_NAME = "draw_samples_no_delta_aero_wide_lambda_400"
+CONFIG_NAME = "draw_samples_no_efficacy_no_pattern_wide_lambda_400"
 CONFIG_PATH = Path(f"../draw_samples_archive/{CONFIG_NAME}.json")
 
 
@@ -23,7 +23,7 @@ INPUT_FILENAME = f"1pctCO2_rcmip_{CONFIG_NAME}.csv"
 EXCEEDANCE_THRESHOLDS_PG_C = [750, 1000, 2000]
 #INPUT_DIR = "/home/masan/temp/rcmip_inputs_cscm/"
 
-OUTPATH_MAIN = "out_file_dump_nopattern"
+OUTPATH_MAIN = "out_file_dump_nopattern_noefficacy"
 
 def _find_input_file() -> Path:
 	"""Locate the requested input CSV, preferring the rcmip subfolder."""

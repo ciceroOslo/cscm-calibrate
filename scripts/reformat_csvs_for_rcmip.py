@@ -59,10 +59,11 @@ def rename_pg_c_unit(df: pd.DataFrame) -> pd.DataFrame:
     df.loc[pg_mask, "unit"] = "Gt C/yr"
     return df
 
-def main(delete_after = False, convert_heat_uptake = False) -> None:
+def main(delete_after = False, convert_heat_uptake = False, resume = True) -> None:
 	script_dir = Path(__file__).resolve().parent
 	input_dir = script_dir / "out_file_dump"
 	today_str = date.today().strftime("%Y%m%d")
+	today_str = "20260527" # For reproducibility in testing
 
 	csv_files = sorted(input_dir.glob("*draw_samples_delta_aero_and_efficacy_wide_lambda_500.csv"))
 	if not csv_files:
@@ -70,6 +71,11 @@ def main(delete_after = False, convert_heat_uptake = False) -> None:
 		return
 	delete_list = []
 	for csv_path in csv_files:
+		output_name = build_output_name(csv_path.name, today_str)
+		output_path = input_dir / output_name
+		if resume and output_path.exists():
+			print(f"Skipping {csv_path} because {output_path} already exists")
+			continue
 		df = pd.read_csv(csv_path, index_col=0)
 		df = move_ensemble_member_after_unit(df)
 		if convert_heat_uptake:
@@ -77,8 +83,8 @@ def main(delete_after = False, convert_heat_uptake = False) -> None:
 		df = rename_pg_c_unit(df)
 
 
-		output_name = build_output_name(csv_path.name, today_str)
-		output_path = input_dir / output_name
+
+
 		df.to_csv(output_path)
 		print(f"Wrote: {output_path}")
 		if delete_after:
