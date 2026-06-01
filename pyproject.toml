@@ -265,6 +265,11 @@ formats = "ipynb,py:percent"
 addopts = [
     "--import-mode=importlib",
 ]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: end-to-end pipeline tests",
+    "regression: snapshot-based regression tests (use --regen-snapshots to refresh)",
+]
 
 [tool.ruff]
 src = [

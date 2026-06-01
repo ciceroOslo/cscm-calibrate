@@ -28,17 +28,18 @@ SIGMA_TO_90PERCENT = 1.6448536269514722
 varname_short_mapping = {
     "Heat Content|Ocean": "OHC",
     "Surface Air Ocean Blended Temperature Change": "GMST",
-    "Effective Radiative Forcing|Aerosols": "ERFaer",
+    "Effective Radiative Forcing|Anthropogenic|Aerosol": "ERFaer",
     "Atmospheric Concentrations|CO2": "CO2conc",
-    "Ocean carbon flux": "Oceancarbon",
-    "Biosphere carbon flux": "Biocarbon",
+    "Carbon Flux|Ocean": "Oceancarbon",
+    "Carbon Flux|Land": "Biocarbon",
 }
 
 RCMIP_NAME_MAPPING = {
     "Global Mean Surface Temperature (GMST)": "Surface Air Ocean Blended Temperature Change",  # noqa: E501
     "Ocean Heat Content|Global|Total": "Heat Content|Ocean",
-    "Carbon Flux to Oceans": "Ocean carbon flux",
-    "Carbon Flux to Land": "Biosphere carbon flux",
+    "Carbon Flux to Oceans": "Carbon Flux|Ocean",
+    "Carbon Flux to Land": "Carbon Flux|Land",
+    "Effective Radiative Forcing|Aerosols": "Effective Radiative Forcing|Anthropogenic|Aerosol",
 }
 
 
@@ -188,7 +189,11 @@ def make_constraints_config_from_RCMIP_csv(constraints_from_RCMIP):
         if varname in RCMIP_NAME_MAPPING:
             varname = RCMIP_NAME_MAPPING[varname]
         constraints_dict["Variable Name"].append(varname)
-        constraints_dict["Varname_short"].append(varname_short_mapping[varname])
+        if varname in varname_short_mapping:
+            constraints_dict["Varname_short"].append(varname_short_mapping[varname])
+        else:
+            constraints_dict["Varname_short"].append(varname)
+        print(row)
         constraints_dict["run_experiments"].append("historical")
         base_years = row["Baseline_period"].split("-")
         const_years = row["Constraint_period"].split("-")
@@ -200,15 +205,101 @@ def make_constraints_config_from_RCMIP_csv(constraints_from_RCMIP):
             constraints_dict["Yearend_norm"].append(1750)
         constraints_dict["Yearstart_change"].append(int(const_years[0]))
         constraints_dict["Yearend_change"].append(int(const_years[1]))
-        central = float(row["Central_estimate"])
+        if "Central_estimate" in row:
+            central = float(row["Central_estimate"])
+        else:
+            central = float(row["50th"])
         constraints_dict["Central Value"].append(central)
+        if "Lower_bound" in row:
+            lower_bound = float(row["Lower_bound"])
+        else:
+            lower_bound = float(row["5th"])
         constraints_dict["lower_sigma"].append(
-            (central - float(row["Lower_bound"])) / SIGMA_TO_90PERCENT
+            (central - lower_bound) / SIGMA_TO_90PERCENT
         )
+        if "Upper_bound" in row:
+            upper_bound = float(row["Upper_bound"])
+        else:            
+            upper_bound = float(row["95th"])
         constraints_dict["upper_sigma"].append(
-            (float(row["Upper_bound"]) - central) / SIGMA_TO_90PERCENT
+            (upper_bound - central) / SIGMA_TO_90PERCENT
         )
 
     print(constraints_dict)
     # Convert to DataFrame for compatibility with run_prior_ensemble
     return pd.DataFrame(constraints_dict)
+
+
+def make_dataframe_of_zeros(varname, start_year, end_year):
+    """
+    Create a DataFrame with a single column of zeros and an index of years.
+
+    Used to send empty dataframes for natural emission of CH4 and N2O
+    """
+    years = np.arange(start_year, end_year + 1)
+    data = np.zeros(len(years))
+    df = pd.DataFrame(data=data, index=years, columns=[varname])
+    df.index.name="year"
+    return df
+
+def compute_ecs_gregory(abrupt_data, start_year, end_year):
+    """
+    Compute the Equilibrium Climate Sensitivity (ECS) using the Gregory method.
+
+    Parameters
+    ----------
+    abrupt_data : pd.DataFrame
+        DataFrame containing the output from an abrupt 4xCO2 simulation.
+        Must have a 'variable' column, a 'run_id' column, and integer year
+        columns.  The two required variables are
+        ``"Surface Air Ocean Blended Temperature Change"`` and
+        ``"Heat Content|Ocean"``.
+    start_year : int
+        First year (inclusive) to include in the Gregory regression.
+    end_year : int
+        Last year (inclusive) to include in the Gregory regression.
+
+    Returns
+    -------
+    pd.Series
+        ECS values (°C for a 2×CO₂ doubling) indexed by ``run_id``.
+    """
+    temp_var = "Surface Air Ocean Blended Temperature Change"
+    ohc_var  = "Heat Content|Ocean"
+
+    id_col = "run_id" if "run_id" in abrupt_data.columns else "ensemble_member"
+    year_cols = [c for c in abrupt_data.columns if str(c).isdigit()]
+
+    def _get_ts(variable):
+        rows = abrupt_data[abrupt_data["variable"] == variable]
+        ts = rows.set_index(id_col)[year_cols]
+        ts.columns = ts.columns.astype(int)
+        return ts.apply(pd.to_numeric, errors="coerce")
+
+    temp_ts = _get_ts(temp_var)
+    ohc_ts  = _get_ts(ohc_var)
+
+    years = sorted(y for y in temp_ts.columns if start_year <= y <= end_year)
+
+    temp = temp_ts[years].values   # (n_members, n_years)
+    ohc  = ohc_ts[years].values
+
+    delta_t = temp - temp[:, [0]]             # anomaly relative to start_year
+    N       = np.diff(ohc, axis=1)            # annual OHC change ≈ TOA imbalance
+    delta_t_N = delta_t[:, 1:]               # aligned with N
+
+    ecs_vals = []
+    for i in range(len(temp_ts)):
+        dT, n = delta_t_N[i], N[i]
+        mask  = np.isfinite(dT) & np.isfinite(n)
+        if mask.sum() < 10:
+            ecs_vals.append(np.nan)
+            continue
+        slope, intercept = np.polyfit(dT[mask], n[mask], 1)
+        if slope >= 0:
+            ecs_vals.append(np.nan)   # unphysical feedback
+            continue
+        ecs_vals.append(-intercept / slope / 2.0)
+    series = pd.Series(ecs_vals,name="ECS")
+    series.index.set_names("run_id", inplace=True)
+    return series

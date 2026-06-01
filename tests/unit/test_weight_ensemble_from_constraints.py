@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
+import pytest
 import scipy.stats
 
 from cscm_calibrate.weigth_ensemble_from_constraints_and_draw import (
@@ -211,3 +212,82 @@ def test_weight_ensemble_and_draw(tmp_path, monkeypatch):
                 assert len(args) == 3  # Should have 3 arguments and
                 assert len(kwargs) == 1  # and one keyword argument
                 assert args[2] == f"draw_samples_10{file_endstring}.json"  # filename
+
+
+def test_weight_ensemble_and_draw_input_too_small_raises(monkeypatch, tmp_path):
+    """If the post-pruning ensemble is no larger than the requested output size,
+    weight_ensemble_and_draw must raise an AssertionError."""
+    monkeypatch.setattr(
+        "cscm_calibrate.weigth_ensemble_from_constraints_and_draw.get_project_root",
+        lambda: str(tmp_path),
+    )
+
+    # 5 input samples but ask for 10 output -> should fail the first assertion
+    targ = pd.DataFrame({"v1": np.zeros(5)})
+    parammat = pd.DataFrame({"p": np.zeros(5)})
+
+    mock_store = MagicMock()
+    mock_store.__getitem__ = MagicMock(
+        side_effect=lambda key: targ if key == "targ" else parammat
+    )
+    with patch("pandas.HDFStore", return_value=mock_store):
+        with pytest.raises(AssertionError, match="Input ensemble post pruning too small"):
+            weight_ensemble_and_draw(
+                {
+                    "Varname_short": ["v1"],
+                    "Variable Name": ["v1"],
+                    "lower_sigma": [1.0],
+                    "upper_sigma": [1.0],
+                    "Central Value": [0.0],
+                },
+                "_small",
+                output_ensemble_size=10,
+                plot_pam_distributions=False,
+            )
+
+
+def test_weight_ensemble_and_draw_insufficient_effective_samples(
+    monkeypatch, tmp_path
+):
+    """If calculate_sample_weights produces near-zero weights, the function must
+    raise the 'Not enough effective samples' AssertionError."""
+    monkeypatch.setattr(
+        "cscm_calibrate.weigth_ensemble_from_constraints_and_draw.get_project_root",
+        lambda: str(tmp_path),
+    )
+
+    n_samples = 50
+    rng = np.random.default_rng(0)
+    targ = pd.DataFrame({"v1": rng.standard_normal(n_samples)})
+    parammat = pd.DataFrame({"p": rng.standard_normal(n_samples)})
+
+    mock_store = MagicMock()
+    mock_store.__getitem__ = MagicMock(
+        side_effect=lambda key: targ if key == "targ" else parammat
+    )
+
+    # Patch calculate_sample_weights to return a near-zero weight vector so the
+    # effective-samples count is < output_ensemble_size.
+    monkeypatch.setattr(
+        "cscm_calibrate.weigth_ensemble_from_constraints_and_draw.calculate_sample_weights",
+        lambda *a, **k: (
+            np.full(n_samples, 1e-10),
+            pd.DataFrame(),
+            pd.DataFrame(),
+        ),
+    )
+
+    with patch("pandas.HDFStore", return_value=mock_store):
+        with pytest.raises(AssertionError, match="Not enough effective samples"):
+            weight_ensemble_and_draw(
+                {
+                    "Varname_short": ["v1"],
+                    "Variable Name": ["v1"],
+                    "lower_sigma": [1.0],
+                    "upper_sigma": [1.0],
+                    "Central Value": [0.0],
+                },
+                "_low",
+                output_ensemble_size=10,
+                plot_pam_distributions=False,
+            )

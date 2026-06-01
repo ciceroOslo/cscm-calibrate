@@ -1,0 +1,42 @@
+[project]
+name = "cscm-calibrate"
+version = "0.1.0a1"
+description = "Calibration pipeline for the ciceroscm simple climate model"
+authors = ["Marit Sandstad <marit.sandstad@cicero.oslo.no>"]
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64"]
+
+[tasks]
+test = "pytest tests"
+test-cov = "pytest tests --cov=src --cov-report=term-missing"
+test-fast = "pytest tests -m 'not slow and not regression'"
+test-regression = "pytest tests -m regression"
+lint = "ruff check src tests scripts"
+format = "ruff format src tests scripts"
+
+[dependencies]
+python = ">=3.10,<3.13"
+numpy = ">=1.23"
+pandas = ">=2.0"
+scipy = ">=1.10"
+matplotlib = ">=3.7"
+tqdm = ">=4.65"
+openpyxl = "*"
+pytables = "*"
+python-dotenv = "*"
+click = "*"
+pytest = ">=8.0"
+pytest-cov = ">=4.0"
+
+[pypi-dependencies]
+ciceroscm = { path = "../ciceroscm", editable = true }
+cscm-calibrate = { path = ".", editable = true }
+
+[feature.dev.dependencies]
+ruff = ">=0.5"
+mypy = "*"
+pre-commit = "*"
+
+[environments]
+default = { solve-group = "default" }
+dev = { features = ["dev"], solve-group = "default" }

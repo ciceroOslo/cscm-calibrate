@@ -1,0 +1,59 @@
+[
+  {
+    "Index": "alpha",
+    "pamset_carbon": {
+      "beta_f": 0.010530609131149449,
+      "ml_t_half": 0.0,
+      "rb_1": 0.9358699056874416,
+      "rs_2": 0.5097391753082492,
+      "solubility_limit": 0.1
+    },
+    "pamset_emiconc": {
+      "qbmb": 0.4504143799811837
+    },
+    "pamset_udm": {
+      "lambda": 1.250190933209334,
+      "ldtime": 12,
+      "lm": 40,
+      "threstemp": 7.0
+    }
+  },
+  {
+    "Index": "beta",
+    "pamset_carbon": {
+      "beta_f": 1.6424568367655326,
+      "ml_t_half": 0.0,
+      "rb_1": 0.606064853638627,
+      "rs_2": 0.8901526117652931,
+      "solubility_limit": 0.1
+    },
+    "pamset_emiconc": {
+      "qbmb": 0.6003325698224509
+    },
+    "pamset_udm": {
+      "lambda": 1.794427601939151,
+      "ldtime": 12,
+      "lm": 40,
+      "threstemp": 7.0
+    }
+  },
+  {
+    "Index": "gamma",
+    "pamset_carbon": {
+      "beta_f": 1.5941388575040925,
+      "ml_t_half": 0.0,
+      "rb_1": 0.5568512242015466,
+      "rs_2": 1.0090965179159066,
+      "solubility_limit": 0.1
+    },
+    "pamset_emiconc": {
+      "qbmb": 1.7471068907925238
+    },
+    "pamset_udm": {
+      "lambda": 1.551371380490387,
+      "ldtime": 12,
+      "lm": 40,
+      "threstemp": 7.0
+    }
+  }
+]

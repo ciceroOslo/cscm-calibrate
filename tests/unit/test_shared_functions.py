@@ -97,3 +97,62 @@ def test_make_constraints_config_from_RCMIP_csv():
     assert np.isclose(result["lower_sigma"].iloc[0], expected_lower_sigma)
     assert np.isclose(result["upper_sigma"].iloc[0], expected_upper_sigma)
     assert result["run_experiments"].iloc[0] == "historical"
+
+
+def test_make_constraints_csv_uses_rcmip_name_mapping():
+    """Variable names listed in RCMIP_NAME_MAPPING are translated and the short
+    name is looked up under the translated name."""
+    sample_df = pd.DataFrame(
+        {
+            "Variable": ["Effective Radiative Forcing|Aerosols"],
+            "Baseline_period": ["1750-1750"],
+            "Constraint_period": ["2014-2014"],
+            "Central_estimate": [-1.3],
+            "Lower_bound": [-2.0],
+            "Upper_bound": [-0.6],
+        }
+    )
+    with patch("pandas.read_csv", return_value=sample_df):
+        result = make_constraints_config_from_RCMIP_csv("dummy.csv")
+
+    assert (
+        result["Variable Name"].iloc[0]
+        == "Effective Radiative Forcing|Anthropogenic|Aerosol"
+    )
+    assert result["Varname_short"].iloc[0] == "ERFaer"
+
+
+def test_make_constraints_csv_invalid_baseline_period_falls_back():
+    """A non-numeric Baseline_period triggers the ValueError fallback to 1750/1750."""
+    sample_df = pd.DataFrame(
+        {
+            "Variable": ["Atmospheric Concentrations|CO2"],
+            "Baseline_period": ["not-a-period"],
+            "Constraint_period": ["2000-2010"],
+            "Central_estimate": [400.0],
+            "Lower_bound": [380.0],
+            "Upper_bound": [420.0],
+        }
+    )
+    with patch("pandas.read_csv", return_value=sample_df):
+        result = make_constraints_config_from_RCMIP_csv("dummy.csv")
+
+    assert result["Yearstart_norm"].iloc[0] == 1750
+    assert result["Yearend_norm"].iloc[0] == 1750
+
+
+def test_make_config_distro_json_uses_index_list(tmp_path):
+    """Explicit index_list values must end up as the configurations' Index field."""
+    matrix = np.array([[1.0, 2.0], [3.0, 4.0]])
+    parameter_names = ["lambda", "param1"]
+    json_name = "with_index.json"
+    make_config_distro_json(
+        matrix,
+        parameter_names,
+        json_name,
+        index_list=["alpha", "beta"],
+        output_dir=str(tmp_path),
+    )
+    with open(tmp_path / json_name, encoding="utf-8") as fh:
+        config_list = json.load(fh)
+    assert [c["Index"] for c in config_list] == ["alpha", "beta"]

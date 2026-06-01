@@ -13,14 +13,19 @@ import numpy as np
 from .prune_distribution_to_timeseries import prune_all_chunks
 from .run_prior_ensemble import run_prior_ensemble
 from .set_up_calibration_configs_and_run import define_scendata_for_scm
-from .shared_functions import make_constraints_config_from_RCMIP_csv
+from .shared_functions import make_constraints_config_from_RCMIP_csv, make_dataframe_of_zeros
 from .weigth_ensemble_from_constraints_and_draw import weight_ensemble_and_draw
 
 try:
     from pandas.core.common import SettingWithCopyWarning
-except:  # noqa: E722
-    from pandas.errors import SettingWithCopyWarning
-warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
+except ImportError:
+    try:
+        from pandas.errors import SettingWithCopyWarning
+    except ImportError:
+        # pandas >= 3.0 removed SettingWithCopyWarning entirely.
+        SettingWithCopyWarning = None
+if SettingWithCopyWarning is not None:
+    warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 warnings.filterwarnings("ignore", message=".*Parameter.*")
 
 # Get path to ciceroscm - one level up from project root
@@ -162,7 +167,7 @@ class CSCMCalibrationPipeline:
             # configs_raw["constraing_configs"] = constraints_raw
         self.configs = configs_raw
 
-    def _run_prior_ensemble(self, continue_from_existing=False):
+    def _run_prior_ensemble(self, continue_from_existing=False, plot=False):
         """
         Run the prior ensemble simulation using configuration parameters.
 
@@ -211,6 +216,43 @@ class CSCMCalibrationPipeline:
             rf_solar_file=prior_cfgs.get("rf_solar_file", None),
             rf_luc_file=prior_cfgs.get("rf_luc_file", None),
         )
+        print(type(scenariodata))
+        scenariodata_idealised_experiments = None
+        calibdata_idealised_experiments = None
+        if "constraint_configs_idealised" in self.configs:
+            scenariodata_idealised_experiments = []
+            print(self.configs["constraint_configs_idealised"])
+            for i, experiment in enumerate(self.configs["constraint_configs_idealised"]["Experiments"]):
+                #nyend = np.max((self.configs["constraint_configs_idealised"]["Yearend_change"][i],2010))
+                nyend = self.configs["constraint_configs_idealised"]["Yearend_change"][i]
+                ref_yr = int(np.min((nyend-1, 2010)))
+                if experiment.startswith("esm"):
+                    df_emis_str = prior_cfgs["emis"].replace(prior_cfgs["emis"].split("_")[0], experiment)
+                    df_conc_str = prior_cfgs["conc"].replace(prior_cfgs["conc"].split("_")[0], "piControl")
+                    conc_run = False
+                else:
+                    df_emis_str = prior_cfgs["emis"].replace(prior_cfgs["emis"].split("_")[0], "esm-piControl")
+                    df_conc_str = prior_cfgs["conc"].replace(prior_cfgs["conc"].split("_")[0], experiment)
+                    conc_run = True
+                scenariodata_i = define_scendata_for_scm(
+                    test_data_dir=prior_cfgs["input_dir"],
+                    gaspam=prior_cfgs["gases"],
+                    df_nat_ch4=make_dataframe_of_zeros("CH4", 1750, nyend+1),
+                    df_nat_n2o=make_dataframe_of_zeros("N2O", 1750, nyend+1),
+                    df_conc=df_conc_str,
+                    df_emis=df_emis_str,
+                    rf_luc_file ="LUCalbedo_RCMIP_constant_zero_RCMIP3.txt",
+                    nystart=1750,
+                    emstart=int(nyend) + 1,
+                    nyend=int(nyend),
+                    sunvolc=0,
+                )
+                scenariodata_i[0]["conc_run"] = conc_run
+                scenariodata_i[0]["scenname"] = experiment
+                scenariodata_i[0]["ref_yr"] = ref_yr
+                scenariodata_idealised_experiments.append(scenariodata_i[0])
+                print(f"Finished loading idealised experiment scenario data for experiment: {experiment} with end year {nyend} and reference year {ref_yr}")
+            #sys.exit(4)
         print("Now running prior ensemble...")
         run_prior_ensemble(
             testconfig=testconfig,
@@ -222,6 +264,9 @@ class CSCMCalibrationPipeline:
             startdate=self.datestr,
             max_workers=prior_cfgs.get("max_workers", 200),
             continue_from_existing=continue_from_existing,
+            plot=plot,
+            scenariodata_idealised_experiments=scenariodata_idealised_experiments,
+            calibdata_idealised_experiments=self.configs.get("constraint_configs_idealised", None)
         )
 
     def prune_distribution(self, file_endstring=None):
