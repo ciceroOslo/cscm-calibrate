@@ -10,7 +10,7 @@ from cscm_calibrate.cscm_calibrate import CSCMCalibrationPipeline
 
 # Configuration files setup
 config_file = os.path.join(
-    os.path.dirname(__file__), "..", "tests", "test-data", "config_file.json"
+    os.path.dirname(__file__), "..", "tests", "test-data", "config_file_pdo.json"
 )
 # Alternative config file for old model version
 # config_file = os.path.join(

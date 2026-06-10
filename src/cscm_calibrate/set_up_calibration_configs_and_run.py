@@ -6,6 +6,7 @@ import os
 import sys
 
 import pandas as pd
+import numpy as np
 
 # Get path to ciceroscm - one level up from project root
 cscm_path = os.path.abspath(
@@ -120,6 +121,7 @@ def define_scendata_for_scm(  # noqa: PLR0913
     rf_volc_file=None,
     rf_solar_file=None,
     rf_luc_file=None,
+    pdo_timeseries=None,
 ):
     """
     Prepare and returns scenario data for SCM
@@ -262,9 +264,28 @@ def define_scendata_for_scm(  # noqa: PLR0913
             "idtm": 24,
             "scenname": "ssp245-short",
             "sunvolc": sunvolc,
-            "rf_solar_data": rf_solar_data,
+            "rf_sun_data": rf_solar_data,
             "rf_volc_data": rf_volc_data,
             "rf_luc_data": rf_luc_data,
         }
     ]
+    if pdo_timeseries is not None:
+        pdo_data = make_padded_pdo_timeseries(pdo_timeseries, nystart, nyend)
+        scenariodata[0]["pdo_index_data"] = pdo_data
     return scenariodata
+
+def make_padded_pdo_timeseries(pdo_timeseries_path, nystart, nyend):
+    """Read pdo_ts_noaa.dat and return a (nyears, 12) array."""
+    if not os.path.exists(pdo_timeseries_path):
+        raise FileNotFoundError(f"PDO timeseries file not found: {pdo_timeseries_path}")
+    with open(pdo_timeseries_path, "r", encoding="utf-8") as fh:
+        raw = np.loadtxt(fh, dtype=float, skiprows=1)
+        print(raw)
+        years = raw[:, 0].astype(int)
+        values = raw[:, 1:]
+
+    padded = np.zeros((nyend - nystart + 1, 12), dtype=float)
+    mask = (years >= nystart) & (years <= nyend)
+    padded[years[mask] - nystart, :] = values[mask]
+    padded = np.where(padded == -99.99, 0.0, padded)  # Replace missing value code with 0.0
+    return padded

@@ -12,7 +12,7 @@ import numpy as np
 
 from .prune_distribution_to_timeseries import prune_all_chunks
 from .run_prior_ensemble import run_prior_ensemble
-from .set_up_calibration_configs_and_run import define_scendata_for_scm
+from .set_up_calibration_configs_and_run import define_scendata_for_scm, make_padded_pdo_timeseries
 from .shared_functions import make_constraints_config_from_RCMIP_csv, make_dataframe_of_zeros
 from .weigth_ensemble_from_constraints_and_draw import weight_ensemble_and_draw
 
@@ -146,7 +146,7 @@ class CSCMCalibrationPipeline:
 
         with open(config_file) as json_config:
             configs_raw = json.load(json_config)
-        print(configs_raw)
+        #print(configs_raw)
 
         # Resolve relative paths in prior_configs relative to config file location
         if (
@@ -215,13 +215,14 @@ class CSCMCalibrationPipeline:
             rf_volc_file=prior_cfgs.get("rf_volc_file", None),
             rf_solar_file=prior_cfgs.get("rf_solar_file", None),
             rf_luc_file=prior_cfgs.get("rf_luc_file", None),
+            pdo_timeseries=prior_cfgs.get("pdo_timeseries_path", None),
         )
-        print(type(scenariodata))
+
         scenariodata_idealised_experiments = None
         calibdata_idealised_experiments = None
         if "constraint_configs_idealised" in self.configs:
             scenariodata_idealised_experiments = []
-            print(self.configs["constraint_configs_idealised"])
+            #print(self.configs["constraint_configs_idealised"])
             for i, experiment in enumerate(self.configs["constraint_configs_idealised"]["Experiments"]):
                 #nyend = np.max((self.configs["constraint_configs_idealised"]["Yearend_change"][i],2010))
                 nyend = self.configs["constraint_configs_idealised"]["Yearend_change"][i]

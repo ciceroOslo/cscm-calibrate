@@ -3,6 +3,7 @@ import sys
 
 import pandas as pd
 import numpy as np
+from pathlib import Path
 #import xarray as xr
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../", "src"))
@@ -26,7 +27,9 @@ from ciceroscm.parallel.distributionrun import DistributionRun
 special_scen_skip = ["1pctCO2-bgc", "1pctCO2-rad"]#, "scen7-LC", "scen7-HLC", "scen7-MLC", "scen7-LNC", "scen7-MC", "esm-scen7-L", "esm-scen7-HL", "esm-scen7-ML", "esm-scen7-LN", "esm-scen7-M"]
 special_mapping = {"hist":"historical", "hist-cmip6": "historical-cmip6"}
 
-outpath_main = "out_file_dump_nopattern_noefficacy"
+outpath_main = "out_file_dump_nopattern"
+CONFIG_NAME = "draw_samples_no_delta_aero_wide_lambda_400"
+CONFIG_PATH = Path(f"../draw_samples_archive/{CONFIG_NAME}.json")
 
 def check_if_inspected(scenario_name):
     if not os.path.exists("scenarios_inspected.txt"):
@@ -145,12 +148,12 @@ lucalbedo_piControl = os.path.join(input_dir,"LUCalbedo_RCMIP_constant_zero_RCMI
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json")
 #json_file = "../../flat10_runs_repo/draw_samples_just2.json"
 #json_file= "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json"
-json_file = "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/draw_samples_archive/draw_samples_no_efficacy_no_pattern_wide_lambda_400.json"
+#json_file = "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/draw_samples_archive/draw_samples_no_efficacy_no_pattern_wide_lambda_400.csv"
 #json_file = "offending_member.json"
-distrorun = DistributionRun(None, json_file_name=json_file)
+distrorun = DistributionRun(None, json_file_name=CONFIG_PATH)
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup/users/masan/SCM_stuff/subset_cscm_configfile_for_py_small.json")
 
-def make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend):
+def make_scenariodata_argdict(run_type, scen_name, scen_name_strip, yend):
     print(run_type)
     if scen_name.startswith("esm-allGHG"):
         print("Hello")
@@ -165,7 +168,7 @@ def make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend):
     }
 
     # Deal with natural forcings:
-    if row["Type"] == "idealised" or scen_name.endswith("piControl"):
+    if run_type == "idealised" or scen_name.endswith("piControl"):
         arg_dict["sunvolc"] = 0
         arg_dict["rf_luc_file"] = lucalbedo_piControl
         arg_dict["df_nat_ch4"] = make_dataframe_of_zeros("CH4", ystart, yend+1)
@@ -214,7 +217,7 @@ def make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend):
     elif scen_name_strip in special_mapping and os.path.exists(os.path.join(input_dir, f"{special_mapping[scen_name_strip]}_em_{gases_ep}")):
         print("Went and got correct emissions")
         arg_dict["df_emis"] = f"{special_mapping[scen_name_strip]}_em_{gases_ep}"
-    elif not scen_name.startswith("esm-") and row["Type"] == "idealised":
+    elif not scen_name.startswith("esm-") and run_type == "idealised":
         arg_dict["df_emis"] = em_piControl
     elif os.path.exists(os.path.join(input_dir, f"esm-{scen_name_strip}_em_{gases_ep}")):
         print("Picked emissions file based on esm- prefix")
@@ -236,7 +239,7 @@ def make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend):
     elif scen_name_strip in special_mapping and os.path.exists(os.path.join(input_dir, f"{special_mapping[scen_name_strip]}_conc_{gases_ep}")):
         print("Went and got correct concentrations")
         arg_dict["df_conc"] = f"{special_mapping[scen_name_strip]}_conc_{gases_ep}"
-    elif scen_name.startswith("esm-") and row["Type"] == "idealised":
+    elif scen_name.startswith("esm-") and run_type == "idealised":
         arg_dict["df_conc"] = conc_piControl
     elif scen_name.startswith("methanemip") and os.path.exists(os.path.join(input_dir, f"ssp245_conc_{gases_ep}")):
         arg_dict["df_conc"] = f"ssp245_conc_{gases_ep}"
@@ -256,7 +259,7 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
     scen_name_strip = scen_name.split("esm-")[-1].split("allGHG-")[-1]
     if scen_name_strip.startswith("scen7") and scen_name_strip.endswith("C"):
         scen_name_strip = scen_name_strip[:-1]
-    arg_dict = make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend)
+    arg_dict = make_scenariodata_argdict(row["Type"], scen_name, scen_name_strip, yend)
     # print(arg_dict.keys())
     # print(arg_dict["rf_luc_file"])
     #sys.exit(4)
@@ -309,7 +312,7 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
 dont_run = False
 
 def dump_results_to_netcdf(results, scenario_name):
-    outpath = f"{outpath_main}/{scenario_name}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv"
+    outpath = f"{outpath_main}/{scenario_name}_rcmip_{CONFIG_NAME}.csv"
     if os.path.exists(outpath):
         print(f"Output file {outpath} already exists, skipping dump")
         return
@@ -345,7 +348,7 @@ if __name__ == "__main__":
             print("---------------------------------------------------------")
             for index,row in split_experiment_dfs[key1][key2].iterrows():
                 print(row["Scenario"])
-                outpath = f"{outpath_main}/{row['Scenario']}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv"
+                outpath = f"{outpath_main}/{row['Scenario']}_rcmip_{CONFIG_NAME}.csv"
                 outpath_processed = f"{outpath_main}/{row['Scenario']}_rcmip_ciceroscm_20260401.csv"
                 if os.path.exists(outpath) or os.path.exists(outpath_processed):
                     print(f"Output file {outpath} already exists, skipping run")
@@ -374,7 +377,7 @@ if __name__ == "__main__":
                 #print(results.head())
                 #sys.exit(4)
                 if not results.empty:
-                    results.to_csv(f"{outpath_main}/{row['Scenario']}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv")
+                    results.to_csv(outpath)
                 del results
         # #sys.exit(4)
     print("Done all scenarios")

@@ -28,7 +28,7 @@ TARGETS_CSV = (
     ROOT / "data"
     / "Calibration_targets_for_AR7_WG1_Ch5_emulators_Calibration_targets.csv"
 )
-OUTDIR    = Path(__file__).resolve().parent / "out_file_dump_patternv1"
+OUTDIR    = Path(__file__).resolve().parent / "out_file_dump_ar7_v1"
 PLOT_DIR  = Path(__file__).resolve().parent / "plots"
 DATE_STAMP = "20260520"
 
@@ -61,6 +61,12 @@ EXPERIMENT_FOR: dict[str, str] = {
     "Aerosol ERF":       "esm-allGHG-hist",
     "CO2 concentration": "esm-allGHG-scen7-M",
 }
+variable_alias_mapping: dict[str, str] = {
+    "Global Mean Surface Temperature (GMST)": "GMST",
+    "Ocean Heat Content|Global|Total": "EEI",
+    "Atmospheric Concentrations|CO2": "CO2 concentration",
+    "Effective Radiative Forcing|Aerosols": "Aerosol ERF",
+}
 
 # Variables for which a timeseries plume is plotted (in addition to a scalar).
 TIMESERIES_VARS = ["GMST", "EEI", "CO2 concentration", "Aerosol ERF", "TCR", "TCRE"]
@@ -89,6 +95,7 @@ def load_experiment(exp_name: str) -> pd.DataFrame:
             fname,
             index_col=0,
     )
+    print(f"Found no file for experiment {exp_name} in {OUTDIR}")
 
 
 def get_timeseries(df: pd.DataFrame, variable: str) -> pd.DataFrame:
@@ -193,13 +200,15 @@ def compute_all_diagnostics(targets: pd.DataFrame) -> dict:
     for _, row in targets.iterrows():
         var        = row["Variable"]
         output_var = target_variable_renaming.get(var, var)   # CSV name → output name
-
+        print(var)
         if var not in EXPERIMENT_FOR:
             continue
-
+        
         df         = get_df(EXPERIMENT_FOR[var])
         timeseries = None
-
+        print("Computing diagnostics for variable:", var)
+        if df is None:
+            print(f"Data for experiment '{EXPERIMENT_FOR[var]}' not found. Skipping variable '{var}'.")
         if var == "ECS":
             scalars = compute_ecs_gregory(df)
 
@@ -241,7 +250,7 @@ def compute_all_diagnostics(targets: pd.DataFrame) -> dict:
         elif var == "Aerosol ERF":
             ts       = get_timeseries(df, output_var)
             print(ts)
-            sys.exit(1)
+            #sys.exit(1)
             ts_anom  = ts.subtract(ts[1750], axis=0)    # anomaly vs 1750
             per_cols = years_between(ts, 2005, 2014)
             scalars    = ts_anom[per_cols].mean(axis=1)
@@ -249,10 +258,10 @@ def compute_all_diagnostics(targets: pd.DataFrame) -> dict:
 
         elif var == "CO2 concentration":
             ts = get_timeseries(df, output_var)
-            if 2025 not in ts.columns:
+            if 2023 not in ts.columns:
                 # fall back to the historical run if scenario doesn't cover 2025
                 ts = get_timeseries(get_df("esm-allGHG-hist"), output_var)
-            yr       = min(ts.columns, key=lambda y: abs(y - 2025))
+            yr       = min(ts.columns, key=lambda y: abs(y - 2023))
             scalars    = ts[yr]
             timeseries = ts
 
@@ -300,7 +309,7 @@ def plot_timeseries_panels(results: dict) -> plt.Figure:
         ax.fill_between(years, p05, p95, alpha=0.3, color="steelblue", label="Model 5–95 %")
         ax.plot(years, p50, color="steelblue", lw=1.5, label="Model median")
 
-        _overlay_timeseries_constraint(ax, var, ts, lo, mid, hi)
+        _overlay_timeseries_constraint(ax, var, lo, mid, hi)
 
         ax.set_title(f"{var}  [{row['Unit']}]", fontsize=10)
         ax.set_xlabel("Year")
@@ -317,7 +326,7 @@ def plot_timeseries_panels(results: dict) -> plt.Figure:
     return fig
 
 
-def _overlay_timeseries_constraint(ax, var, ts, lo, mid, hi):
+def _overlay_timeseries_constraint(ax, var, lo, mid, hi):
     """Overlay calibration constraint markers appropriate to each variable."""
     orange = "darkorange"
     green  = dict(alpha=0.10, color="limegreen", zorder=2)
@@ -337,11 +346,11 @@ def _overlay_timeseries_constraint(ax, var, ts, lo, mid, hi):
 
     elif var == "CO2 concentration":
         ax.errorbar(
-            2025, mid, yerr=[[mid - lo], [hi - mid]],
+            2023, mid, yerr=[[mid - lo], [hi - mid]],
             fmt="D", color=orange, ms=7, capsize=5, zorder=5,
-            label="Target 2025",
+            label="Target 2023",
         )
-        ax.axvline(2025, color="limegreen", ls=":", lw=1.2, label="Target year")
+        ax.axvline(2023, color="limegreen", ls=":", lw=1.2, label="Target year")
 
     elif var == "Aerosol ERF":
         ax.axhspan(lo, hi, alpha=0.20, color=orange, label="Target 5–95 %")
@@ -491,7 +500,11 @@ def get_plotname_suffix()-> str:
 def main():
     PLOT_DIR.mkdir(exist_ok=True)
     targets = pd.read_csv(TARGETS_CSV)
-
+    for row in targets.itertuples():
+        var = row.Variable
+        if var in variable_alias_mapping:
+            targets.at[row.Index, "Variable"] = variable_alias_mapping[var]
+    print(targets)
     print("Computing diagnostics …")
     results = compute_all_diagnostics(targets)
 
