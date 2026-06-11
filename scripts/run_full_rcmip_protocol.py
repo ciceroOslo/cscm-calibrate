@@ -27,8 +27,8 @@ from ciceroscm.parallel.distributionrun import DistributionRun
 special_scen_skip = ["1pctCO2-bgc", "1pctCO2-rad"]#, "scen7-LC", "scen7-HLC", "scen7-MLC", "scen7-LNC", "scen7-MC", "esm-scen7-L", "esm-scen7-HL", "esm-scen7-ML", "esm-scen7-LN", "esm-scen7-M"]
 special_mapping = {"hist":"historical", "hist-cmip6": "historical-cmip6"}
 
-outpath_main = "out_file_dump_nopattern"
-CONFIG_NAME = "draw_samples_no_delta_aero_wide_lambda_400"
+outpath_main = "out_file_dump_ar7_v1"
+CONFIG_NAME = "draw_samples_ar7_v1_500"
 CONFIG_PATH = Path(f"../draw_samples_archive/{CONFIG_NAME}.json")
 
 def check_if_inspected(scenario_name):
@@ -340,12 +340,15 @@ if __name__ == "__main__":
     skip = []
     skip = ["esm-1pct-brch-1000PgC", "esm-1pct-brch-2000PgC", "esm-1pct-brch-750PgC"]
     split_experiment_dfs = load_and_process_protocol(protocol_file)
-    print(split_experiment_dfs)
+    #print(split_experiment_dfs)
     #sys.exit(4)
     for key1 in split_experiment_dfs:
+        if key1 != "idealised":
+            continue
         for key2 in split_experiment_dfs[key1]:
             print(f"{key1} - {key2} : {split_experiment_dfs[key1][key2].shape}")
             print("---------------------------------------------------------")
+            #sys.exit(4)
             for index,row in split_experiment_dfs[key1][key2].iterrows():
                 print(row["Scenario"])
                 outpath = f"{outpath_main}/{row['Scenario']}_rcmip_{CONFIG_NAME}.csv"
