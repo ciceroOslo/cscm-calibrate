@@ -7,7 +7,7 @@ s_pr_yr = 3600*24*365
 sea_surface_fraction = 0.61*0.5+0.81*0.5
 earth_surface = 5.101e14
 conv_factor = s_pr_yr*sea_surface_fraction*earth_surface/1.e21
-print(conv_factor)
+#print(conv_factor)
 
 
 
@@ -63,7 +63,7 @@ def main(delete_after = False, convert_heat_uptake = False, resume = True) -> No
 	script_dir = Path(__file__).resolve().parent
 	input_dir = script_dir / "out_file_dump"
 	today_str = date.today().strftime("%Y%m%d")
-	today_str = "20260527" # For reproducibility in testing
+	#today_str = "20260527" # For reproducibility in testing
 
 	csv_files = sorted(input_dir.glob("*draw_samples_delta_aero_and_efficacy_wide_lambda_500.csv"))
 	if not csv_files:

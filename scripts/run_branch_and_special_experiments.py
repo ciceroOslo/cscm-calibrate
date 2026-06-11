@@ -286,9 +286,8 @@ def write_df_per_experiment_to_file(save_data_dict: dict) -> dict:
 def get_default_inputs() -> dict:
 	scenname = "1pctCO2"
 	scen_name_strip = "1pctCO2"
-	row = {"Type": "idealised"}
-	run_type = "esm"
-	arg_dict = make_scenariodata_argdict(row, run_type, scenname, scen_name_strip, yend=2500)
+	run_type = "idealised"
+	arg_dict = make_scenariodata_argdict(run_type, scenname, scen_name_strip, yend=2500)
 	print(arg_dict)
 	scendata = define_scendata_for_scm(INPUT_DIR, **arg_dict)
 	return scendata

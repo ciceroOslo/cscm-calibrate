@@ -205,7 +205,8 @@ def run_prior_ensemble(  # noqa: PLR0913, PLR0915
         print(f"Continuing from chunk {to_run[0]} (max existing chunk: {sample_max})")
     print(f"{'=' * 60}\n")
     #sys.exit(4)
-
+    print(scenariodata)
+    #sys.exit(4)
     for i in to_run:
         print(f"\n--- Processing Chunk {i + 1}/{chunk_nums} ---")
         file_midstring = f"{distnums}_chunk_{i}"
@@ -290,8 +291,8 @@ def run_single_chunk(
     syear = 1750
     results_for_fit_dict_1d = {}
     for idx, data in calibdata.iterrows():
-        print(results)
-        print(data)
+        #print(results)
+        #print(data)
         results_sub = results.loc[results["variable"] == data["Variable Name"]]
         if (
             data["Yearstart_norm"] == data["Yearend_norm"]
@@ -357,7 +358,7 @@ def run_single_chunk(
         np.save(os.path.join(output_dir, f"sample_ids_{file_midstring}.npy"), ids)
 
     # Save constraint targets and parameter matrices
-    print(results_for_fit_dict_1d)
+    #print(results_for_fit_dict_1d)
     pop_keys = []
     if skip_idealised_experiments:
         for key,data in results_for_fit_dict_1d.items():
@@ -413,7 +414,7 @@ def run_single_chunk_idealised_experiments(
     finally:
         sys.stdout.close()
         sys.stdout = old_stdout
-    print(distrorun1.cfgs)
+    #print(distrorun1.cfgs)
 
     #sys.exit(4)
     if output_vars is None:
@@ -424,9 +425,9 @@ def run_single_chunk_idealised_experiments(
         if "ref_yr" in scenarios.keys():
             for i, cfg in enumerate(distrorun1.cfgs):
                 distrorun1.cfgs[i]["pamset_emiconc"]["ref_yr"] = scenarios["ref_yr"]
-        print(scenarios.keys())
-        print(scenarios["scenname"])
-        print(scenarios["rf_luc_data"])
+        #print(scenarios.keys())
+        #print(scenarios["scenname"])
+        #print(scenarios["rf_luc_data"])
     print(f"Running {chunk_size:,} simulations with {max_workers} workers...")
     results = distrorun1.run_over_distribution(
         scenariodata, output_vars, max_workers=max_workers
