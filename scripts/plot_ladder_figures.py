@@ -10,9 +10,11 @@ remaining (+PDO) dumps exist; just extend the ``LADDER`` registry in
 ``extract_ladder_metrics.py``.
 
 Produces:
-  ladder_sensitivity_marginals.png  -> fig:posterior_marginals (ECS, TCR)
-  ladder_projection_violins.png     -> fig:projection_spread
-  ladder_flat10_metrics.png         -> fig:flat10_metrics (TCRE, ZEC50)
+    ladder_sensitivity_marginals.png  -> fig:posterior_marginals (ECS, TCR)
+    ladder_projection_violins.png     -> fig:projection_spread
+    ladder_flat10_metrics.png         -> fig:flat10_metrics (TCRE, ZEC50)
+    ladder_seferian3.png              -> 1pctCO2 carbon-cycle ladder overlay
+    ladder_gregory_ecs_plumes.png     -> rolling Gregory ECS plumes for abrupt runs
 
 Usage:
     python plot_ladder_figures.py
@@ -26,8 +28,19 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+from matplotlib.lines import Line2D
 
 import extract_ladder_metrics as elm
+from plot_carbon_cycle_from_dumps import (
+    _1PCT_END_IDX,
+    _1PCT_START_IDX,
+    _import_look_at_data,
+    _look_at_data_cwd,
+    SEFERIAN_VARS as CARBON_SEFERIAN_VARS,
+    extract_or_derive as carbon_extract_or_derive,
+    percentile_band as carbon_percentile_band,
+)
 
 FIG_DIR = Path(__file__).resolve().parent / "figures"
 FIG_DIR.mkdir(exist_ok=True)
@@ -39,6 +52,50 @@ COLOURS = {
     "2 +pattern": "#d62728",
     "4a IPCC+pattern": "#2ca02c",
 }
+
+ABRUPT_PANELS = [
+    ("abrupt-4xCO2", "abrupt-4xCO2", 1),
+    ("abrupt-2xCO2", "abrupt-2xCO2", 2),
+    ("abrupt-0.5xCO2", "abrupt-0p5xCO2", -2),
+]
+GREGORY_N_YEARS = np.arange(50, 301, 5)
+
+
+def load_rung_scenario(scenario: str) -> dict[str, pd.DataFrame]:
+    """Return available scenario outputs for every ladder rung."""
+    out = {}
+    for label, dump, _, _ in elm.LADDER:
+        df = elm.load_scenario(elm.DUMP_ROOT / dump, scenario)
+        if df is not None:
+            out[label] = df
+    return out
+
+
+def _plot_band(ax, years, p05, p50, p95, *, color: str, label: str) -> None:
+    """Plot a shaded 5th-95th percentile band and its median."""
+    ax.fill_between(years, p05, p95, color=color, alpha=0.20, linewidth=0)
+    ax.plot(years, p50, color=color, lw=1.6, label=label)
+
+
+def rolling_gregory_ecs(
+    abrupt_data: pd.DataFrame,
+    *,
+    n_years_values: np.ndarray = GREGORY_N_YEARS,
+) -> pd.DataFrame:
+    """Return per-member Gregory ECS values for a sweep of regression lengths."""
+    series_by_n_years = []
+    valid_n_years = []
+    for n_years in n_years_values:
+        ecs = elm.ecs_gregory(abrupt_data, n_years=int(n_years))
+        series_by_n_years.append(ecs.rename(int(n_years)))
+        valid_n_years.append(int(n_years))
+
+    if not series_by_n_years:
+        return pd.DataFrame()
+
+    out = pd.concat(series_by_n_years, axis=1)
+    out.columns = valid_n_years
+    return out
 
 
 def per_member(rung_dump: str):
@@ -56,6 +113,152 @@ def per_member(rung_dump: str):
         if df is not None:
             out[tag] = elm.eoc_warming(df).dropna().values
     return out
+
+
+def make_seferian3_ladder_figure() -> None:
+    """Overlay the 1pctCO2 Seferian-3 style diagnostics across ladder rungs."""
+    sources_1pct = load_rung_scenario("1pctCO2")
+    if not sources_1pct:
+        print("[seferian3] no 1pctCO2 outputs found, skipping")
+        return
+
+    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+    seferian_var_list = list(CARBON_SEFERIAN_VARS.items())
+    lad = _import_look_at_data()
+    external_legend_handles = []
+    if lad is not None:
+        external_legend_handles = [
+            Line2D([0], [0], color="C0", lw=1.5, label="CMIP6 1pctCO2"),
+            Line2D([0], [0], color="pink", lw=1.5, label="CMIP6 1pctCO2-bgc"),
+        ]
+
+    for i, (_short_name, (variable, ylabel, cmip6_var)) in enumerate(seferian_var_list):
+        ax = axs[i // 2, i % 2]
+        for label, df in sources_1pct.items():
+            result = carbon_extract_or_derive(df, variable)
+            if result is None:
+                continue
+            _years, arr = result
+            if arr.shape[1] <= _1PCT_START_IDX:
+                continue
+            end_idx = min(_1PCT_END_IDX, arr.shape[1])
+            arr_slice = arr[:, _1PCT_START_IDX:end_idx]
+            if arr_slice.size == 0:
+                continue
+            model_years = np.arange(arr_slice.shape[1])
+            p05, p50, p95 = carbon_percentile_band(arr_slice)
+            _plot_band(ax, model_years, p05, p50, p95, color=COLOURS.get(label, "k"), label=label)
+
+        if lad is not None:
+            try:
+                with _look_at_data_cwd():
+                    lad.add_cmip6_lines_to_plot("1pctCO2", cmip6_var, ax)
+                with _look_at_data_cwd():
+                    lad.add_cmip6_lines_to_plot("1pctCO2-bgc", cmip6_var, ax, cl="pink")
+            except Exception as exc:
+                print(f"[seferian3] warning: external {cmip6_var} overlay failed: {exc}")
+
+        ax.set_xlim(0, 150)
+        ax.set_xlabel("Model time (yr; 0 = 1850)")
+        ax.set_ylabel(ylabel)
+        ax.set_title(f"{chr(i + 97)})", fontsize=11, loc="left")
+        ax.grid(True, alpha=0.3)
+
+    ax_scatter = axs[1, 1]
+    for label, df in sources_1pct.items():
+        h_res = carbon_extract_or_derive(df, "Ocean heat uptake")
+        c_res = carbon_extract_or_derive(df, "Ocean carbon flux")
+        if h_res is None or c_res is None:
+            continue
+        _yh, h_arr = h_res
+        _yc, c_arr = c_res
+        n_members = min(h_arr.shape[0], c_arr.shape[0])
+        end_idx = min(_1PCT_END_IDX, h_arr.shape[1], c_arr.shape[1])
+        if end_idx <= _1PCT_START_IDX:
+            continue
+        h_slice = h_arr[:n_members, _1PCT_START_IDX:end_idx]
+        c_slice = c_arr[:n_members, _1PCT_START_IDX:end_idx]
+        for j in range(n_members):
+            ax_scatter.plot(
+                h_slice[j],
+                c_slice[j],
+                color=COLOURS.get(label, "k"),
+                alpha=0.05,
+                lw=0.5,
+            )
+        ax_scatter.plot(
+            np.nanmedian(h_slice, axis=0),
+            np.nanmedian(c_slice, axis=0),
+            color=COLOURS.get(label, "k"),
+            lw=2.0,
+            label=label,
+        )
+
+    if lad is not None:
+        try:
+            with _look_at_data_cwd():
+                lad.add_cmip6_lines_combined_hfds_fgco2(ax_scatter)
+            with _look_at_data_cwd():
+                lad.add_cmip6_lines_combined_hfds_fgco2(
+                    ax_scatter, exp="1pctCO2-bgc", cl="pink"
+                )
+        except Exception as exc:
+            print(f"[seferian3] warning: external scatter overlay failed: {exc}")
+
+    ax_scatter.set_xlabel(r"Heat uptake (ZJ yr$^{-1}$)")
+    ax_scatter.set_ylabel(r"Ocean C uptake (Pg C yr$^{-1}$)")
+    ax_scatter.set_title("d)", fontsize=11, loc="left")
+    ax_scatter.grid(True, alpha=0.3)
+
+    panel_handles, panel_labels = axs[0, 1].get_legend_handles_labels()
+    axs[0, 1].legend(panel_handles + external_legend_handles, panel_labels + [h.get_label() for h in external_legend_handles], fontsize=7)
+
+    scatter_handles, scatter_labels = ax_scatter.get_legend_handles_labels()
+    ax_scatter.legend(scatter_handles + external_legend_handles, scatter_labels + [h.get_label() for h in external_legend_handles], fontsize=7)
+
+    fig.tight_layout()
+    fig.savefig(FIG_DIR / "ladder_seferian3.png", dpi=150)
+    plt.close(fig)
+
+
+def make_gregory_ecs_plume_figure() -> None:
+    """Plot rolling Gregory ECS plume diagnostics for the abrupt ladder runs."""
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.5), sharey=True)
+
+    for ax, (title, scenario, scaling) in zip(axes, ABRUPT_PANELS):
+        sources = load_rung_scenario(scenario)
+        for label, df in sources.items():
+            ecs_by_member = rolling_gregory_ecs(df)
+            if ecs_by_member.empty:
+                continue
+            x = ecs_by_member.columns.to_numpy(dtype=float)
+            ecs_values = ecs_by_member.to_numpy(dtype=float) * scaling
+            p05, p50, p95 = np.nanpercentile(ecs_values, [5, 50, 95], axis=0)
+            ax.fill_between(
+                x,
+                p05,
+                p95,
+                color=COLOURS.get(label, "k"),
+                alpha=0.20,
+                linewidth=0,
+            )
+            ax.plot(
+                x,
+                p50,
+                color=COLOURS.get(label, "k"),
+                lw=2.0,
+                label=label,
+            )
+        ax.set_title(title)
+        ax.set_xlabel("Gregory regression length (yr)")
+        ax.set_xlim(GREGORY_N_YEARS[0], GREGORY_N_YEARS[-1])
+        ax.grid(True, alpha=0.3)
+
+    axes[0].set_ylabel("Gregory ECS (K)")
+    axes[-1].legend(fontsize=7, frameon=False)
+    fig.tight_layout()
+    fig.savefig(FIG_DIR / "ladder_gregory_ecs_plumes.png", dpi=150)
+    plt.close(fig)
 
 
 def main() -> None:
@@ -130,7 +333,10 @@ def main() -> None:
     fig.savefig(FIG_DIR / "ladder_flat10_metrics.png", dpi=150)
     plt.close(fig)
 
-    print(f"wrote 3 figures to {FIG_DIR}")
+    make_seferian3_ladder_figure()
+    make_gregory_ecs_plume_figure()
+
+    print(f"wrote 5 figures to {FIG_DIR}")
 
 
 if __name__ == "__main__":
