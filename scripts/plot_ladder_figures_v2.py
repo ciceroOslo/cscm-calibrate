@@ -62,6 +62,14 @@ ABRUPT_PANELS = [
 ]
 GREGORY_N_YEARS = np.arange(50, 301, 5)
 
+# scen7 ScenarioMIP categories and the blended-temperature / local-lambda panel.
+SCEN7_CATEGORIES = ["L", "M", "VL", "LN", "ML", "H", "HL"]
+SCEN7_SCENARIO_TEMPLATE = "esm-hist-allGHG-scen7-{cat}"
+SCEN7_END_YEAR = 2100
+BLENDED_TEMP_VAR = elm.TEMP_VAR  # "Surface Air Ocean Blended Temperature Change"
+RIB_VAR = "Heat Uptake"  # radiative imbalance proxy (RIB_glob in raw output)
+LOCAL_LAMBDA_WINDOW = 30
+
 
 def load_rung_scenario(scenario: str) -> dict[str, pd.DataFrame]:
     """Return available scenario outputs for every ladder rung."""
@@ -263,6 +271,91 @@ def make_gregory_ecs_plume_figure() -> None:
     plt.close(fig)
 
 
+def local_lambda(temp: np.ndarray, rib: np.ndarray, window: int = LOCAL_LAMBDA_WINDOW) -> np.ndarray:
+    """OLS slope of RIB on dT in a centred window (Andrews et al. 2022).
+
+    Mirrors ``pdo_sweep_plot.local_lambda``: returns an array the same length
+    as ``temp`` with NaN where the centred window falls outside the series.
+    """
+    half = window // 2
+    out = np.full_like(temp, np.nan, dtype=float)
+    for t in range(half, len(temp) - (window - half)):
+        x = temp[t - half : t - half + window]
+        y = rib[t - half : t - half + window]
+        xm = x - x.mean()
+        denom = (xm * xm).sum()
+        if denom > 0:
+            out[t] = (xm * (y - y.mean())).sum() / denom
+    return out
+
+
+def make_scen7_temp_lambda_figures() -> None:
+    """One two-panel figure per scen7 scenario.
+
+    Left panel: 5-95% plume (median overlaid) of the blended surface
+    temperature change. Right panel: 5-95% plume of the local feedback
+    (30-yr centred OLS slope of Heat Uptake on temperature). Ladder rungs are
+    overlaid in the comparison-plot style; both panels run only to 2100.
+    """
+    for cat in SCEN7_CATEGORIES:
+        scenario = SCEN7_SCENARIO_TEMPLATE.format(cat=cat)
+        sources = load_rung_scenario(scenario)
+        if not sources:
+            print(f"[scen7] no outputs found for {scenario}, skipping")
+            continue
+
+        fig, (ax_temp, ax_lam) = plt.subplots(1, 2, figsize=(12, 4.5))
+        for label, df in sources.items():
+            colour = COLOURS.get(label, "k")
+
+            temp_ts = elm.timeseries(df, BLENDED_TEMP_VAR)
+            if temp_ts.empty:
+                continue
+            temp_years = [y for y in sorted(temp_ts.columns) if y <= SCEN7_END_YEAR]
+            if temp_years:
+                temp_arr = temp_ts[temp_years].to_numpy(dtype=float)
+                p05, p50, p95 = np.nanpercentile(temp_arr, [5, 50, 95], axis=0)
+                _plot_band(ax_temp, temp_years, p05, p50, p95, color=colour, label=label)
+
+            rib_ts = elm.timeseries(df, RIB_VAR)
+            if rib_ts.empty:
+                continue
+            members = temp_ts.index.intersection(rib_ts.index)
+            common_years = [
+                y
+                for y in sorted(set(temp_ts.columns) & set(rib_ts.columns))
+                if y <= SCEN7_END_YEAR
+            ]
+            if len(members) == 0 or len(common_years) <= LOCAL_LAMBDA_WINDOW:
+                continue
+            t_arr = temp_ts.loc[members, common_years].to_numpy(dtype=float)
+            r_arr = rib_ts.loc[members, common_years].to_numpy(dtype=float)
+            lam = np.full_like(t_arr, np.nan, dtype=float)
+            for k in range(t_arr.shape[0]):
+                lam[k] = local_lambda(t_arr[k], r_arr[k], window=LOCAL_LAMBDA_WINDOW)
+            l05, l50, l95 = np.nanpercentile(lam, [5, 50, 95], axis=0)
+            _plot_band(ax_lam, common_years, l05, l50, l95, color=colour, label=label)
+
+        ax_temp.set_xlim(right=SCEN7_END_YEAR)
+        ax_temp.set_xlabel("Year")
+        ax_temp.set_ylabel("Blended surface temperature change (K)")
+        ax_temp.set_title(f"scen7-{cat}: blended temperature")
+        ax_temp.grid(True, alpha=0.3)
+        ax_temp.legend(fontsize=7, frameon=False)
+
+        ax_lam.set_xlim(right=SCEN7_END_YEAR)
+        ax_lam.set_xlabel("Year (centre of window)")
+        ax_lam.set_ylabel(r"Local feedback dN/dT (W m$^{-2}$ K$^{-1}$)")
+        ax_lam.set_title(
+            f"scen7-{cat}: {LOCAL_LAMBDA_WINDOW}-yr local feedback"
+        )
+        ax_lam.grid(True, alpha=0.3)
+
+        fig.tight_layout()
+        fig.savefig(FIG_DIR / f"ladder_scen7_{cat}_temp_lambda.png", dpi=150)
+        plt.close(fig)
+
+
 def main() -> None:
     data = {label: per_member(dump) for label, dump, _, _ in elm.LADDER}
     rungs = list(data.keys())
@@ -338,8 +431,9 @@ def main() -> None:
 
     make_seferian3_ladder_figure()
     make_gregory_ecs_plume_figure()
+    make_scen7_temp_lambda_figures()
 
-    print(f"wrote 5 figures to {FIG_DIR}")
+    print(f"wrote figures to {FIG_DIR}")
 
 
 if __name__ == "__main__":
