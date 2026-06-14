@@ -27,8 +27,8 @@ from ciceroscm.parallel.distributionrun import DistributionRun
 special_scen_skip = ["1pctCO2-bgc", "1pctCO2-rad"]#, "scen7-LC", "scen7-HLC", "scen7-MLC", "scen7-LNC", "scen7-MC", "esm-scen7-L", "esm-scen7-HL", "esm-scen7-ML", "esm-scen7-LN", "esm-scen7-M"]
 special_mapping = {"hist":"historical", "hist-cmip6": "historical-cmip6"}
 
-outpath_main = "out_file_dump_ar7_v1"
-CONFIG_NAME = "draw_samples_ar7_v1_500"
+outpath_main = "out_file_dump_pdo"
+CONFIG_NAME = "draw_samples_pattern_efficacy_pdo_wide_lambda_500"
 CONFIG_PATH = Path(f"../draw_samples_archive/{CONFIG_NAME}.json")
 
 def check_if_inspected(scenario_name):
@@ -153,7 +153,7 @@ lucalbedo_piControl = os.path.join(input_dir,"LUCalbedo_RCMIP_constant_zero_RCMI
 distrorun = DistributionRun(None, json_file_name=CONFIG_PATH)
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup/users/masan/SCM_stuff/subset_cscm_configfile_for_py_small.json")
 
-def make_scenariodata_argdict(run_type, scen_name, scen_name_strip, yend):
+def make_scenariodata_argdict(run_type, scen_name, scen_name_strip, yend, include_pdo = False):
     print(run_type)
     if scen_name.startswith("esm-allGHG"):
         print("Hello")
@@ -343,8 +343,6 @@ if __name__ == "__main__":
     #print(split_experiment_dfs)
     #sys.exit(4)
     for key1 in split_experiment_dfs:
-        if key1 != "idealised":
-            continue
         for key2 in split_experiment_dfs[key1]:
             print(f"{key1} - {key2} : {split_experiment_dfs[key1][key2].shape}")
             print("---------------------------------------------------------")

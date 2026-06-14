@@ -38,8 +38,8 @@ LADDER = [
     ("0 baseline (v1)", "out_file_dump_nopattern_noefficacy", "nopattern_noefficacy", "done"),
     ("1 +efficacy",     "out_file_dump_nopattern",            "nopattern",            "done"),
     ("2 +pattern",      "out_file_dump",                      "pattern",              "done"),
-    ("4a IPCC+pattern", "out_file_dump_ar7_v1",               None,                   "done"),
-    # ("3 +PDO",            "out_file_dump_pdo",     "pdo",     "todo"),
+    ("4a IPCC+pattern", "out_file_dump_ar7_v1",               "ar7_v1",                   "done"),
+    ("3 +PDO",            "out_file_dump_pdo",                "pdo",     "done"),
     # ("4b IPCC+pat+PDO",   "out_file_dump_ar7_pdo", "pdo_ar7", "todo"),
 ]
 
