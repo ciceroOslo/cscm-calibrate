@@ -64,7 +64,7 @@ GREGORY_N_YEARS = np.arange(50, 301, 5)
 
 # scen7 ScenarioMIP categories and the blended-temperature / local-lambda panel.
 SCEN7_CATEGORIES = ["L", "M", "VL", "LN", "ML", "H", "HL"]
-SCEN7_SCENARIO_TEMPLATE = "esm-hist-allGHG-scen7-{cat}"
+SCEN7_SCENARIO_TEMPLATE = "esm-allGHG-scen7-{cat}"
 SCEN7_END_YEAR = 2100
 BLENDED_TEMP_VAR = elm.TEMP_VAR  # "Surface Air Ocean Blended Temperature Change"
 RIB_VAR = "Heat Uptake"  # radiative imbalance proxy (RIB_glob in raw output)
