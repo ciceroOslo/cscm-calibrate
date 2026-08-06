@@ -41,6 +41,7 @@ CSV_SUFFIX = {
     "nopattern_noefficacy": "_rcmip_draw_samples_no_efficacy_no_pattern_wide_lambda_400.csv",
     "ar7_v1": "_rcmip_draw_samples_ar7_v1_500.csv",
     "pdo": "_rcmip_draw_samples_pattern_efficacy_pdo_wide_lambda_500.csv",
+    "pdo_ar7": "_rcmip_draw_samples_pattern_pdo_ar7_500.csv",
 }
 
 YEAR_START = 1750

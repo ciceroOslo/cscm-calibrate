@@ -28,7 +28,7 @@ TARGETS_CSV = (
     ROOT / "data"
     / "Calibration_targets_for_AR7_WG1_Ch5_emulators_Calibration_targets.csv"
 )
-OUTDIR    = Path(__file__).resolve().parent / "out_file_dump_ar7_v1"
+OUTDIR    = Path(__file__).resolve().parent / "out_file_dump_pdo_ar7"
 PLOT_DIR  = Path(__file__).resolve().parent / "plots"
 DATE_STAMP = "20260520"
 

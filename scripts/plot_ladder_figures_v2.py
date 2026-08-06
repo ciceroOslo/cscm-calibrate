@@ -20,6 +20,9 @@ Usage:
     python plot_ladder_figures.py
 """
 from __future__ import annotations
+import glob
+import sys
+import plot_sanity_checks
 
 from pathlib import Path
 
@@ -28,6 +31,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+import xarray as xr
 import pandas as pd
 from matplotlib.lines import Line2D
 
@@ -53,6 +57,7 @@ COLOURS = {
     "2 +pattern": "#d62728",
     "3 +PDO": "#9467bd",
     "4a IPCC+pattern": "#2ca02c",
+    "4b IPCC+pat+PDO": "#ff7f0e",
 }
 
 ABRUPT_PANELS = [
@@ -157,6 +162,7 @@ def make_seferian3_ladder_figure() -> None:
                 continue
             model_years = np.arange(arr_slice.shape[1])
             p05, p50, p95 = carbon_percentile_band(arr_slice)
+
             _plot_band(ax, model_years, p05, p50, p95, color=COLOURS.get(label, "k"), label=label)
 
         if lad is not None:
@@ -288,8 +294,110 @@ def local_lambda(temp: np.ndarray, rib: np.ndarray, window: int = LOCAL_LAMBDA_W
             out[t] = (xm * (y - y.mean())).sum() / denom
     return out
 
+def read_in_and_overlay_andrews_2022_local_lambda(ax, just_means = True) -> None:
+    """Overlay the local lambda diagnostics from Andrews et al. (2022) Fig. 3."""
+    print("Reading and plotting Andrews et al. (2022) local lambda diagnostics")
+    andrews_data_dir = Path("/div/no-backup-nac/users/masan/GRAFITE/amip-hadSST-piForcing/data")
+    for source in ["amip", "hadSST"]:
+        lamda_loc_mean = None
+        lamda_loc_num = 0
+        mean_years = None
+        for file in glob.glob(f"{andrews_data_dir}/{source}-piForcing*.nc"):
+            try:
+                print(f"Reading and plotting Andrews et al. (2022) local lambda from {file}")
+                ds = xr.open_dataset(file)
+                time = ds["year"].values
+                dt = ds["dt"].values
+                dn = ds["dn"].values
+                lambda_loc = local_lambda(dt, dn, window=LOCAL_LAMBDA_WINDOW)
+                if lamda_loc_mean is None:
+                    lamda_loc_mean = lambda_loc
+                    mean_years = time
+                else:
+                    if not np.array_equal(mean_years, time):
+                        # Find common years
+                        common_years = np.intersect1d(mean_years, time)
+                        # Get indices for common years in both arrays
+                        idx_mean = np.isin(mean_years, common_years)
+                        idx_time = np.isin(time, common_years)
+                        # Compress to common years and add
+                        lamda_loc_mean = lamda_loc_mean[idx_mean] + lambda_loc[idx_time]
+                        mean_years = common_years
+                    else:                  
+                        lamda_loc_mean = lamda_loc_mean + lambda_loc
 
-def make_scen7_temp_lambda_figures() -> None:
+
+                lamda_loc_num = lamda_loc_num + 1
+                if not just_means:
+                    if np.any(lambda_loc> -0.5):
+                        print(f"Warning: local lambda from {file} contains very small values, check data and windowing")
+                        continue
+                    ax.plot(time, lambda_loc, color = "grey", lw=0.5, alpha=0.5)
+            except Exception as exc:
+                print(f"Warning: failed to read or plot {file}: {exc}")
+        if lamda_loc_num > 0:
+            lamda_loc_mean = lamda_loc_mean / lamda_loc_num
+            ax.plot(mean_years, lamda_loc_mean, color = "black" if source == "amip" else "grey", lw=2.0, label=f"Andrews+2022 {source}")
+            ax.legend(fontsize=7, frameon=False)
+
+        else:
+            print(f"Warning: no valid local lambda data found for source {source} in Andrews et al. (2022) diagnostics")
+
+def read_in_and_overlay_van_loon_2026_local_lambda(ax, just_means = True) -> None:
+    """Overlay the local lambda diagnostics from van Loon et al. (2026) Fig. 2."""
+    print("Reading and plotting van Loon et al. (2026) local lambda diagnostics")
+    vanloon_data_dir = Path("/div/no-backup-nac/users/masan/GRAFITE/vanLoon_data/")
+    for file in glob.glob(f"{vanloon_data_dir}/*_tas2Rg_amip_trend_random_*.nc"):
+        label = file.split("_")[-1].replace(".nc", "")
+        ds = xr.open_dataset(file)
+        print(ds.variables)
+        if "l_true" not in ds.variables:
+            lambda_data = ds["l"]
+        else:
+            lambda_data = ds["l_true"]
+        
+        time = ds["end_year"].values
+        print(lambda_data.shape)
+        print(time)
+        print(f"Reading and plotting van Loon et al. (2026) local lambda from {file}")
+        if not just_means:
+            for member in range(lambda_data.shape[0]):
+                lambda_loc = lambda_data[member, :].values
+                if len(lambda_loc.shape) > 1:
+                    print("Flattening")
+                    lambda_loc = lambda_loc.flatten()
+                ax.plot(time, lambda_loc, color = "grey", lw=0.5, alpha=0.5)
+        mean_lambda_loc = np.nanmean(lambda_data.values, axis=0)
+        #print(mean_lambda_loc)
+        #print(mean_lambda_loc.shape)
+        replot_mean = True
+        if len(mean_lambda_loc.shape) > 1:
+            if mean_lambda_loc.shape[0] > 1:
+                print("Warning: mean local lambda has more than one member, check data and windowing")
+                # for member in range(mean_lambda_loc.shape[0]):
+                #     print(f"Member {member} mean local lambda: {mean_lambda_loc[member]}")
+                #     ax.plot(time, mean_lambda_loc[member], color = "blue", lw=2.0, label=f"van Loon+2026 {label}_{member}")
+                #     ax.legend(fontsize=7, frameon=False)
+                replot_mean = False
+            else:      
+                print("Flattening mean")
+                mean_lambda_loc = mean_lambda_loc.flatten()
+        if replot_mean:
+            if label =="reconstructions":
+                lw = 2.0
+            else:
+                lw = 0.3
+            ax.plot(time, mean_lambda_loc, color = "blue", lw=lw, alpha = 0.7, label=f"van Loon+2026 {label}")
+            ax.legend(fontsize=7, frameon=False)
+
+        #sys.exit(4)
+
+def read_in_and_overlay_temperature_timeseries(ax_temp):
+    temperature_data = pd.read_csv("../data/calibration_data_Sep2025/annual_averages.csv")
+    ax_temp.plot(temperature_data["timebound_lower"], temperature_data["GMST"], color="black", lw=2.0, label="Observed (annual avg)")
+
+
+def make_scen7_temp_lambda_figures(internal_lambda=True) -> None:
     """One two-panel figure per scen7 scenario.
 
     Left panel: 5-95% plume (median overlaid) of the blended surface
@@ -316,39 +424,68 @@ def make_scen7_temp_lambda_figures() -> None:
                 temp_arr = temp_ts[temp_years].to_numpy(dtype=float)
                 p05, p50, p95 = np.nanpercentile(temp_arr, [5, 50, 95], axis=0)
                 _plot_band(ax_temp, temp_years, p05, p50, p95, color=colour, label=label)
+            if not internal_lambda:
+                rib_ts = elm.timeseries(df, RIB_VAR)
+                if rib_ts.empty:
+                    continue
+                members = temp_ts.index.intersection(rib_ts.index)
+                common_years = [
+                    y
+                    for y in sorted(set(temp_ts.columns) & set(rib_ts.columns))
+                    if y <= SCEN7_END_YEAR
+                ]
+                if len(members) == 0 or len(common_years) <= LOCAL_LAMBDA_WINDOW:
+                    continue
+                t_arr = temp_ts.loc[members, common_years].to_numpy(dtype=float)
+                r_arr = rib_ts.loc[members, common_years].to_numpy(dtype=float)
+                lam = np.full_like(t_arr, np.nan, dtype=float)
+                for k in range(t_arr.shape[0]):
+                    lam[k] = local_lambda(t_arr[k], r_arr[k], window=LOCAL_LAMBDA_WINDOW)
+                l05, l50, l95 = np.nanpercentile(lam, [5, 50, 95], axis=0)
+                _plot_band(ax_lam, common_years, l05, l50, l95, color=colour, label=label)
+                ax_lam.set_ylabel(r"Local feedback dN/dT (W m$^{-2}$ K$^{-1}$)")
+                ax_lam.set_title(
+                    f"scen7-{cat}: {LOCAL_LAMBDA_WINDOW}-yr local feedback"
+                )
+            else:
+                lam_ts = elm.timeseries(df, "Dynamic Feedback Lambda")
+                if lam_ts.empty:
+                    continue
+                lam_years = [y for y in sorted(lam_ts.columns) if y <= SCEN7_END_YEAR]
+                if lam_years:
+                    lam_arr = - lam_ts[lam_years].to_numpy(dtype=float)
+                    l05, l50, l95 = np.nanpercentile(lam_arr, [5, 50, 95], axis=0)
+                    if label in ["0 baseline (v1)", "1 +efficacy"]:
+                        ax_lam.plot(lam_years, l50, color=colour, lw=1.6)#, label=label)
+                        ax_lam.plot(lam_years, l05, color=colour, ls="--", lw=0.5)
+                        ax_lam.plot(lam_years, l95, color=colour, ls="--", lw=0.5)
+                    else:
+                        _plot_band(ax_lam, lam_years, l05, l50, l95, color=colour, label=None)
+                    ax_lam.set_ylabel(r"Dynamic lambda feedback (W m$^{-2}$ K$^{-1}$)")
 
-            rib_ts = elm.timeseries(df, RIB_VAR)
-            if rib_ts.empty:
-                continue
-            members = temp_ts.index.intersection(rib_ts.index)
-            common_years = [
-                y
-                for y in sorted(set(temp_ts.columns) & set(rib_ts.columns))
-                if y <= SCEN7_END_YEAR
-            ]
-            if len(members) == 0 or len(common_years) <= LOCAL_LAMBDA_WINDOW:
-                continue
-            t_arr = temp_ts.loc[members, common_years].to_numpy(dtype=float)
-            r_arr = rib_ts.loc[members, common_years].to_numpy(dtype=float)
-            lam = np.full_like(t_arr, np.nan, dtype=float)
-            for k in range(t_arr.shape[0]):
-                lam[k] = local_lambda(t_arr[k], r_arr[k], window=LOCAL_LAMBDA_WINDOW)
-            l05, l50, l95 = np.nanpercentile(lam, [5, 50, 95], axis=0)
-            _plot_band(ax_lam, common_years, l05, l50, l95, color=colour, label=label)
 
-        ax_temp.set_xlim(right=SCEN7_END_YEAR)
+        ax_lam.set_title(
+            f"scen7-{cat}: internally diagnosed lambda feedback"
+        )
+        read_in_and_overlay_temperature_timeseries(ax_temp)
+        read_in_and_overlay_andrews_2022_local_lambda(ax_lam, just_means = False)
+        read_in_and_overlay_van_loon_2026_local_lambda(ax_lam, just_means = True)
+        lam_to_ECS = lambda x: -3.7/x # np.where(x>0, 3.7 / x, np.nan)
+        ECS_to_lam = lambda x: -3.7/x #np.where(x>0, 3.7 / x, np.nan)
+        ax_lam2 = ax_lam.secondary_yaxis("right", functions=(lam_to_ECS, ECS_to_lam))
+        ax_lam2.set_ylabel("ECS implied by dynamic lambda (K)")
+
+        ax_temp.set_xlim(left = 1850,right=SCEN7_END_YEAR)
         ax_temp.set_xlabel("Year")
         ax_temp.set_ylabel("Blended surface temperature change (K)")
         ax_temp.set_title(f"scen7-{cat}: blended temperature")
         ax_temp.grid(True, alpha=0.3)
         ax_temp.legend(fontsize=7, frameon=False)
 
-        ax_lam.set_xlim(right=SCEN7_END_YEAR)
+        ax_lam.set_xlim(left = 1850, right=SCEN7_END_YEAR-50)
+        ax_lam.set_ylim(-2.5, -0.5)
         ax_lam.set_xlabel("Year (centre of window)")
-        ax_lam.set_ylabel(r"Local feedback dN/dT (W m$^{-2}$ K$^{-1}$)")
-        ax_lam.set_title(
-            f"scen7-{cat}: {LOCAL_LAMBDA_WINDOW}-yr local feedback"
-        )
+
         ax_lam.grid(True, alpha=0.3)
 
         fig.tight_layout()
@@ -360,6 +497,11 @@ def main() -> None:
     data = {label: per_member(dump) for label, dump, _, _ in elm.LADDER}
     rungs = list(data.keys())
 
+    targets = {
+        "ECS": [3, 2,5],
+        "TCRE": [1.65, 1, 2.3],
+        "TCR": [1.8, 1.2, 2.4],
+    }
     # ── Figure 1: ECS and TCR marginals ──────────────────────────────────────
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     for var, ax in zip(("ECS", "TCR"), axes):
@@ -367,10 +509,18 @@ def main() -> None:
             v = data[r].get(var)
             if v is None:
                 continue
+            print(r) 
+            print(COLOURS.get(r, "k"))
+            print(COLOURS.keys())
             ax.hist(v, bins=40, range=(0, 10 if var == "ECS" else 5),
                     histtype="step", density=True, lw=2,
                     color=COLOURS.get(r), label=r)
             ax.axvline(np.median(v), color=COLOURS.get(r), ls=":", lw=1)
+        if var in targets:
+            t = targets[var]
+            ax.axvline(t[0], color="k", ls="--", lw=1, label="IPCC median target")
+            ax.axvline(t[1], color="k", ls=":", lw=1, label="IPCC 5-95% range")
+            ax.axvline(t[2], color="k", ls=":", lw=1)
         ax.set_xlabel(f"{var} (K)")
         ax.set_ylabel("posterior density")
     axes[0].legend(fontsize=8, frameon=False)
@@ -420,6 +570,11 @@ def main() -> None:
             ax.hist(fm[col].dropna(), bins=40, histtype="step", density=True,
                     lw=2, color=COLOURS.get(label), label=label)
             ax.axvline(fm[col].median(), color=COLOURS.get(label), ls=":", lw=1)
+        if col.upper() in targets:
+            t = targets[var.upper()]
+            ax.axvline(t[0], color="k", ls="--", lw=1, label="IPCC median target")
+            ax.axvline(t[1], color="k", ls=":", lw=1, label="IPCC 5-95% range")
+            ax.axvline(t[2], color="k", ls=":", lw=1)
         ax.set_xlabel(xlabel)
         ax.set_ylabel("posterior density")
     axes[0].legend(fontsize=8, frameon=False)
@@ -429,8 +584,8 @@ def main() -> None:
     fig.savefig(FIG_DIR / "ladder_flat10_metrics.png", dpi=150)
     plt.close(fig)
 
-    make_seferian3_ladder_figure()
-    make_gregory_ecs_plume_figure()
+    # make_seferian3_ladder_figure()
+    #make_gregory_ecs_plume_figure()
     make_scen7_temp_lambda_figures()
 
     print(f"wrote figures to {FIG_DIR}")

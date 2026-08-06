@@ -313,6 +313,7 @@ def weight_ensemble_and_draw(
     file_endstring,
     output_ensemble_size=500,
     plot_pam_distributions=True,
+    targ_paramat_fname=None,
 ):
     """
     Reweights an ensemble of samples based on constraints,
@@ -355,17 +356,18 @@ def weight_ensemble_and_draw(
     print("Doing reweighting...")
 
     output_dir = os.path.join(get_project_root(), "output")
+    if targ_paramat_fname is None:
+        targ_paramat_fname = f"data_all_targs_paramats{file_endstring}.h5"
+    print(f"Weighting ensmble using target data in {targ_paramat_fname}")
 
     store = pd.HDFStore(
-        os.path.join(output_dir, f"data_all_targs_paramats{file_endstring}.h5")
+        os.path.join(output_dir, targ_paramat_fname)
     )
     targ = store["targ"]
     parammat = store["parammat"]
 
     store.close()
     input_ensemble_size = targ.shape[0]
-
-    # sys.exit(4)
 
     if input_ensemble_size <= output_ensemble_size:
         raise AssertionError(  # noqa: TRY003

@@ -40,7 +40,7 @@ LADDER = [
     ("2 +pattern",      "out_file_dump",                      "pattern",              "done"),
     ("4a IPCC+pattern", "out_file_dump_ar7_v1",               "ar7_v1",                   "done"),
     ("3 +PDO",            "out_file_dump_pdo",                "pdo",     "done"),
-    # ("4b IPCC+pat+PDO",   "out_file_dump_ar7_pdo", "pdo_ar7", "todo"),
+    ("4b IPCC+pat+PDO",   "out_file_dump_pdo_ar7", "pdo_ar7", "done"),
 ]
 
 TEMP_VAR = "Surface Air Ocean Blended Temperature Change"
@@ -55,6 +55,7 @@ def load_scenario(dump: Path, scenario: str) -> pd.DataFrame | None:
     """Return the member x year output for *scenario*, trying the reformatted
     ``_rcmip_ciceroscm_`` file first and the raw ``draw_samples`` file second."""
     for pattern in (
+        f"{scenario}_*_natforc_draw_samples_*.csv",
         f"{scenario}_rcmip_ciceroscm_*.csv",
         f"{scenario}_*draw_samples*.csv",
         f"{scenario}_*.csv",

@@ -15,6 +15,7 @@ from .run_prior_ensemble import run_prior_ensemble
 from .set_up_calibration_configs_and_run import define_scendata_for_scm, make_padded_pdo_timeseries
 from .shared_functions import make_constraints_config_from_RCMIP_csv, make_dataframe_of_zeros
 from .weigth_ensemble_from_constraints_and_draw import weight_ensemble_and_draw
+from .run_extra_experiments_post_pruning import read_pruned_and_run_per_chunks
 
 try:
     from pandas.core.common import SettingWithCopyWarning
@@ -218,42 +219,6 @@ class CSCMCalibrationPipeline:
             pdo_timeseries=prior_cfgs.get("pdo_timeseries_path", None),
         )
 
-        scenariodata_idealised_experiments = None
-        calibdata_idealised_experiments = None
-        if "constraint_configs_idealised" in self.configs:
-            scenariodata_idealised_experiments = []
-            #print(self.configs["constraint_configs_idealised"])
-            for i, experiment in enumerate(self.configs["constraint_configs_idealised"]["Experiments"]):
-                #nyend = np.max((self.configs["constraint_configs_idealised"]["Yearend_change"][i],2010))
-                nyend = self.configs["constraint_configs_idealised"]["Yearend_change"][i]
-                ref_yr = int(np.min((nyend-1, 2010)))
-                if experiment.startswith("esm"):
-                    df_emis_str = prior_cfgs["emis"].replace(prior_cfgs["emis"].split("_")[0], experiment)
-                    df_conc_str = prior_cfgs["conc"].replace(prior_cfgs["conc"].split("_")[0], "piControl")
-                    conc_run = False
-                else:
-                    df_emis_str = prior_cfgs["emis"].replace(prior_cfgs["emis"].split("_")[0], "esm-piControl")
-                    df_conc_str = prior_cfgs["conc"].replace(prior_cfgs["conc"].split("_")[0], experiment)
-                    conc_run = True
-                scenariodata_i = define_scendata_for_scm(
-                    test_data_dir=prior_cfgs["input_dir"],
-                    gaspam=prior_cfgs["gases"],
-                    df_nat_ch4=make_dataframe_of_zeros("CH4", 1750, nyend+1),
-                    df_nat_n2o=make_dataframe_of_zeros("N2O", 1750, nyend+1),
-                    df_conc=df_conc_str,
-                    df_emis=df_emis_str,
-                    rf_luc_file ="LUCalbedo_RCMIP_constant_zero_RCMIP3.txt",
-                    nystart=1750,
-                    emstart=int(nyend) + 1,
-                    nyend=int(nyend),
-                    sunvolc=0,
-                )
-                scenariodata_i[0]["conc_run"] = conc_run
-                scenariodata_i[0]["scenname"] = experiment
-                scenariodata_i[0]["ref_yr"] = ref_yr
-                scenariodata_idealised_experiments.append(scenariodata_i[0])
-                print(f"Finished loading idealised experiment scenario data for experiment: {experiment} with end year {nyend} and reference year {ref_yr}")
-            #sys.exit(4)
         print("Now running prior ensemble...")
         run_prior_ensemble(
             testconfig=testconfig,
@@ -266,8 +231,6 @@ class CSCMCalibrationPipeline:
             max_workers=prior_cfgs.get("max_workers", 200),
             continue_from_existing=continue_from_existing,
             plot=plot,
-            scenariodata_idealised_experiments=scenariodata_idealised_experiments,
-            calibdata_idealised_experiments=self.configs.get("constraint_configs_idealised", None)
         )
 
     def prune_distribution(self, file_endstring=None):
@@ -319,7 +282,7 @@ class CSCMCalibrationPipeline:
             file_endstring=file_endstring,
         )
 
-    def weight_ensemble_and_draw_write_config(self, file_endstring=None):
+    def weight_ensemble_and_draw_write_config(self, read_idealised_constraints=False, file_endstring=None):
         """
         Weight the ensemble, draw samples, and write the configurations
 
@@ -344,10 +307,16 @@ class CSCMCalibrationPipeline:
         if file_endstring is None:
             file_endstring = ""  # self.datestr
         print(self.configs["constraint_configs"])
+        if read_idealised_constraints:
+            targ_paramat_fname = f"data_all_targs_paramats_include_idealised{file_endstring}.h5"
+        else:
+            targ_paramat_fname = f"data_all_targs_paramats{file_endstring}.h5"
         weight_ensemble_and_draw(
             constraint_config=self.configs["constraint_configs"],
             file_endstring=file_endstring,
             output_ensemble_size=self.configs["meta_configs"]["output_ensemble_size"],
+            targ_paramat_fname=targ_paramat_fname,
+
         )
 
     def run_full_calibration_pipeline(self):
@@ -369,4 +338,73 @@ class CSCMCalibrationPipeline:
         """
         self._run_prior_ensemble()
         self.prune_distribution()
-        self.weight_ensemble_and_draw_write_config()
+        read_idealised_constraints = False
+        if "constraint_configs_idealised" in self.configs:
+            self._run_additional_experiments_post_pruning()
+            read_idealised_constraints = True
+        self.weight_ensemble_and_draw_write_config(read_idealised_constraints=read_idealised_constraints)
+
+
+    def run_additional_experiments_post_pruning(self, file_endstring=None, continue_from_existing=False):
+        """
+        Run additional experiments post pruning
+
+        Runs additional experiments post pruning using the specified configuration.
+
+        This method is designed to run additional experiments after the pruning step,
+        utilizing the scenario data and calibration data for idealised experiments
+        defined in the configuration and running only the members that pass the pruning step.
+
+        Returns
+        -------
+        None
+        """
+        print("Running additional experiments post pruning...")
+        scenariodata_idealised_experiments = []
+        prior_cfgs = self.configs["prior_configs"]
+        #print(self.configs["constraint_configs_idealised"])
+        if "constraint_configs_idealised" not in self.configs:
+            print("No idealised constraint configs provided, skipping additional experiments post pruning.")
+            return
+        for i, experiment in enumerate(self.configs["constraint_configs_idealised"]["Experiments"]):
+            #nyend = np.max((self.configs["constraint_configs_idealised"]["Yearend_change"][i],2010))
+            nyend = self.configs["constraint_configs_idealised"]["Yearend_change"][i]
+            ref_yr = int(np.min((nyend-1, 2010)))
+            if experiment.startswith("esm"):
+                df_emis_str = prior_cfgs["emis"].replace(prior_cfgs["emis"].split("_")[0], experiment)
+                df_conc_str = prior_cfgs["conc"].replace(prior_cfgs["conc"].split("_")[0], "piControl")
+                conc_run = False
+            else:
+                df_emis_str = prior_cfgs["emis"].replace(prior_cfgs["emis"].split("_")[0], "esm-piControl")
+                df_conc_str = prior_cfgs["conc"].replace(prior_cfgs["conc"].split("_")[0], experiment)
+                conc_run = True
+            scenariodata_i = define_scendata_for_scm(
+                test_data_dir=prior_cfgs["input_dir"],
+                gaspam=prior_cfgs["gases"],
+                df_nat_ch4=make_dataframe_of_zeros("CH4", 1750, nyend+1),
+                df_nat_n2o=make_dataframe_of_zeros("N2O", 1750, nyend+1),
+                df_conc=df_conc_str,
+                df_emis=df_emis_str,
+                rf_luc_file ="LUCalbedo_RCMIP_constant_zero_RCMIP3.txt",
+                nystart=1750,
+                emstart=int(nyend) + 1,
+                nyend=int(nyend),
+                sunvolc=0,
+            )
+            scenariodata_i[0]["conc_run"] = conc_run
+            scenariodata_i[0]["scenname"] = experiment
+            scenariodata_i[0]["ref_yr"] = ref_yr
+            scenariodata_idealised_experiments.append(scenariodata_i[0])
+            print(f"Finished loading idealised experiment scenario data for experiment: {experiment} with end year {nyend} and reference year {ref_yr}")
+    
+        if file_endstring is None:
+            file_endstring = ""  # self.datestr
+
+        read_pruned_and_run_per_chunks(
+            config=self.configs,
+            scenario_data=scenariodata_idealised_experiments,
+            calibration_data=self.configs["constraint_configs_idealised"],
+            idealised_experiments=self.configs["constraint_configs_idealised"]["Experiments"],
+            file_endstring=file_endstring,
+            continue_from_existing=continue_from_existing,
+        )
