@@ -141,7 +141,7 @@ class TestCSCMCalibrationPipeline:
         monkeypatch.setattr(
             self.pipeline,
             "weight_ensemble_and_draw_write_config",
-            lambda: order.append("weight"),
+            lambda read_idealised_constraints=False: order.append("weight"),
         )
         self.pipeline.run_full_calibration_pipeline()
         assert order == ["prior", "prune", "weight"]

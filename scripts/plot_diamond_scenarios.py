@@ -29,6 +29,11 @@ MODEL_PATTERNS = {
 }
 
 
+def percentile_band_custom(arr: np.ndarray, percentiles: np.ndarray) -> tuple:
+    """Compute (p05, p50, p95) along axis 0."""
+    percentiles_out = np.nanpercentile(arr, percentiles, axis=0)
+    return percentiles_out
+
 def list_diamond_scenarios(folder: Path) -> list[str]:
     scenarios = []
     for path in sorted(folder.glob(f"*{CSV_SUFFIX}")):
@@ -173,6 +178,48 @@ def make_model_plot(model: str, scenarios: list[str], folder: Path, out_dir: Pat
     plt.close(fig)
     return out_path
 
+def make_quantile_csv(model: str, scenarios: list[str], folder: Path, out_dir: Path) -> Path | None:
+    quantiles = [5, 25, 50, 75, 95]
+    all_data = []
+
+    for scenario in sorted(scenarios):
+        df = load_scenario_csv(folder, scenario)
+        if df is None:
+            print(f"[diamond] missing CSV for {scenario}")
+            continue
+        data = extract_ensemble(df, VARIABLE)
+        if data is None:
+            print(f"[diamond] missing variable '{VARIABLE}' for {scenario}")
+            continue
+        years, arr = data
+        percentiles_out = percentile_band_custom(arr, quantiles)
+
+        variable_rows = df.loc[df["variable"] == VARIABLE]
+        if variable_rows.empty:
+            print(f"[diamond] missing template row for '{VARIABLE}' in {scenario}")
+            continue
+
+        out_columns = [column for column in df.columns if column != "run_id"]
+        template_row = variable_rows.iloc[0].drop(labels="run_id").copy()
+
+        scenario_rows = []
+        for quantile, values in zip(quantiles, percentiles_out):
+            row = template_row.copy()
+            row["variable"] = f"{VARIABLE}|{quantile}th quantile"
+            row.loc[[str(year) for year in (years)]] = values
+            scenario_rows.append(row)
+
+        all_data.append(pd.DataFrame(scenario_rows, columns=out_columns))
+            
+
+    if not all_data:
+        return None
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f"{slugify(model)}_{slugify(VARIABLE)}_quantiles.csv"
+    pd.concat(all_data, ignore_index=True).to_csv(out_path, index=False)
+    return out_path
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -202,6 +249,7 @@ def main() -> None:
 
     for model, model_scenarios in grouped.items():
         out_path = make_model_plot(model, model_scenarios, args.dump_dir, args.output_dir)
+        make_quantile_csv(model, model_scenarios, args.dump_dir, args.output_dir)
         if out_path is not None:
             print(f"[diamond] wrote {out_path}")
 

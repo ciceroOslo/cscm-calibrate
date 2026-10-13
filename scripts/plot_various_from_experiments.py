@@ -42,6 +42,10 @@ CSV_SUFFIX = {
     "ar7_v1": "_rcmip_draw_samples_ar7_v1_500.csv",
     "pdo": "_rcmip_draw_samples_pattern_efficacy_pdo_wide_lambda_500.csv",
     "pdo_ar7": "_rcmip_draw_samples_pattern_pdo_ar7_500.csv",
+    "pdoeff": "_ar7_natforc_draw_samples_just_pdo_effic_400.csv",
+    "pdolambda": "_ar7_natforc_draw_samples_just_pdo_lambda_400.csv",
+    "pdoeff_ar7": "_ar7_natforc_draw_samples_just_pdo_effic_ar7_400.csv",
+    "pdolambda_ar7": "_ar7_natforc_draw_samples_just_pdo_lambda_ar7_400.csv",
 }
 
 YEAR_START = 1750

@@ -14,10 +14,10 @@ from cscm_calibrate.set_up_calibration_configs_and_run import define_scendata_fo
 
 
 INPUT_DIR = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata/"
-CONFIG_NAME = "draw_samples_no_efficacy_no_pattern_wide_lambda_400"
+CONFIG_NAME = "draw_samples_pattern_pdo_ar7_500"
 CONFIG_PATH = Path(f"../draw_samples_archive/{CONFIG_NAME}.json")
 
-OUTPATH_MAIN = "out_file_dump_nopattern_noefficacy"
+OUTPATH_MAIN = "out_file_dump_pdo_ar7"
 
 distrorun = DistributionRun(None, json_file_name=CONFIG_PATH)
 
@@ -26,8 +26,9 @@ experiment_list = {
     "1pctCO2": [1750, 1920],
     "esm-flat10": [1750, 2070],
     "esm-allGHG-hist": [1750, 2023],
-    "esm-allGHG-scen7-M": [1750, 2500],
     "esm-flat10-zec": [1750, 2070],
+    "esm-flat10-cdr": [1750, 2070],
+    "esm-piControl": [1750, 2070],
     "esm-allGHG-scen7-VL": [1750, 2500],
     "esm-allGHG-scen7-L": [1750, 2500],
     "esm-allGHG-scen7-M": [1750, 2500],
@@ -123,7 +124,7 @@ skip_for_now = ["esm-allGHG-ssp2-com"]
 
 def main():
     for experiment, duration in experiment_list.items():
-        if (skip_for_now and experiment in skip_for_now) or not experiment.startswith("esm-allGHG"):
+        if (skip_for_now and experiment in skip_for_now):# or not experiment.startswith("esm-allGHG"):
             print(f"Skipping {experiment} for now")
             continue
         outpath_natforc = f"{OUTPATH_MAIN}/{experiment}_ar7_natforc_{CONFIG_NAME}.csv"
@@ -131,12 +132,12 @@ def main():
         if os.path.exists(outpath_natforc):
             print(f"Output file {outpath_natforc} already exists, skipping run")
             continue
-        results = take_scenario_row_define_scendata_and_run(experiment, forc_type="natforc", ystart=duration[0], yend=duration[1])
+        results = take_scenario_row_define_scendata_and_run(experiment, forc_type="natforc", ystart=duration[0], yend=duration[1], include_pdo = True)
         if not results.empty:
             results.to_csv(outpath_natforc)
         del results
         if experiment.startswith("esm-allGHG"):
-            results = take_scenario_row_define_scendata_and_run(experiment, forc_type="nonatforc", ystart=duration[0], yend=duration[1])
+            results = take_scenario_row_define_scendata_and_run(experiment, forc_type="nonatforc", ystart=duration[0], yend=duration[1], include_pdo = True)
             if not results.empty:
                 results.to_csv(outpath_noforc)
             del results
