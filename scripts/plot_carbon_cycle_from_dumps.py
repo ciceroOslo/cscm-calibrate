@@ -38,6 +38,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.lines import Line2D
 
 from plot_various_from_experiments import (
     DUMP_NEW,
@@ -58,7 +59,7 @@ LOOK_AT_DATA_DIR = Path(
 FIG_OUT = SCRIPT_DIR / "figures" / "carbon_cycle"
 
 CSV_SUFFIX = {
-    "pattern": "_rcmip_draw_samples_500.csv",
+    "pattern": "_rcmip_draw_samples_delta_aero_and_efficacy_wide_lambda_500.csv",
     "nopattern": "_rcmip_draw_samples_no_delta_aero_wide_lambda_400.csv",
     "nopattern_noefficacy": "_rcmip_draw_samples_no_efficacy_no_pattern_wide_lambda_400.csv",
 }
@@ -129,6 +130,10 @@ def extract_ensemble(df: pd.DataFrame, variable: str) -> tuple[np.ndarray, np.nd
         return None
     arr = sub.iloc[:, 7:].to_numpy(dtype=float)
     year_cols = sub.columns[7:].astype(int).to_numpy()
+    if variable == "Net Flux to Atmosphere|CO2":
+        # In the dump, this variable is negative for net flux to atmosphere,
+        # but we want it positive for plotting as "Atmospheric carbon flux".
+        arr = -arr
     return year_cols, arr
 
 
@@ -262,6 +267,35 @@ def load_all_sources(scenario: str) -> dict[str, pd.DataFrame]:
     return result
 
 
+def get_gcb_total_emissions(data_gcb: pd.DataFrame) -> np.ndarray | None:
+    """Return total GCB emissions as fossil plus land-use emissions."""
+    if "emissions_tot" in data_gcb.columns:
+        return data_gcb["emissions_tot"].to_numpy(dtype=float)
+
+    fossil_keys = [
+        "fossil emissions",
+        "fossil emissions excluding carbonation",
+    ]
+    luc_key = "land-use change emissions"
+
+    fossil = None
+    for key in fossil_keys:
+        if key in data_gcb.columns:
+            fossil = data_gcb[key].to_numpy(dtype=float)
+            break
+
+    if fossil is None or luc_key not in data_gcb.columns:
+        return None
+
+    total = fossil + data_gcb[luc_key].to_numpy(dtype=float)
+    if (
+        "cement carbonation sink" in data_gcb.columns
+        and "fossil emissions" not in data_gcb.columns
+    ):
+        total = total + data_gcb["cement carbonation sink"].to_numpy(dtype=float)
+    return total
+
+
 # ---------------------------------------------------------------------------
 # Friedlingstein plots  (uses "historical" scenario)
 # ---------------------------------------------------------------------------
@@ -312,8 +346,7 @@ def _make_friedlingstein_three(sources_data: dict, options: dict,
                                 data_gcb=None) -> None:
     """Figure 3 — carbon budget flux and cumulative.
 
-    Left column: CSCM ensemble (one line+band per source per component).
-    Right column: GCB observed data (if available).
+    One column per CSCM dump, plus a GCB column when observed data are available.
     """
     components = [
         ("Biosphere carbon flux",   "green",  "Land sink"),
@@ -322,24 +355,29 @@ def _make_friedlingstein_three(sources_data: dict, options: dict,
     ]
 
     include_gcb = options.get("include_data") and data_gcb is not None
-    ncols = 4 if include_gcb else 2
-    fig, axs = plt.subplots(nrows=2, ncols=ncols, figsize=(5 * ncols, 8),
-                            sharex="col")
+    source_entries = [
+        (label, sources_data[label], ls)
+        for label, (_, _src_color, ls) in SOURCE_STYLES.items()
+        if label in sources_data
+    ]
+    n_model_cols = len(source_entries)
+    ncols = n_model_cols + (1 if include_gcb else 0)
+    fig, axs = plt.subplots(
+        nrows=2,
+        ncols=ncols,
+        figsize=(6 * ncols, 8),
+        sharex="row",
+        sharey="row",
+        squeeze=False,
+    )
 
-    ax_flux_model  = axs[0, 0]
-    ax_cum_model   = axs[1, 0]
-    ax_flux_model2 = axs[0, 1]  # second model col for clarity (or spare)
-    ax_cum_model2  = axs[1, 1]
-
-    # Use columns 0-1 for model, 2-3 for GCB when data present
-    ax_flux_m = axs[0, 0]
-    ax_cum_m  = axs[1, 0]
+    panel_letters = iter("abcdefghijklmnopqrstuvwxyz")
 
     # ----- Model panels -----
-    for label, (_, src_color, ls) in SOURCE_STYLES.items():
-        df = sources_data.get(label)
-        if df is None:
-            continue
+    for col_idx, (label, df, ls) in enumerate(source_entries):
+        ax_flux_m = axs[0, col_idx]
+        ax_cum_m = axs[1, col_idx]
+
         for comp_var, comp_color, comp_label in components:
             result = extract_or_derive(df, comp_var)
             if result is None:
@@ -348,9 +386,15 @@ def _make_friedlingstein_three(sources_data: dict, options: dict,
             p05, p50, p95 = percentile_band(arr)
             # Use component colour with source alpha variation
             ax_flux_m.fill_between(years, p05, p95, color=comp_color, alpha=0.12, linewidth=0)
-            ax_flux_m.plot(years, p50, color=comp_color, lw=1.0,
-                           linestyle=ls, alpha=0.85,
-                           label=f"{comp_label} [{label}]")
+            ax_flux_m.plot(
+                years,
+                p50,
+                color=comp_color,
+                lw=1.0,
+                linestyle=ls,
+                alpha=0.85,
+                label=comp_label,
+            )
             cum_p05 = np.cumsum(p05)
             cum_p50 = np.cumsum(p50)
             cum_p95 = np.cumsum(p95)
@@ -363,64 +407,90 @@ def _make_friedlingstein_three(sources_data: dict, options: dict,
         em_result = extract_or_derive(df, "Emissions CO2")
         if em_result is not None:
             years_em, em_arr = em_result
-            _, em_p50, _ = percentile_band(em_arr)
-            ax_flux_m.plot(years_em, -em_p50, color="brown", lw=1.0,
-                           linestyle=ls, alpha=0.85, label=f"Emissions (neg.) [{label}]")
-            ax_cum_m.plot(years_em, -np.cumsum(em_p50), color="brown",
-                          lw=1.0, linestyle=ls, alpha=0.85)
+            em_p05, em_p50, em_p95 = percentile_band(em_arr)
+            ax_flux_m.fill_between(
+                years_em,
+                0,
+                -em_p50,
+                color="brown",
+                alpha=0.20,
+                linewidth=0,
+                label="Total emissions (neg.)",
+            )
+            ax_flux_m.plot(
+                years_em,
+                -em_p50,
+                color="brown",
+                lw=1.0,
+                linestyle=ls,
+                alpha=0.85,
+            )
+            ax_cum_m.fill_between(
+                years_em,
+                0,
+                -np.cumsum(em_p50),
+                color="brown",
+                alpha=0.20,
+                linewidth=0,
+            )
+            ax_cum_m.plot(
+                years_em,
+                -np.cumsum(em_p50),
+                color="brown",
+                lw=1.0,
+                linestyle=ls,
+                alpha=0.85,
+            )
 
-    ax_flux_m.set_ylabel("Carbon flux (Pg C / yr)")
-    ax_cum_m.set_ylabel("Cumulative carbon (Pg C)")
-    ax_flux_m.set_xlim(1850, 2020)
-    ax_flux_m.set_title("a) CSCM ensemble — fluxes", fontsize=11, loc="left")
-    ax_cum_m.set_title("b) CSCM ensemble — cumulative", fontsize=11, loc="left")
-    ax_flux_m.legend(fontsize=6, ncol=2)
-    ax_flux_m.grid(True, alpha=0.3)
-    ax_cum_m.grid(True, alpha=0.3)
-    for ax in [ax_flux_m, ax_cum_m]:
-        ax.set_xlabel("Year")
+        flux_letter = next(panel_letters)
+        cum_letter = next(panel_letters)
+        ax_flux_m.set_title(f"{flux_letter}) {label} — fluxes", fontsize=11, loc="left")
+        ax_cum_m.set_title(f"{cum_letter}) {label} — cumulative", fontsize=11, loc="left")
+        ax_flux_m.set_xlim(1850, 2020)
+        ax_flux_m.grid(True, alpha=0.3)
+        ax_cum_m.grid(True, alpha=0.3)
+        ax_flux_m.set_xlabel("Year")
+        ax_cum_m.set_xlabel("Year")
 
-    # Hide unused second model column if not needed (they are unused in this layout)
-    axs[0, 1].set_visible(False)
-    axs[1, 1].set_visible(False)
+    axs[0, 0].set_ylabel("Carbon flux (Pg C / yr)")
+    axs[1, 0].set_ylabel("Cumulative carbon (Pg C)")
+    axs[0, 0].legend(fontsize=7)
 
     # ----- GCB panels -----
     if include_gcb:
-        ax_flux_gcb = axs[0, 2]
-        ax_cum_gcb  = axs[1, 2]
-        ax_flux_gcb2 = axs[0, 3]
-        ax_cum_gcb2  = axs[1, 3]
+        ax_flux_gcb = axs[0, n_model_cols]
+        ax_cum_gcb = axs[1, n_model_cols]
         gcb_components = [
             ("land sink",           "green",  "Land sink"),
             ("ocean sink",          "blue",   "Ocean sink"),
             ("atmospheric growth",  "orange", "Atm. growth"),
         ]
+        years_gcb = data_gcb["Year"].to_numpy()
         for gcb_key, gcb_color, gcb_label in gcb_components:
             if gcb_key in data_gcb.columns:
                 vals = data_gcb[gcb_key].to_numpy(dtype=float)
-                years_gcb = data_gcb["Year"].to_numpy()
                 ax_flux_gcb.fill_between(years_gcb, 0, vals, color=gcb_color,
                                          alpha=0.4, label=gcb_label)
                 ax_cum_gcb.fill_between(years_gcb, 0, np.cumsum(vals),
                                         color=gcb_color, alpha=0.4, label=gcb_label)
-        if "emissions_tot" in data_gcb.columns:
-            vals_em = data_gcb["emissions_tot"].to_numpy(dtype=float)
-            years_gcb = data_gcb["Year"].to_numpy()
+        vals_em = get_gcb_total_emissions(data_gcb)
+        if vals_em is not None:
             ax_flux_gcb.fill_between(years_gcb, 0, -vals_em, color="brown",
-                                     alpha=0.4, label="Emissions (neg.)")
+                                     alpha=0.4, label="Total emissions (neg.)")
             ax_cum_gcb.fill_between(years_gcb, 0, -np.cumsum(vals_em),
                                     color="brown", alpha=0.4)
         ax_flux_gcb.set_ylabel("Carbon flux (Pg C / yr)")
         ax_cum_gcb.set_ylabel("Cumulative carbon (Pg C)")
-        ax_flux_gcb.set_title("c) GCB observed — fluxes", fontsize=11, loc="left")
-        ax_cum_gcb.set_title("d) GCB observed — cumulative", fontsize=11, loc="left")
+        flux_letter = next(panel_letters)
+        cum_letter = next(panel_letters)
+        ax_flux_gcb.set_title(f"{flux_letter}) GCB observed — fluxes", fontsize=11, loc="left")
+        ax_cum_gcb.set_title(f"{cum_letter}) GCB observed — cumulative", fontsize=11, loc="left")
         ax_flux_gcb.legend(fontsize=7)
         ax_flux_gcb.set_xlabel("Year")
         ax_cum_gcb.set_xlabel("Year")
+        ax_flux_gcb.set_xlim(1850, 2020)
         ax_flux_gcb.set_ylim(-12, 12)
         ax_cum_gcb.set_ylim(-800, 800)
-        axs[0, 3].set_visible(False)
-        axs[1, 3].set_visible(False)
 
     fig.tight_layout()
     fig.savefig(f"{options['filepath_start']}_Friedlingstein3.png", dpi=120)
@@ -745,7 +815,8 @@ def _make_seferian_three(sources_1pct: dict, options: dict) -> None:
             # Slice to 1pctCO2 experiment window (columns 100:250 of year arrays)
             arr_slice = arr[:, _1PCT_START_IDX:_1PCT_END_IDX]
             p05, p50, p95 = percentile_band(arr_slice)
-            plot_band(ax, _years, p05, p50, p95,
+            startyr = _years[_1PCT_START_IDX]
+            plot_band(ax, _years[_1PCT_START_IDX:_1PCT_END_IDX]-startyr, p05, p50, p95,
                       color=color, label=label, linestyle=ls)
 
         if options.get("include_data"):
@@ -807,7 +878,13 @@ def _make_seferian_three(sources_1pct: dict, options: dict) -> None:
     ax_scatter.legend(fontsize=7)
     ax_scatter.grid(True, alpha=0.3)
 
-    axs[0, 1].legend(fontsize=7)
+    seferian_handles, seferian_labels = axs[0, 1].get_legend_handles_labels()
+    seferian_handles.extend([
+        Line2D([0], [0], color="grey", lw=2, label="CMIP6 1pctCO2"),
+        Line2D([0], [0], color="pink", lw=2, label="CMIP6 1pctCO2-bgc"),
+    ])
+    seferian_labels.extend(["CMIP6 1pctCO2", "CMIP6 1pctCO2-bgc"])
+    axs[0, 1].legend(seferian_handles, seferian_labels, fontsize=7)
     fig.tight_layout()
     fig.savefig(f"{options['filepath_start']}_Seferian3.png", dpi=120)
     plt.close(fig)

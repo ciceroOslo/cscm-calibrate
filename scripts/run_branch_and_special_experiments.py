@@ -15,7 +15,7 @@ from cscm_calibrate.set_up_calibration_configs_and_run import define_scendata_fo
 
 
 INPUT_DIR = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata/"
-CONFIG_NAME = "draw_samples_no_efficacy_no_pattern_wide_lambda_400"
+CONFIG_NAME = "draw_samples_delta_aero_and_efficacy_wide_lambda_500"
 CONFIG_PATH = Path(f"../draw_samples_archive/{CONFIG_NAME}.json")
 
 
@@ -23,7 +23,7 @@ INPUT_FILENAME = f"1pctCO2_rcmip_{CONFIG_NAME}.csv"
 EXCEEDANCE_THRESHOLDS_PG_C = [750, 1000, 2000]
 #INPUT_DIR = "/home/masan/temp/rcmip_inputs_cscm/"
 
-OUTPATH_MAIN = "out_file_dump_nopattern_noefficacy"
+OUTPATH_MAIN = "out_file_dump"
 
 def _find_input_file() -> Path:
 	"""Locate the requested input CSV, preferring the rcmip subfolder."""
@@ -286,9 +286,8 @@ def write_df_per_experiment_to_file(save_data_dict: dict) -> dict:
 def get_default_inputs() -> dict:
 	scenname = "1pctCO2"
 	scen_name_strip = "1pctCO2"
-	row = {"Type": "idealised"}
-	run_type = "esm"
-	arg_dict = make_scenariodata_argdict(row, run_type, scenname, scen_name_strip, yend=2500)
+	run_type = "idealised"
+	arg_dict = make_scenariodata_argdict(run_type, scenname, scen_name_strip, yend=2500)
 	print(arg_dict)
 	scendata = define_scendata_for_scm(INPUT_DIR, **arg_dict)
 	return scendata
@@ -324,8 +323,9 @@ def main() -> None:
 	print(f"Wrote exceedance years to: {exceedance_output_path}")
 	default_scendata = get_default_inputs()
 	variables_list = read_output_variables_from_protocol(os.path.join(INPUT_DIR, "rcmip_phase3_protocol_v1.1.0.xlsx"))
+	variables_list_to_use = variables_list[0] + ["Emissions|CO2"]
 	print(variables_list)
-	save_data_dict = process_runs_from_json(df_with_threshold_rows, CONFIG_PATH, default_scendata, exceedance_years_df, variables_list[0])
+	save_data_dict = process_runs_from_json(df_with_threshold_rows, CONFIG_PATH, default_scendata, exceedance_years_df, variables_list_to_use)
 	write_df_per_experiment_to_file(save_data_dict)
 
 

@@ -5,6 +5,8 @@ Shared functionality for cscm_calibrate package.
 import json
 import os
 import sys
+import glob
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -303,3 +305,87 @@ def compute_ecs_gregory(abrupt_data, start_year, end_year):
     series = pd.Series(ecs_vals,name="ECS")
     series.index.set_names("run_id", inplace=True)
     return series
+
+
+def find_missing_chunks(existing_chunks, total_chunks):
+    """
+    Find missing chunk indices given existing chunk files.
+
+    Parameters
+    ----------
+    existing_chunks : list of int
+        List of existing chunk indices.
+    total_chunks : int
+        Total number of chunks that should exist.
+
+    Returns
+    -------
+    list of int
+        List of missing chunk indices.
+    """
+    return [i for i in range(total_chunks) if i not in existing_chunks]
+
+
+def make_list_of_chunks_to_run(output_dir, file_search_regexp, num_chunks):
+    """
+    Make a list of chunks to run based on existing files in the output directory.
+
+    Parameters
+    ----------
+    output_dir : str
+        Directory where output files are stored.
+    file_search_regexp : str
+        Regular expression to search for existing files corresponding to chunks.
+    num_chunks : int
+        Total number of chunks that need to be run.
+    file_endstring : str, optional
+        String that is expected at the end of the file names (default is an empty string).
+
+    Returns
+    -------
+    list of int
+        List of chunk indices that still need to be run (i.e., for which no existing file was found).
+    """
+
+    sample_dumps_existing = glob.glob(
+            f"{output_dir}/{file_search_regexp}"
+        )
+    if len(sample_dumps_existing) > 0:
+        sample_dumps_existing = [
+            int(fpath.split("_")[-1].split(".")[0])
+            for fpath in sample_dumps_existing
+        ]
+        sample_dumps_existing.sort()
+        sample_max = sample_dumps_existing[-1]
+        if len(sample_dumps_existing) > sample_max:
+            to_run = range(sample_max + 1, num_chunks)
+        else:
+            to_run = find_missing_chunks(sample_dumps_existing, num_chunks)
+    else:
+        to_run = range(num_chunks)
+
+    return to_run
+
+def merge_dicts(dc):
+    x = dc["pamset_udm"]
+    y = dc["pamset_emiconc"]
+    w = dc["pamset_carbon"]
+    z = x.copy()
+    z.update(y)
+    z.update(w)
+    return z
+
+def store_h5_data(pdict, targ, output_dir, file_midstring):
+
+    mdict = [merge_dicts(d) for d in pdict]
+    pmat = pd.DataFrame(mdict)
+
+    parammat = pmat.loc[:, (pmat != pmat.iloc[0]).any()]
+
+    h5_file = os.path.join(output_dir, f"data_{file_midstring}.h5")
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=pd.errors.PerformanceWarning)
+        store = pd.HDFStore(h5_file)
+        store["targ"] = targ
+        store["parammat"] = parammat
+        store.close()

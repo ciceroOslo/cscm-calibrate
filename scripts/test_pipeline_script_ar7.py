@@ -10,7 +10,7 @@ from cscm_calibrate.cscm_calibrate import CSCMCalibrationPipeline
 
 # Configuration files setup
 config_file = os.path.join(
-    os.path.dirname(__file__), "..", "tests", "test-data", "config_file_ar7.json"
+    os.path.dirname(__file__), "..", "tests", "test-data", "config_file_just_pdo_lambda_ar7.json"
 )
 # Alternative config file for old model version
 # config_file = os.path.join(
@@ -28,16 +28,19 @@ calibration_pipeline = CSCMCalibrationPipeline(
     config_file=config_file, constraints_to_read_separately=constraints_from_AR7
 )
 print("Initialized CSCMCalibrationPipeline with config file:", config_file)
-calibration_pipeline._run_prior_ensemble(
-    continue_from_existing=True, #plot=True
-)  # Generate prior ensemble
+# calibration_pipeline._run_prior_ensemble(
+#     continue_from_existing=True, #plot=True
+# )  # Generate prior ensemble
 print(config_file)
 with open(config_file) as json_config:
     configs_raw = json.load(json_config)
 print(configs_raw["prior_configs"])
-calibration_pipeline.prune_distribution()  # Prune ensemble based on constraints
+#calibration_pipeline.prune_distribution()  # Prune ensemble based on constraints
+calibration_pipeline.run_additional_experiments_post_pruning(
+    continue_from_existing=True
+)  # Run additional experiments post pruning, with option to continue from existing if already run once
 # Weight and draw final ensemble
-calibration_pipeline.weight_ensemble_and_draw_write_config()
+calibration_pipeline.weight_ensemble_and_draw_write_config(read_idealised_constraints=True)
 
 # "nystart": 1750,
 # "emstart": 1850,

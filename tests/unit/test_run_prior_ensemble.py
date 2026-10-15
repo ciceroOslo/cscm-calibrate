@@ -6,9 +6,11 @@ import pandas as pd
 import cscm_calibrate.run_prior_ensemble as rpe
 from cscm_calibrate.run_prior_ensemble import (
     _generate_prior_ensemble_parameters,
+    run_prior_ensemble,
+)
+from cscm_calibrate.shared_functions import (
     find_missing_chunks,
     merge_dicts,
-    run_prior_ensemble,
 )
 
 

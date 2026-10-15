@@ -86,7 +86,16 @@ This repository provides a pipeline for running, pruning, and weighting ensemble
 
 - Generate prior ensembles of model runs using configurable parameter distributions.
 - Prune the ensemble based on observational constraints (e.g., temperature time series).
+- Run any number of additional idealised or other experiments to the pruned subensemble.
 - Apply posterior weighting and draw a final ensemble consistent with constraints.
+
+The setup is also very much made to be able to "continue from where it left off", so can easily be either stopped and restart, or do a different backend setup to different constraints from a ready pruned ensemble
+
+Configuration files and scripts decide the setup workflow.
+
+Alongside the calibration, the engine can also be used to do runs, this has been used to run RCMIP and all experiments necessary for the paper "Pattern effects shift climate sensitivity constraints in simple climate model".
+
+It also have several utilities to plot results from output distributions
 
 ### Main Features
 
@@ -128,6 +137,104 @@ Unit and integration tests are provided in the `tests/` directory. To run all te
 ```bash
 make test
 ```
+
+## Scripts: runs, plots, and utilities
+
+The tracked files in `scripts/` support project-specific workflows in addition
+to the package API. Most use paths, run identifiers, calibration files, and
+data locations that are set in the script itself. Review and adapt those values
+before running a script. The reusable calibration workflow is exposed through
+`CSCMCalibrationPipeline`; the run and plotting scripts below are primarily
+research workflows rather than a stable command-line interface.
+
+### Running experiments
+
+- `run_full_rcmip_protocol.py` is the main RCMIP protocol runner. It also
+  provides the scenario and input helpers imported by several other scripts.
+- `run_ar7_scenarios.py` runs RCMIP and idealised scenario ensembles calibrated
+  to AR7 targets enabled, writing natural-forcing and
+  no-natural-forcing outputs.
+- `run_branch_and_special_experiments.py` derives emissions-threshold branch
+  experiments from a `1pctCO2` ensemble and runs the resulting scenarios.
+- `run_diamond_scenarios.py` discovers DiamondWP emissions inputs and runs the
+  corresponding ensemble simulations.
+- `run_flat_reversibility_exps_variations.py` runs flat-emissions carbon-dioxide
+  removal and reversibility experiments, and writes the input CO2 trajectories.
+  It is exploratory and executes when imported.
+- `run_norman_cmip7_experiments.py` runs branch-year experiments for selected
+  CMIP7 ScenarioMIP pathways. It is an exploratory, import-executed script.
+- `run_norman_experiments.py` runs flat-emissions experiments with linear,
+  accelerating, and decelerating trajectories. It is exploratory and executes
+  when imported.
+- `test_pipeline_script.py` is a manual driver for the calibration pipeline:
+  it creates a prior ensemble, prunes it, and draws a weighted posterior.
+- `test_pipeline_script_ar7.py` is the equivalent manual driver for the
+   calibration and with post-pruning experiments.
+
+### Plotting and evaluation
+
+- `plot_and_evaluate_w_ar7_targets.py` compares ensemble diagnostics with AR7
+  WG1 Chapter 5 targets and creates plume and composite figures.
+- `plot_carbon_cycle_from_dumps.py` creates carbon-cycle comparison plots from
+  three output dumps, optionally overlaying observations and CMIP6 data.
+- `plot_diamond_scenarios.py` groups Diamond scenario output by model, plots
+  temperature ensembles, and saves quantile and median-member tables.
+- `plot_flat10_vs_cumulative_emissions.py` plots flat-10 output variables
+  against cumulative CO2 emissions.
+- `plot_ladder_figures.py` creates the original three structural-ladder
+  comparison figures. Use `plot_ladder_figures_v3.py` for new work.
+- `plot_ladder_figures_v2.py` is an intermediate ladder figure generator that
+  added Seferian, Gregory, and ScenarioMIP temperature and lambda plots.
+- `plot_ladder_figures_v3.py` is the current configurable ladder-figure
+  generator. It can exclude PDO results with `--exclude-pdo` and generates
+  missing flat-10 metrics when possible. This is what generates the main figure
+  of the preprint "Pattern effects shift climate sensitivity constraints in
+  simple climate models"
+- `plot_ladder_figures_v3_old.py` is the earlier fixed-configuration v3
+  implementation, retained for reproducibility.
+- `plot_ladder_figures_varying.py` configures additional PDO efficacy/lambda
+  ladder experiments and delegates figure production to
+  `plot_ladder_figures_v3.py`.
+- `plot_sanity_checks.py` creates single-member diagnostic plots for the
+  hard-coded sanity-check run identifier; it is intended for local debugging.
+- `plot_various_from_experiments.py` compares pattern, no-pattern, and
+  no-efficacy experiment dumps, including flat-10 analyses.
+
+### Data preparation and analysis utilities
+
+- `check_done_experiments_rcmip.py` reports RCMIP scenario-output files missing
+  from a local output dump.
+- `cleanup_comparison_figures.py` migrates comparison figures to the current
+  directory and naming convention, moving, renaming, or removing duplicates.
+- `extract_ladder_metrics.py` calculates ECS, TCR, TCRE, ZEC, transient peak
+  warming, and related metrics for ladder experiments, writing
+  `ladder_metrics_summary.csv`.
+- `look_at_prior_output.py` inspects archived prior targets, parameters, and
+  selected sample indices; it is an exploratory inspection tool.
+- `make_latex_parameter_table_from_json.py` converts prior and posterior
+  parameter JSON files into CSV and LaTex tables, with optional histogram
+  panels.
+- `make_rcmip_meta_files.py` generates the RCMIP model and comments metadata
+  CSVs from the protocol workbook.
+- `reformat_csvs_for_rcmip.py` converts raw output CSVs to RCMIP-oriented
+  filenames, schema, and units.
+- `adventures_in_zeb_and_chris_weightdistroland.py` is an exploratory prototype
+  for iteratively deriving sample weights to match marginal distributions; it
+  writes diagnostic weight plots and intentionally exits before a final result.
+- `comments_ciceroscm.csv` is the RCMIP comments metadata used by the
+  submission workflow.
+- `meta_model_ciceroscm.csv` is the RCMIP climate-model metadata used by the
+  submission workflow.
+
+### Release and installation helpers
+
+- `add-locked-targets-to-pyproject-toml.py` uses `uv export` to generate locked
+  optional-dependency groups. It overwrites `pyproject.toml`; run it only when
+  intentionally refreshing those dependency groups.
+- `changelog-to-release-template.py` prints the newest Towncrier release-note
+  section from `docs/changelog.md`.
+- `test-install.py` imports every package submodule as an installation
+  smoke test and prints the installed package version.
 
 ---
 

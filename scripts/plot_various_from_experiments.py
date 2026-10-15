@@ -39,6 +39,13 @@ CSV_SUFFIX = {
     "pattern": "_rcmip_draw_samples_delta_aero_and_efficacy_wide_lambda_500.csv",
     "nopattern": "_rcmip_draw_samples_no_delta_aero_wide_lambda_400.csv",
     "nopattern_noefficacy": "_rcmip_draw_samples_no_efficacy_no_pattern_wide_lambda_400.csv",
+    "ar7_v1": "_rcmip_draw_samples_ar7_v1_500.csv",
+    "pdo": "_rcmip_draw_samples_pattern_efficacy_pdo_wide_lambda_500.csv",
+    "pdo_ar7": "_rcmip_draw_samples_pattern_pdo_ar7_500.csv",
+    "pdoeff": "_ar7_natforc_draw_samples_just_pdo_effic_400.csv",
+    "pdolambda": "_ar7_natforc_draw_samples_just_pdo_lambda_400.csv",
+    "pdoeff_ar7": "_ar7_natforc_draw_samples_just_pdo_effic_ar7_400.csv",
+    "pdolambda_ar7": "_ar7_natforc_draw_samples_just_pdo_lambda_ar7_400.csv",
 }
 
 YEAR_START = 1750
@@ -131,7 +138,7 @@ def list_scenarios(folder: Path, label:str) -> set[str]:
 
 def load_scenario_csv(folder: Path, scenario: str, label: str) -> pd.DataFrame | None:
     """Load a scenario CSV (or return None if missing)."""
-    path = folder / f"{scenario}{CSV_SUFFIX[label]}"
+    path = Path(f"{folder}/{scenario}{CSV_SUFFIX[label]}")
     if not path.exists():
         return None
     return pd.read_csv(path, index_col=0)
@@ -562,6 +569,24 @@ def make_flat10_replication() -> None:
     flat10_combined_histograms(metrics_by_source)
     flat10_combined_pairplot(metrics_by_source)
     flat10_gregory_plots(sources)
+
+def make_flat10_key_metrics(folder, label) -> None:
+    try:
+        df = build_flat10_long_df(folder, FLAT10_SCENARIOS, label)
+    except RuntimeError as exc:
+        print(f"[flat10] could not load {label} for key metrics: {exc}")
+        return
+    try:
+        metrics = flat10_key_metrics(df)
+    except RuntimeError as exc:
+        print(f"[flat10] could not calculate key metrics for {label}: {exc}")
+        return
+    suffix = f"_{label}"
+    metrics_path = FIG_FLAT10 / f"flat10_ciceroscm_key_metrics{suffix}.csv"
+    metrics.to_csv(metrics_path)
+    print(f"[flat10] wrote {metrics_path}")
+    print(metrics.describe())
+    return
 
 
 # ---------------------------------------------------------------------------

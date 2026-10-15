@@ -3,6 +3,7 @@ import sys
 
 import pandas as pd
 import numpy as np
+from pathlib import Path
 #import xarray as xr
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../", "src"))
@@ -26,7 +27,32 @@ from ciceroscm.parallel.distributionrun import DistributionRun
 special_scen_skip = ["1pctCO2-bgc", "1pctCO2-rad"]#, "scen7-LC", "scen7-HLC", "scen7-MLC", "scen7-LNC", "scen7-MC", "esm-scen7-L", "esm-scen7-HL", "esm-scen7-ML", "esm-scen7-LN", "esm-scen7-M"]
 special_mapping = {"hist":"historical", "hist-cmip6": "historical-cmip6"}
 
-outpath_main = "out_file_dump_nopattern_noefficacy"
+# RCMIP calibration, aero and efficacy wide lambda 500, 500 samples, (wide)
+outpath_main = "out_file_dump"
+CONFIG_NAME = "draw_samples_delta_aero_and_efficacy_wide_lambda_500"
+
+# # RCMIP calibration, aero, efficacy and pdo, wide lambda 500, 500 samples, (pdo)
+# outpath_main = "out_file_dump_pdo"
+# CONFIG_NAME = "draw_samples_pattern_efficacy_pdo_wide_lambda_500"
+
+# # AR7 calibration with aero, efficacy, and pdo wide lambda 500 samples (pdo_ar7)
+# outpath_main = "out_file_dump_pdo_ar7"
+# CONFIG_NAME = "draw_samples_pattern_pdo_ar7_500"
+
+# # AR7 calibration with aero and efficacy, wide lambda 500 samples (ar7_v1)
+# outpath_main = "out_file_dump_ar7_v1"
+# CONFIG_NAME = "draw_samples_ar7_v1_500"
+
+# # Vanilla with efficacy, wide lambda 400, 500 samples (old)
+# outpath_main = "out_file_dump_nopattern"
+# CONFIG_NAME = "draw_samples_no_delta_aero_wide_lambda_400"
+
+# # Vanilla no-efficacy, no-pattern, wide lambda 400 samples (new)
+# outpath_main = "out_file_dump_nopattern_noefficacy"
+# CONFIG_NAME = "draw_samples_no_efficacy_no_pattern_wide_lambda_400"
+
+
+CONFIG_PATH = Path(f"../draw_samples_archive/{CONFIG_NAME}.json")
 
 def check_if_inspected(scenario_name):
     if not os.path.exists("scenarios_inspected.txt"):
@@ -38,9 +64,12 @@ def check_if_inspected(scenario_name):
             return True
     return False
 
-def make_dataframe_of_zeros(varname, start_year, end_year):
+def make_dataframe_of_zeros(varname, start_year, end_year, constant_value=0.0):
     years = np.arange(start_year, end_year + 1)
-    data = np.zeros(len(years))
+    if constant_value != 0.0:
+        data = np.full(len(years), constant_value)
+    else:
+        data = np.zeros(len(years))
     df = pd.DataFrame(data=data, index=years, columns=[varname])
     df.index.name="year"
     return df
@@ -145,12 +174,25 @@ lucalbedo_piControl = os.path.join(input_dir,"LUCalbedo_RCMIP_constant_zero_RCMI
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json")
 #json_file = "../../flat10_runs_repo/draw_samples_just2.json"
 #json_file= "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/output/draw_samples_500.json"
-json_file = "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/draw_samples_archive/draw_samples_no_efficacy_no_pattern_wide_lambda_400.json"
+#json_file = "/div/no-backup-nac/users/masan/GRAFITE/cscm-calibrate/draw_samples_archive/draw_samples_no_efficacy_no_pattern_wide_lambda_400.csv"
 #json_file = "offending_member.json"
-distrorun = DistributionRun(None, json_file_name=json_file)
+distrorun = DistributionRun(None, json_file_name=CONFIG_PATH)
 #distrorun = DistributionRun(None, json_file_name="/div/no-backup/users/masan/SCM_stuff/subset_cscm_configfile_for_py_small.json")
+def calc_nat_emis_n2o_and_ch4():
+    print(gases_df.head())
+    ch4_conc_0 = conc_piControl.loc[1750, "CH4"]
+    n2o_conc_0 = conc_piControl.loc[1750, "N2O"]
+    ch4_emis_0 = em_piControl.loc[1750, "CH4"]
+    n2o_emis_0 = em_piControl.loc[1750, "N2O"]
+    beta_n2o = gases_df["BETA"]["N2O"]
+    tau_n2o = gases_df["TAU1"]["N2O"]
+    beta_ch4 = gases_df["BETA"]["CH4"]
+    q_ch4 = 1/gases_df["TAU1"]["CH4"]*(-0.32*(np.log(ch4_conc_0) - np.log(1751.0))+1) +  1/gases_df["TAU2"]["CH4"] + 1/gases_df["TAU3"]["CH4"]
+    em_nat_n2o = beta_n2o * (n2o_conc_0) / tau_n2o - n2o_emis_0
+    em_nat_ch4 = beta_ch4 * (ch4_conc_0) * q_ch4 - ch4_emis_0
+    return em_nat_n2o, em_nat_ch4
 
-def make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend):
+def make_scenariodata_argdict(run_type, scen_name, scen_name_strip, yend, include_pdo = False):
     print(run_type)
     if scen_name.startswith("esm-allGHG"):
         print("Hello")
@@ -165,11 +207,16 @@ def make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend):
     }
 
     # Deal with natural forcings:
-    if row["Type"] == "idealised" or scen_name.endswith("piControl"):
+    if run_type == "idealised" or scen_name.endswith("piControl"):
         arg_dict["sunvolc"] = 0
         arg_dict["rf_luc_file"] = lucalbedo_piControl
-        arg_dict["df_nat_ch4"] = make_dataframe_of_zeros("CH4", ystart, yend+1)
-        arg_dict["df_nat_n2o"] = make_dataframe_of_zeros("N2O", ystart, yend+1)
+        if not scen_name == "esm-allGHG-piControl":
+            arg_dict["df_nat_ch4"] = make_dataframe_of_zeros("CH4", ystart, yend+1)
+            arg_dict["df_nat_n2o"] = make_dataframe_of_zeros("N2O", ystart, yend+1)
+        else:
+            val_n2o, val_ch4 = calc_nat_emis_n2o_and_ch4()
+            arg_dict["df_nat_ch4"] = make_dataframe_of_zeros("CH4", ystart, yend+1, constant_value=val_ch4)
+            arg_dict["df_nat_n2o"] = make_dataframe_of_zeros("N2O", ystart, yend+1, constant_value=val_n2o)
     else:
         arg_dict["sunvolc"] = 1
         if os.path.exists(os.path.join(input_dir, f"solar_RCMIP_{scen_name_strip}_RCMIP3.txt")):
@@ -214,7 +261,7 @@ def make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend):
     elif scen_name_strip in special_mapping and os.path.exists(os.path.join(input_dir, f"{special_mapping[scen_name_strip]}_em_{gases_ep}")):
         print("Went and got correct emissions")
         arg_dict["df_emis"] = f"{special_mapping[scen_name_strip]}_em_{gases_ep}"
-    elif not scen_name.startswith("esm-") and row["Type"] == "idealised":
+    elif not scen_name.startswith("esm-") and run_type == "idealised":
         arg_dict["df_emis"] = em_piControl
     elif os.path.exists(os.path.join(input_dir, f"esm-{scen_name_strip}_em_{gases_ep}")):
         print("Picked emissions file based on esm- prefix")
@@ -236,7 +283,7 @@ def make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend):
     elif scen_name_strip in special_mapping and os.path.exists(os.path.join(input_dir, f"{special_mapping[scen_name_strip]}_conc_{gases_ep}")):
         print("Went and got correct concentrations")
         arg_dict["df_conc"] = f"{special_mapping[scen_name_strip]}_conc_{gases_ep}"
-    elif scen_name.startswith("esm-") and row["Type"] == "idealised":
+    elif scen_name.startswith("esm-") and run_type == "idealised":
         arg_dict["df_conc"] = conc_piControl
     elif scen_name.startswith("methanemip") and os.path.exists(os.path.join(input_dir, f"ssp245_conc_{gases_ep}")):
         arg_dict["df_conc"] = f"ssp245_conc_{gases_ep}"
@@ -253,10 +300,12 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
     print(row)
     yend = row["Duration of scenario"] + ystart - 1
     scen_name = row["Scenario"]
+    if "bell" in scen_name:
+        yend = 2500
     scen_name_strip = scen_name.split("esm-")[-1].split("allGHG-")[-1]
     if scen_name_strip.startswith("scen7") and scen_name_strip.endswith("C"):
         scen_name_strip = scen_name_strip[:-1]
-    arg_dict = make_scenariodata_argdict(row, run_type, scen_name, scen_name_strip, yend)
+    arg_dict = make_scenariodata_argdict(row["Type"], scen_name, scen_name_strip, yend)
     # print(arg_dict.keys())
     # print(arg_dict["rf_luc_file"])
     #sys.exit(4)
@@ -309,7 +358,7 @@ def take_scenario_row_define_scendata_and_run(row, run_type, variables=None, don
 dont_run = False
 
 def dump_results_to_netcdf(results, scenario_name):
-    outpath = f"{outpath_main}/{scenario_name}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv"
+    outpath = f"{outpath_main}/{scenario_name}_rcmip_{CONFIG_NAME}.csv"
     if os.path.exists(outpath):
         print(f"Output file {outpath} already exists, skipping dump")
         return
@@ -337,15 +386,16 @@ if __name__ == "__main__":
     skip = []
     skip = ["esm-1pct-brch-1000PgC", "esm-1pct-brch-2000PgC", "esm-1pct-brch-750PgC"]
     split_experiment_dfs = load_and_process_protocol(protocol_file)
-    print(split_experiment_dfs)
+    #print(split_experiment_dfs)
     #sys.exit(4)
     for key1 in split_experiment_dfs:
         for key2 in split_experiment_dfs[key1]:
             print(f"{key1} - {key2} : {split_experiment_dfs[key1][key2].shape}")
             print("---------------------------------------------------------")
+            #sys.exit(4)
             for index,row in split_experiment_dfs[key1][key2].iterrows():
                 print(row["Scenario"])
-                outpath = f"{outpath_main}/{row['Scenario']}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv"
+                outpath = f"{outpath_main}/{row['Scenario']}_rcmip_{CONFIG_NAME}.csv"
                 outpath_processed = f"{outpath_main}/{row['Scenario']}_rcmip_ciceroscm_20260401.csv"
                 if os.path.exists(outpath) or os.path.exists(outpath_processed):
                     print(f"Output file {outpath} already exists, skipping run")
@@ -374,7 +424,7 @@ if __name__ == "__main__":
                 #print(results.head())
                 #sys.exit(4)
                 if not results.empty:
-                    results.to_csv(f"{outpath_main}/{row['Scenario']}_rcmip_{json_file.split('/')[-1].split('.')[0]}.csv")
+                    results.to_csv(outpath)
                 del results
         # #sys.exit(4)
     print("Done all scenarios")
