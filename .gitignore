@@ -166,3 +166,6 @@ dmypy.json
 
 #VSCode
 .vscode/
+
+# REF (climate-ref) local config + catalog DB
+ref_config/
