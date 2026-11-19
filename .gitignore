@@ -169,3 +169,4 @@ dmypy.json
 
 # REF (climate-ref) local config + catalog DB
 ref_config/
+.venv-scm

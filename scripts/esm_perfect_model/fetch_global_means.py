@@ -168,6 +168,9 @@ def fetch_model(model, plan, keep_raw):
             except Exception:
                 print(f"  {key}: FAILED global mean\n{traceback.format_exc()}", flush=True)
                 continue
+            if s.empty:  # no complete year (e.g. truncated or partial download)
+                print(f"  {key}: FAILED no complete years", flush=True)
+                continue
             rows.append(pd.DataFrame({"source_id": model, "experiment_id": exp, "member_id": mem,
                                       "grid_label": parts.get("grid_label", ds.attrs.get("grid_label")),
                                       "variable": var, "year": s.index, "value": s.values}))
