@@ -1,0 +1,53 @@
+source_id,experiment_id,member_id,variable,weights,calendar,first_year,last_year,dataset_key,parent_experiment_id,parent_variant_label,parent_time_units,branch_time_in_parent,branch_time_in_child,branch_method,parent_source_id
+NESM3,historical,r1i1p1f1,rlut,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r1i1p1f1.Amon.rlut.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,109573.0,0.0,standard,NESM3
+NESM3,historical,r1i1p1f1,rsdt,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r1i1p1f1.Amon.rsdt.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,109573.0,0.0,standard,NESM3
+NESM3,historical,r1i1p1f1,rsut,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r1i1p1f1.Amon.rsut.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,109573.0,0.0,standard,NESM3
+NESM3,historical,r1i1p1f1,tas,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r1i1p1f1.Amon.tas.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,109573.0,0.0,standard,NESM3
+NESM3,historical,r2i1p1f1,rlut,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r2i1p1f1.Amon.rlut.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,91676.0,0.0,standard,NESM3
+NESM3,historical,r2i1p1f1,rsdt,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r2i1p1f1.Amon.rsdt.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,91676.0,0.0,standard,NESM3
+NESM3,historical,r2i1p1f1,rsut,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r2i1p1f1.Amon.rsut.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,91676.0,0.0,standard,NESM3
+NESM3,historical,r2i1p1f1,tas,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r2i1p1f1.Amon.tas.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,91676.0,0.0,standard,NESM3
+NESM3,historical,r3i1p1f1,rlut,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r3i1p1f1.Amon.rlut.gn,piControl,r3i1p1f1,days since 1000-01-01 00:00:00,18262.0,0.0,standard,NESM3
+NESM3,historical,r3i1p1f1,rsdt,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r3i1p1f1.Amon.rsdt.gn,piControl,r3i1p1f1,days since 1000-01-01 00:00:00,18262.0,0.0,standard,NESM3
+NESM3,historical,r3i1p1f1,rsut,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r3i1p1f1.Amon.rsut.gn,piControl,r3i1p1f1,days since 1000-01-01 00:00:00,18262.0,0.0,standard,NESM3
+NESM3,historical,r3i1p1f1,tas,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r3i1p1f1.Amon.tas.gn,piControl,r3i1p1f1,days since 1000-01-01 00:00:00,18262.0,0.0,standard,NESM3
+NESM3,historical,r4i1p1f1,rlut,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r4i1p1f1.Amon.rlut.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,36890.0,0.0,standard,NESM3
+NESM3,historical,r4i1p1f1,rsdt,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r4i1p1f1.Amon.rsdt.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,36890.0,0.0,standard,NESM3
+NESM3,historical,r4i1p1f1,rsut,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r4i1p1f1.Amon.rsut.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,36890.0,0.0,standard,NESM3
+NESM3,historical,r4i1p1f1,tas,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r4i1p1f1.Amon.tas.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,36890.0,0.0,standard,NESM3
+NESM3,historical,r5i1p1f1,rlut,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r5i1p1f1.Amon.rlut.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,54787.0,0.0,standard,NESM3
+NESM3,historical,r5i1p1f1,rsdt,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r5i1p1f1.Amon.rsdt.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,54787.0,0.0,standard,NESM3
+NESM3,historical,r5i1p1f1,rsut,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r5i1p1f1.Amon.rsut.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,54787.0,0.0,standard,NESM3
+NESM3,historical,r5i1p1f1,tas,coslat,standard,1850,2014,CMIP6.CMIP.NUIST.NESM3.historical.r5i1p1f1.Amon.tas.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,54787.0,0.0,standard,NESM3
+NESM3,ssp126,r1i1p1f1,rlut,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp126.r1i1p1f1.Amon.rlut.gn,historical,r1i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp126,r1i1p1f1,rsdt,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp126.r1i1p1f1.Amon.rsdt.gn,historical,r1i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp126,r1i1p1f1,rsut,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp126.r1i1p1f1.Amon.rsut.gn,historical,r1i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp126,r1i1p1f1,tas,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp126.r1i1p1f1.Amon.tas.gn,historical,r1i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp126,r2i1p1f1,rlut,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp126.r2i1p1f1.Amon.rlut.gn,historical,r2i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp126,r2i1p1f1,rsdt,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp126.r2i1p1f1.Amon.rsdt.gn,historical,r2i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp126,r2i1p1f1,rsut,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp126.r2i1p1f1.Amon.rsut.gn,historical,r2i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp126,r2i1p1f1,tas,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp126.r2i1p1f1.Amon.tas.gn,historical,r2i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp245,r1i1p1f1,rlut,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp245.r1i1p1f1.Amon.rlut.gn,historical,r1i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp245,r1i1p1f1,rsdt,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp245.r1i1p1f1.Amon.rsdt.gn,historical,r1i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp245,r1i1p1f1,rsut,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp245.r1i1p1f1.Amon.rsut.gn,historical,r1i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp245,r1i1p1f1,tas,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp245.r1i1p1f1.Amon.tas.gn,historical,r1i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp245,r2i1p1f1,rlut,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp245.r2i1p1f1.Amon.rlut.gn,historical,r2i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp245,r2i1p1f1,rsdt,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp245.r2i1p1f1.Amon.rsdt.gn,historical,r2i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp245,r2i1p1f1,rsut,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp245.r2i1p1f1.Amon.rsut.gn,historical,r2i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp245,r2i1p1f1,tas,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp245.r2i1p1f1.Amon.tas.gn,historical,r2i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp585,r1i1p1f1,rsdt,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp585.r1i1p1f1.Amon.rsdt.gn,historical,r1i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp585,r2i1p1f1,rlut,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp585.r2i1p1f1.Amon.rlut.gn,historical,r2i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp585,r2i1p1f1,rsdt,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp585.r2i1p1f1.Amon.rsdt.gn,historical,r2i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp585,r1i1p1f1,rlut,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp585.r1i1p1f1.Amon.rlut.gn,historical,r1i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp585,r1i1p1f1,rsut,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp585.r1i1p1f1.Amon.rsut.gn,historical,r1i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp585,r1i1p1f1,tas,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp585.r1i1p1f1.Amon.tas.gn,historical,r1i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp585,r2i1p1f1,rsut,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp585.r2i1p1f1.Amon.rsut.gn,historical,r2i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,ssp585,r2i1p1f1,tas,coslat,standard,2015,2100,CMIP6.ScenarioMIP.NUIST.NESM3.ssp585.r2i1p1f1.Amon.tas.gn,historical,r2i1p1f1,days since 1850-01-01 00:00:00,2015.0,0.0,standard,NESM3
+NESM3,piControl,r1i1p1f1,rlut,coslat,standard,500,999,CMIP6.CMIP.NUIST.NESM3.piControl.r1i1p1f1.Amon.rlut.gn,piControl-spinup,r1i1p1f1,days since 0500-01-01 00:00:00,182621.0,0.0,no parent,NESM3
+NESM3,piControl,r1i1p1f1,rsdt,coslat,standard,500,999,CMIP6.CMIP.NUIST.NESM3.piControl.r1i1p1f1.Amon.rsdt.gn,piControl-spinup,r1i1p1f1,days since 0500-01-01 00:00:00,182621.0,0.0,no parent,NESM3
+NESM3,piControl,r1i1p1f1,tas,coslat,standard,500,999,CMIP6.CMIP.NUIST.NESM3.piControl.r1i1p1f1.Amon.tas.gn,piControl-spinup,r1i1p1f1,days since 0500-01-01 00:00:00,182621.0,0.0,no parent,NESM3
+NESM3,piControl,r1i1p1f1,rsut,coslat,standard,500,999,CMIP6.CMIP.NUIST.NESM3.piControl.r1i1p1f1.Amon.rsut.gn,piControl-spinup,r1i1p1f1,days since 0500-01-01 00:00:00,182621.0,0.0,no parent,NESM3
+NESM3,abrupt-4xCO2,r1i1p1f1,rlut,coslat,standard,1850,1999,CMIP6.CMIP.NUIST.NESM3.abrupt-4xCO2.r1i1p1f1.Amon.rlut.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,18262.0,0.0,standard,NESM3
+NESM3,abrupt-4xCO2,r1i1p1f1,rsdt,coslat,standard,1850,1999,CMIP6.CMIP.NUIST.NESM3.abrupt-4xCO2.r1i1p1f1.Amon.rsdt.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,18262.0,0.0,standard,NESM3
+NESM3,abrupt-4xCO2,r1i1p1f1,rsut,coslat,standard,1850,1999,CMIP6.CMIP.NUIST.NESM3.abrupt-4xCO2.r1i1p1f1.Amon.rsut.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,18262.0,0.0,standard,NESM3
+NESM3,abrupt-4xCO2,r1i1p1f1,tas,coslat,standard,1850,1999,CMIP6.CMIP.NUIST.NESM3.abrupt-4xCO2.r1i1p1f1.Amon.tas.gn,piControl,r1i1p1f1,days since 1000-01-01 00:00:00,18262.0,0.0,standard,NESM3

@@ -1,0 +1,25 @@
+source_id,experiment_id,member_id,variable,weights,calendar,first_year,last_year,dataset_key,parent_experiment_id,parent_variant_label,parent_time_units,branch_time_in_parent,branch_time_in_child,branch_method,parent_source_id
+KIOST-ESM,historical,r1i1p1f1,rlut,coslat,noleap,1850,2014,CMIP6.CMIP.KIOST.KIOST-ESM.historical.r1i1p1f1.Amon.rlut.gr1,piControl,r1i1p1f1,days since 1850-01-01,488370,0.0,standard,KIOST-ESM
+KIOST-ESM,historical,r1i1p1f1,rsdt,coslat,noleap,1850,2014,CMIP6.CMIP.KIOST.KIOST-ESM.historical.r1i1p1f1.Amon.rsdt.gr1,piControl,r1i1p1f1,days since 1850-01-01,488370,0.0,standard,KIOST-ESM
+KIOST-ESM,historical,r1i1p1f1,rsut,coslat,noleap,1850,2014,CMIP6.CMIP.KIOST.KIOST-ESM.historical.r1i1p1f1.Amon.rsut.gr1,piControl,r1i1p1f1,days since 1850-01-01,488370,0.0,standard,KIOST-ESM
+KIOST-ESM,historical,r1i1p1f1,tas,coslat,noleap,1850,2014,CMIP6.CMIP.KIOST.KIOST-ESM.historical.r1i1p1f1.Amon.tas.gr1,piControl,r1i1p1f1,days since 1850-01-01,488370,0.0,standard,KIOST-ESM
+KIOST-ESM,ssp126,r1i1p1f1,rlut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.KIOST.KIOST-ESM.ssp126.r1i1p1f1.Amon.rlut.gr1,historical,r1i1p1f1,days since 1850-01-01,60225,60225,standard,KIOST-ESM
+KIOST-ESM,ssp126,r1i1p1f1,rsdt,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.KIOST.KIOST-ESM.ssp126.r1i1p1f1.Amon.rsdt.gr1,historical,r1i1p1f1,days since 1850-01-01,60225,60225,standard,KIOST-ESM
+KIOST-ESM,ssp126,r1i1p1f1,rsut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.KIOST.KIOST-ESM.ssp126.r1i1p1f1.Amon.rsut.gr1,historical,r1i1p1f1,days since 1850-01-01,60225,60225,standard,KIOST-ESM
+KIOST-ESM,ssp126,r1i1p1f1,tas,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.KIOST.KIOST-ESM.ssp126.r1i1p1f1.Amon.tas.gr1,historical,r1i1p1f1,days since 1850-01-01,60225,60225,standard,KIOST-ESM
+KIOST-ESM,ssp245,r1i1p1f1,rlut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.KIOST.KIOST-ESM.ssp245.r1i1p1f1.Amon.rlut.gr1,historical,r1i1p1f1,days since 1850-01-01,60225,60225,standard,KIOST-ESM
+KIOST-ESM,ssp245,r1i1p1f1,rsdt,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.KIOST.KIOST-ESM.ssp245.r1i1p1f1.Amon.rsdt.gr1,historical,r1i1p1f1,days since 1850-01-01,60225,60225,standard,KIOST-ESM
+KIOST-ESM,ssp245,r1i1p1f1,rsut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.KIOST.KIOST-ESM.ssp245.r1i1p1f1.Amon.rsut.gr1,historical,r1i1p1f1,days since 1850-01-01,60225,60225,standard,KIOST-ESM
+KIOST-ESM,ssp245,r1i1p1f1,tas,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.KIOST.KIOST-ESM.ssp245.r1i1p1f1.Amon.tas.gr1,historical,r1i1p1f1,days since 1850-01-01,60225,60225,standard,KIOST-ESM
+KIOST-ESM,ssp585,r1i1p1f1,rlut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.KIOST.KIOST-ESM.ssp585.r1i1p1f1.Amon.rlut.gr1,historical,r1i1p1f1,days since 1850-01-01,60225,60225,standard,KIOST-ESM
+KIOST-ESM,ssp585,r1i1p1f1,rsdt,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.KIOST.KIOST-ESM.ssp585.r1i1p1f1.Amon.rsdt.gr1,historical,r1i1p1f1,days since 1850-01-01,60225,60225,standard,KIOST-ESM
+KIOST-ESM,ssp585,r1i1p1f1,rsut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.KIOST.KIOST-ESM.ssp585.r1i1p1f1.Amon.rsut.gr1,historical,r1i1p1f1,days since 1850-01-01,60225,60225,standard,KIOST-ESM
+KIOST-ESM,ssp585,r1i1p1f1,tas,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.KIOST.KIOST-ESM.ssp585.r1i1p1f1.Amon.tas.gr1,historical,r1i1p1f1,days since 1850-01-01,60225,60225,standard,KIOST-ESM
+KIOST-ESM,piControl,r1i1p1f1,rlut,coslat,noleap,3189,3338,CMIP6.CMIP.KIOST.KIOST-ESM.piControl.r1i1p1f1.Amon.rlut.gr1,piControl-spinup,r1i1p1f1,days since 1850-01-01,0.0,306235.0,no parent,KIOST-ESM
+KIOST-ESM,piControl,r1i1p1f1,rsdt,coslat,noleap,3189,3338,CMIP6.CMIP.KIOST.KIOST-ESM.piControl.r1i1p1f1.Amon.rsdt.gr1,piControl-spinup,r1i1p1f1,days since 1850-01-01,0.0,306235.0,no parent,KIOST-ESM
+KIOST-ESM,piControl,r1i1p1f1,rsut,coslat,noleap,3189,3338,CMIP6.CMIP.KIOST.KIOST-ESM.piControl.r1i1p1f1.Amon.rsut.gr1,piControl-spinup,r1i1p1f1,days since 1850-01-01,0.0,306235.0,no parent,KIOST-ESM
+KIOST-ESM,piControl,r1i1p1f1,tas,coslat,noleap,3189,3338,CMIP6.CMIP.KIOST.KIOST-ESM.piControl.r1i1p1f1.Amon.tas.gr1,piControl-spinup,r1i1p1f1,days since 1850-01-01,0.0,306235.0,no parent,KIOST-ESM
+KIOST-ESM,abrupt-4xCO2,r1i1p1f1,rlut,coslat,noleap,1850,2000,CMIP6.CMIP.KIOST.KIOST-ESM.abrupt-4xCO2.r1i1p1f1.Amon.rlut.gr1,piControl,r1i1p1f1,days since 1850-01-01,488370,0.0,standard,KIOST-ESM
+KIOST-ESM,abrupt-4xCO2,r1i1p1f1,rsdt,coslat,noleap,1850,2000,CMIP6.CMIP.KIOST.KIOST-ESM.abrupt-4xCO2.r1i1p1f1.Amon.rsdt.gr1,piControl,r1i1p1f1,days since 1850-01-01,488370,0.0,standard,KIOST-ESM
+KIOST-ESM,abrupt-4xCO2,r1i1p1f1,rsut,coslat,noleap,1850,2000,CMIP6.CMIP.KIOST.KIOST-ESM.abrupt-4xCO2.r1i1p1f1.Amon.rsut.gr1,piControl,r1i1p1f1,days since 1850-01-01,488370,0.0,standard,KIOST-ESM
+KIOST-ESM,abrupt-4xCO2,r1i1p1f1,tas,coslat,noleap,1850,2000,CMIP6.CMIP.KIOST.KIOST-ESM.abrupt-4xCO2.r1i1p1f1.Amon.tas.gr1,piControl,r1i1p1f1,days since 1850-01-01,488370,0.0,standard,KIOST-ESM

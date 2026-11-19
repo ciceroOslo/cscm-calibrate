@@ -1,0 +1,57 @@
+source_id,experiment_id,member_id,variable,weights,calendar,first_year,last_year,dataset_key,parent_experiment_id,parent_variant_label,parent_time_units,branch_time_in_parent,branch_time_in_child,branch_method,parent_source_id
+CAS-ESM2-0,historical,r1i1p1f1,rlut,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r1i1p1f1.Amon.rlut.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r1i1p1f1,rsdt,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r1i1p1f1.Amon.rsdt.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r1i1p1f1,rsut,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r1i1p1f1.Amon.rsut.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r1i1p1f1,tas,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r1i1p1f1.Amon.tas.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r2i1p1f1,rlut,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r2i1p1f1.Amon.rlut.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r2i1p1f1,rsdt,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r2i1p1f1.Amon.rsdt.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r2i1p1f1,rsut,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r2i1p1f1.Amon.rsut.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r2i1p1f1,tas,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r2i1p1f1.Amon.tas.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r3i1p1f1,rlut,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r3i1p1f1.Amon.rlut.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r3i1p1f1,rsdt,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r3i1p1f1.Amon.rsdt.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r3i1p1f1,rsut,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r3i1p1f1.Amon.rsut.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r3i1p1f1,tas,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r3i1p1f1.Amon.tas.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r4i1p1f1,rlut,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r4i1p1f1.Amon.rlut.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r4i1p1f1,rsdt,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r4i1p1f1.Amon.rsdt.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r4i1p1f1,rsut,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r4i1p1f1.Amon.rsut.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,historical,r4i1p1f1,tas,coslat,noleap,1850,2014,CMIP6.CMIP.CAS.CAS-ESM2-0.historical.r4i1p1f1.Amon.tas.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,ssp126,r1i1p1f1,rlut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp126.r1i1p1f1.Amon.rlut.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp126,r1i1p1f1,rsdt,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp126.r1i1p1f1.Amon.rsdt.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp126,r1i1p1f1,rsut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp126.r1i1p1f1.Amon.rsut.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp126,r1i1p1f1,tas,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp126.r1i1p1f1.Amon.tas.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp126,r3i1p1f1,rlut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp126.r3i1p1f1.Amon.rlut.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp126,r3i1p1f1,rsdt,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp126.r3i1p1f1.Amon.rsdt.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp126,r3i1p1f1,rsut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp126.r3i1p1f1.Amon.rsut.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp126,r3i1p1f1,tas,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp126.r3i1p1f1.Amon.tas.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp245,r1i1p1f1,rlut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp245.r1i1p1f1.Amon.rlut.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp245,r1i1p1f1,rsdt,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp245.r1i1p1f1.Amon.rsdt.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp245,r1i1p1f1,rsut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp245.r1i1p1f1.Amon.rsut.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp245,r1i1p1f1,tas,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp245.r1i1p1f1.Amon.tas.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp245,r3i1p1f1,rlut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp245.r3i1p1f1.Amon.rlut.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp245,r3i1p1f1,rsdt,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp245.r3i1p1f1.Amon.rsdt.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp245,r3i1p1f1,rsut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp245.r3i1p1f1.Amon.rsut.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp245,r3i1p1f1,tas,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp245.r3i1p1f1.Amon.tas.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp370,r1i1p1f1,rlut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp370.r1i1p1f1.Amon.rlut.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp370,r1i1p1f1,rsdt,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp370.r1i1p1f1.Amon.rsdt.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp370,r1i1p1f1,rsut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp370.r1i1p1f1.Amon.rsut.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp370,r1i1p1f1,tas,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp370.r1i1p1f1.Amon.tas.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp370,r3i1p1f1,rlut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp370.r3i1p1f1.Amon.rlut.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp370,r3i1p1f1,rsdt,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp370.r3i1p1f1.Amon.rsdt.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp370,r3i1p1f1,rsut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp370.r3i1p1f1.Amon.rsut.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp370,r3i1p1f1,tas,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp370.r3i1p1f1.Amon.tas.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp585,r1i1p1f1,rlut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp585.r1i1p1f1.Amon.rlut.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp585,r1i1p1f1,rsdt,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp585.r1i1p1f1.Amon.rsdt.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp585,r1i1p1f1,rsut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp585.r1i1p1f1.Amon.rsut.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp585,r1i1p1f1,tas,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp585.r1i1p1f1.Amon.tas.gn,historical,r1i1p1f1,days since 0001-01-01,36135.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp585,r3i1p1f1,rlut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp585.r3i1p1f1.Amon.rlut.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp585,r3i1p1f1,rsdt,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp585.r3i1p1f1.Amon.rsdt.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp585,r3i1p1f1,rsut,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp585.r3i1p1f1.Amon.rsut.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,ssp585,r3i1p1f1,tas,coslat,noleap,2015,2100,CMIP6.ScenarioMIP.CAS.CAS-ESM2-0.ssp585.r3i1p1f1.Amon.tas.gn,historical,r3i1p1f1,days since 0001-01-01,72635.0,735110.0,Spin-up documentation,CAS-ESM2-0
+CAS-ESM2-0,piControl,r1i1p1f1,rlut,coslat,noleap,1,550,CMIP6.CMIP.CAS.CAS-ESM2-0.piControl.r1i1p1f1.Amon.rlut.gn,piControl-spinup,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,piControl,r1i1p1f1,rsdt,coslat,noleap,1,550,CMIP6.CMIP.CAS.CAS-ESM2-0.piControl.r1i1p1f1.Amon.rsdt.gn,piControl-spinup,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,piControl,r1i1p1f1,rsut,coslat,noleap,1,550,CMIP6.CMIP.CAS.CAS-ESM2-0.piControl.r1i1p1f1.Amon.rsut.gn,piControl-spinup,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,piControl,r1i1p1f1,tas,coslat,noleap,1,550,CMIP6.CMIP.CAS.CAS-ESM2-0.piControl.r1i1p1f1.Amon.tas.gn,piControl-spinup,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,abrupt-4xCO2,r1i1p1f1,rlut,coslat,noleap,1,150,CMIP6.CMIP.CAS.CAS-ESM2-0.abrupt-4xCO2.r1i1p1f1.Amon.rlut.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,abrupt-4xCO2,r1i1p1f1,rsdt,coslat,noleap,1,150,CMIP6.CMIP.CAS.CAS-ESM2-0.abrupt-4xCO2.r1i1p1f1.Amon.rsdt.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,abrupt-4xCO2,r1i1p1f1,rsut,coslat,noleap,1,150,CMIP6.CMIP.CAS.CAS-ESM2-0.abrupt-4xCO2.r1i1p1f1.Amon.rsut.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0
+CAS-ESM2-0,abrupt-4xCO2,r1i1p1f1,tas,coslat,noleap,1,150,CMIP6.CMIP.CAS.CAS-ESM2-0.abrupt-4xCO2.r1i1p1f1.Amon.tas.gn,piControl,r1i1p1f1,days since 1850-01-01,0.0,0.0,standard,CAS-ESM2-0

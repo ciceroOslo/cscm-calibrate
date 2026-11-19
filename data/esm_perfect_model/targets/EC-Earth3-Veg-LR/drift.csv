@@ -1,0 +1,4 @@
+member,branch_year,branch_ok,parent_variant_label,piControl_member,window,tas_slope_K_per_century,N_offset,N_slope_per_century
+r1i1p1f1,2300,True,r1i1p1f1,r1i1p1f1,2300-2550,,,
+r2i1p1f1,2400,True,r1i1p1f1,r1i1p1f1,2400-2650,,0.5713992820076367,-0.03238194892399777
+r3i1p1f1,2500,True,r1i1p1f1,r1i1p1f1,2500-2750,-0.05377493077306694,0.5198618000725841,0.02908521028714043
