@@ -76,3 +76,34 @@ The emulator returns GSAT (relative to 1850-1900) and net TOA flux for each
 scenario, and for abrupt-4xCO2 and 1pctCO2 driven by scaled CO2 forcing
 alone. ECS and TCR are diagnosed as for the ESMs: a Gregory regression over
 abrupt-4xCO2 years 1-150, and 1pctCO2 warming over years 61-80.
+
+## Fit
+
+`cscm_calibrate.esm.fit` samples the 13 emulator parameters together with
+four discrepancy parameters. Each block has a Gaussian likelihood whose
+covariance adds three terms:
+
+| Term | Form | Parameters |
+|---|---|---|
+| internal variability | AR(1) | from the ESM (see Targets) |
+| persistent discrepancy | AR(1) | `sd` per variable (T, N) and `rho_d`, sampled |
+| scaling discrepancy | `sm^2 u u^T` | `sm`, sampled (GSAT only) |
+
+`u` is the emulated warming: since 2021 for a scenario tier, the whole
+series otherwise. The scaling term allows each block a small fractional
+error in its warming (for example forcing in one scenario that the SCM
+gets slightly wrong) and is integrated out analytically. Without the
+discrepancy terms, decades of highly autocorrelated residuals would be
+treated as independent information and the posterior would be
+overconfident.
+
+Priors are uniform within the bounds in the code. Differential evolution
+finds the posterior mode, and emcee (differential-evolution moves) then
+samples from the best of the final population. The first half of the chain
+is discarded.
+
+Predictions add draws of both discrepancy terms, giving the range expected
+for an ESM run. Leaving out one scenario tier (`--holdout`) and comparing
+its 2081-2100 GSAT with this range tests the emulator on a scenario the
+ESM has not been fitted to, which is how it is used to fill the CMIP7
+scenario matrix.
