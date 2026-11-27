@@ -14,9 +14,11 @@ hemispheric forcing, and it is split into components that the per-ESM fit can sc
 Aerosol terms are linear in their q-coefficients, so the hemispheric aerosol forcing is
 recovered by differencing runs with the aerosol q's switched off.
 
-    python scripts/cmip7_esm/scm_forcing.py      # writes output/cmip7_esm/forcing_components.npz
+    python scripts/cmip7_esm/scm_forcing.py      # writes output/cmip7_esm/forcing_components_pic.npz
+    CMIP7_BASELINE=1750 python ...                # the standard 1750-start cache (pilot v1/v2)
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -36,6 +38,10 @@ from cscm_calibrate.set_up_calibration_configs_and_run import define_scendata_fo
 OUT = ROOT / "output" / "cmip7_esm"
 TIERS = ["VL", "LN", "L", "ML", "M", "HL", "H"]
 NYSTART, NYEND = 1750, 2100
+PIC_YEAR = 1850
+# "pic": pre-1850 held at the 1850 state and forcing relative to 1850 (ESM-like piControl start);
+# "1750": the SCM's standard 1750 start (pilot v1/v2)
+BASELINE = os.environ.get("CMIP7_BASELINE", "pic")
 # scen7 solar links are broken; the CMIP7 historical solar file runs to 2500 and is
 # scenario independent. ML has no RCMIP3 volcanic/LUC files: use M's volcanic, ML's AR7 LUC.
 SOLAR = "solar_RCMIP_historical_RCMIP3.txt"
@@ -53,7 +59,35 @@ AER_OFF = {"qdirso2": 0.0, "qindso2": 0.0, "qbc": 0.0, "qoc": 0.0, "qbmb": 0.0}
 ACI_OFF = {"qindso2": 0.0}
 
 
-def scenario_scendata(tier):
+def picontrol_start(sd):
+    """Make 1750-1849 a constant 1850 pre-industrial state, as for an ESM branching from piControl.
+
+    Concentrations, non-CO2 emissions and land-use albedo are held at their 1850 values, CO2
+    emissions are zero (so CO2 stays at its 1850 value, which becomes the carbon cycle's
+    pre-industrial reference), volcanic forcing is zero, and solar is expressed relative to
+    its 1850-1873 mean (the CMIP piControl solar convention). Forcing that is constant before
+    1850 is removed by the users of this data (subtracting the 1850 value).
+    """
+    i0 = PIC_YEAR - NYSTART
+    sd = dict(sd)
+    conc = sd["concentrations_data"].copy()
+    conc.loc[conc.index < PIC_YEAR] = conc.loc[PIC_YEAR].to_numpy()
+    emis = sd["emissions_data"].copy()
+    emis.loc[emis.index < PIC_YEAR] = emis.loc[PIC_YEAR].to_numpy()
+    emis.loc[emis.index < PIC_YEAR, ["CO2_FF", "CO2_AFOLU"]] = 0.0
+    luc = sd["rf_luc_data"].copy()
+    luc.iloc[:i0] = luc.iloc[i0].to_numpy()
+    volc = sd["rf_volc_data"].copy()
+    volc.iloc[:i0] = 0.0  # (handed to ciceroscm as rf_volc_n/s_data by scenario_scendata)
+    sun = sd["rf_sun_data"].copy()
+    sun = sun - sun.iloc[i0:i0 + 24].mean()
+    sun.iloc[:i0] = 0.0
+    sd.update(concentrations_data=conc, emissions_data=emis, rf_luc_data=luc, rf_volc_data=volc, rf_sun_data=sun)
+    return sd
+
+
+def scenario_scendata(tier, baseline=None):
+    baseline = baseline or BASELINE
     scen = f"scen7-{tier}"
     sd = define_scendata_for_scm(
         INDATA, gaspam=GASES, df_conc=f"{scen}_conc_{GASES}", df_emis=f"{scen}_em_{GASES}",
@@ -62,6 +96,12 @@ def scenario_scendata(tier):
     )[0]
     assert sd["rf_sun_data"] is not None and sd["rf_volc_data"] is not None, tier
     sd.update(conc_run=True, scenname=scen)
+    sd = picontrol_start(sd) if baseline == "pic" else sd
+    # ciceroscm's InputHandler drops an "rf_volc_data" key (only rf_volc_n/s_data are accepted)
+    # and silently falls back to its default IPCC volcanic series; pass the RCMIP3 data explicitly
+    volc = sd.pop("rf_volc_data")
+    sd["rf_volc_n_data"] = volc
+    sd["rf_volc_s_data"] = volc
     return sd
 
 
@@ -103,6 +143,11 @@ def scenario_components(tier):
         "volc_s": np.asarray(model._volc_s_arr, dtype=float)[: NYEND - NYSTART + 1],
         "total_global": base[0],  # the handler total excludes solar
     }
+    if BASELINE == "pic":  # forcing relative to the constant 1850 pre-industrial state
+        i0 = PIC_YEAR - NYSTART
+        for k in ("co2", "aci_n", "aci_s", "ari_n", "ari_s", "other_n", "other_s", "total_global"):
+            assert np.ptp(c[k][: i0 + 1]) < 1e-9, f"{k} not constant before {PIC_YEAR}"
+            c[k] = c[k] - c[k][i0]
     # consistency: components rebuild the handler's global total
     rebuilt = co2 + 0.5 * (c["aci_n"] + c["aci_s"] + c["ari_n"] + c["ari_s"] + c["other_n"] + c["other_s"])
     err = np.abs(rebuilt - c["total_global"]).max()
@@ -145,12 +190,16 @@ def build():
             data[f"{tier}/{k}"] = v
     data["abrupt-4xCO2/co2"] = idealised_co2("abrupt-4xCO2", 2100)
     data["1pctCO2/co2"] = idealised_co2("1pctCO2", 2100)
-    np.savez(OUT / "forcing_components.npz", **data)
-    print("wrote", OUT / "forcing_components.npz")
+    np.savez(_cache(), **data)
+    print("wrote", _cache())
+
+
+def _cache():
+    return OUT / ("forcing_components.npz" if BASELINE == "1750" else f"forcing_components_{BASELINE}.npz")
 
 
 def load():
-    d = np.load(OUT / "forcing_components.npz")
+    d = np.load(_cache())
     return {k: d[k] for k in d.files}
 
 

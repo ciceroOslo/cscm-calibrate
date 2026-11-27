@@ -3,9 +3,15 @@
     python scripts/cmip7_esm/fit_carbon.py fit UKESM1-3-LL [--variant eps] [--holdout H]
     python scripts/cmip7_esm/fit_carbon.py predict UKESM1-3-LL [--variant eps] [--holdout H]
 
-Thermal and forcing parameters are taken from the stage-1 (concentration-driven) full fit
-of the same variant: fitting is conditional on the stage-1 maximum-posterior set, and
-predictions pair carbon-cycle posterior draws with stage-1 posterior draws.
+Thermal parameters are taken from the stage-1 (concentration-driven) full fit of the same
+variant: fitting is conditional on the stage-1 maximum-posterior set, and predictions pair
+stage-2 posterior draws with stage-1 posterior draws. The forcing scalings (s_co2, s_ari,
+s_aci, s_other) are re-estimated on the emissions-driven runs with the stage-1 posterior
+(mean, 2 x sd) as a Gaussian prior, so an ESM's emissions-driven configuration may differ
+from its concentration-driven one. Two nuisance terms absorb known protocol differences:
+s_afolu scales the prescribed land-use CO2 emissions (ESMs compute their own), and o_off is
+a constant offset on ESM ocean uptake (pre-industrial outgassing / drift; predictions of
+ocean uptake include it, i.e. they are ESM-equivalent).
 
 Emissions-driven CICERO-SCM runs reproduce the stage-1 forcing scalings: aerosol
 q-coefficients are scaled (s_ari, s_aci), CO2 and "other" ERF are rescaled in the
@@ -44,6 +50,27 @@ CARBON = [
     ("w_sigmoid", 2.0, 8.0),
     ("ml_fracmax", 0.0, 1.0),       # mixed-layer shoaling with warming
     ("ml_w_sigmoid", 2.0, 7.0),
+    # land (rb: biotic decay) and ocean (rs: mixed-layer pulse response) response functions
+    ("rb_coef0", 0.0, 1.0),
+    ("rb_coef1", 0.0, 1.0),
+    ("rb_coef2", 0.0, 0.5),
+    ("rb_tim0", 1.0, 10.0),
+    ("rb_tim1", 10.0, 40.0),
+    ("rb_tim2", 40.0, 250.0),
+    ("rs_coef0", 0.0, 0.15),
+    ("rs_coef1", 0.1, 0.4),
+    ("rs_coef2", 0.0, 1.0),
+    ("rs_coef3", 0.0, 0.3),
+    ("rs_tim0", 0.5, 10.0),
+    ("rs_tim1", 10.0, 40.0),
+    ("rs_tim2", 40.0, 400.0),
+    ("s_afolu", 0.3, 2.0),          # scaling of prescribed land-use CO2 emissions
+    ("o_off", -0.5, 0.5),           # constant offset of ESM ocean uptake (PgC/yr)
+    # forcing scalings re-estimated on emissions-driven runs (Gaussian prior from stage 1)
+    ("s_co2", 0.7, 1.4),
+    ("s_ari", 0.0, 6.0),
+    ("s_aci", 0.0, 3.0),
+    ("s_other", 0.6, 1.4),
     ("log_sdT", -6.0, 0.0),         # discrepancy sd: GSAT (K)
     ("log_sdC", -3.0, 3.5),         # CO2 (ppm)
     ("log_sdO", -5.0, 0.5),         # ocean uptake (PgC/yr)
@@ -53,7 +80,8 @@ CARBON = [
 CNAMES = [p[0] for p in CARBON]
 CLO = np.array([p[1] for p in CARBON])
 CHI = np.array([p[2] for p in CARBON])
-CARBON_PARAMS = CNAMES[:9]
+CARBON_PARAMS = CNAMES[:22]
+REFIT = ["s_co2", "s_ari", "s_aci", "s_other"]
 CARBON_SET = {"solubility_limit": 0.1, "ml_t_half": 0.0}
 Q_DEFAULT = {"qdirso2": -0.00308, "qindso2": -0.97 / 57.052577209999995, "qbc": 0.0279, "qoc": -0.00433}
 E_TIERS = ["VL", "M", "H"]
@@ -70,6 +98,8 @@ class EExp:
         self.m = SF._CSCM(sd)
         self.c = comps
         self.s = None
+        self.off = None
+        self.afolu0 = self.m.ce_handler.emis["CO2_AFOLU"].copy()
         self._orig = self.m.ce_handler.conc2forc
         self.m.ce_handler.conc2forc = self._conc2forc
         self.years = np.arange(SF.NYSTART, SF.NYEND + 1)
@@ -80,6 +110,11 @@ class EExp:
         i = yr - SF.NYSTART
         s = self.s
         co2 = self.m.ce_handler.forc["CO2"][i]
+        if SF.BASELINE == "pic":
+            # the pre-1850 state is constant: express forcing relative to it (as stage 1)
+            if i == 0:
+                self.off = (tot, fn - rf_sun, fs - rf_sun, co2)
+            tot, fn, fs, co2 = tot - self.off[0], fn - self.off[1], fs - self.off[2], co2 - self.off[3]
         on, os_ = self.c[f"{self.tier}/other_n"][i], self.c[f"{self.tier}/other_s"][i]
         fn = fn + (s["s_co2"] - 1) * co2 + (s["s_other"] - 1) * on
         fs = fs + (s["s_co2"] - 1) * co2 + (s["s_other"] - 1) * os_
@@ -87,9 +122,10 @@ class EExp:
         w = self.m.results["dT_glob"][i - 1] if i > 0 else 0.0
         return tot, fn, fs, w
 
-    def run(self, theta, carbon):
+    def run(self, theta, carbon, s_afolu=1.0):
         s = dict(zip(EM.NAMES, theta))
         self.s = s
+        self.m.ce_handler.emis["CO2_AFOLU"] = self.afolu0 * s_afolu
         vn, vs = self.c[f"{self.tier}/volc_n"], self.c[f"{self.tier}/volc_s"]
         self.m._volc_n_arr, self.m._volc_s_arr = s["s_volc"] * vn, s["s_volc"] * vs
         self.m._volc_n_mean, self.m._volc_s_mean = self.m._volc_n_arr.mean(axis=1), self.m._volc_s_arr.mean(axis=1)
@@ -127,13 +163,32 @@ def _init(source, variant, holdout, tiers, theta1=None):
         b["C_iv"] = b["sigma_iv"] ** 2 * b["rho"] ** b["D"]
     _X.update(blocks=blocks, exps={t: EExp(t, comps) for t in tiers},
               theta1=stage1(source, variant)[0] if theta1 is None else theta1,
+              prior1=_refit_prior(source, variant),
               hist=next(t for t in F1.HIST_TIER_ORDER if t in tiers))
 
 
-def run_blocks(theta1, carbon):
+def _refit_prior(source, variant):
+    try:
+        post = stage1(source, variant)[1]
+    except FileNotFoundError:
+        return None
+    idx = [EM.NAMES.index(k) for k in REFIT]
+    return post[:, idx].mean(axis=0), 2 * post[:, idx].std(axis=0)
+
+
+def split(p, theta1):
+    """Stage-2 parameter dict -> (thermal/forcing theta, carbon-cycle pamset, s_afolu)."""
+    th = np.array(theta1, dtype=float)
+    for k in REFIT:
+        th[EM.NAMES.index(k)] = p[k]
+    return th, {k: float(p[k]) for k in CARBON_PARAMS}, float(p["s_afolu"])
+
+
+def run_blocks(theta1, carbon, s_afolu=1.0, o_off=0.0):
     out = {}
     for t, e in _X["exps"].items():
-        r = e.run(theta1, carbon)
+        r = e.run(theta1, carbon, s_afolu)
+        r["O"] = r["O"] + o_off  # ESM-equivalent ocean uptake
         for v, y in r.items():
             out[f"{t}/{v}"] = (e.years, y)
     h = _X["hist"]
@@ -156,10 +211,14 @@ def log_prob(c):
     if np.any(c < CLO) or np.any(c > CHI):
         return -np.inf
     p = dict(zip(CNAMES, c))
-    carbon = {k: float(p[k]) for k in CARBON_PARAMS}
+    th, carbon, s_afolu = split(p, _X["theta1"])
+    lp = 0.0
+    if _X.get("prior1") is not None:
+        m, sd = _X["prior1"]
+        lp = -0.5 * np.sum(((np.array([p[k] for k in REFIT]) - m) / sd) ** 2)
     try:
-        o = run_blocks(_X["theta1"], carbon)
-        ll = 0.0
+        o = run_blocks(th, carbon, s_afolu, p["o_off"])
+        ll = lp
         for key, b in _X["blocks"].items():
             var = key.split("/")[1]
             x, y = o[key]
@@ -234,7 +293,8 @@ def _pinit(source, variant):
 def _prun(args):
     theta1, c = args
     p = dict(zip(CNAMES, c))
-    o = run_blocks(theta1, {k: float(p[k]) for k in CARBON_PARAMS})
+    th, carbon, s_afolu = split(p, theta1)
+    o = run_blocks(th, carbon, s_afolu, p["o_off"])
     return {k: v[1].astype(np.float64) for k, v in o.items()}
 
 
@@ -303,8 +363,8 @@ if __name__ == "__main__":
     ap.add_argument("--holdout", default=None)
     ap.add_argument("--workers", type=int, default=24)
     ap.add_argument("--de-iter", type=int, default=40)
-    ap.add_argument("--nsteps", type=int, default=600)
-    ap.add_argument("--nwalkers", type=int, default=32)
+    ap.add_argument("--nsteps", type=int, default=1000)
+    ap.add_argument("--nwalkers", type=int, default=72)
     ap.add_argument("--ndraw", type=int, default=200)
     a = ap.parse_args()
     if a.stage == "fit":

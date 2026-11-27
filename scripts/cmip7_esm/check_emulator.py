@@ -1,9 +1,15 @@
-"""Check: forcing-driven rebuild with unit scalings == standard conc-driven CICERO-SCM run."""
+"""Check: forcing-driven rebuild with unit scalings == standard conc-driven CICERO-SCM run.
 
+Only meaningful for the 1750 start (the 1850 start removes the constant pre-1850 forcing).
+"""
+
+import os
 import sys
 from pathlib import Path
 
 import numpy as np
+
+os.environ["CMIP7_BASELINE"] = "1750"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import emulator as EM  # noqa: E402
