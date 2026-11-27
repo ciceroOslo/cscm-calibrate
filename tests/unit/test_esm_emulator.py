@@ -4,7 +4,15 @@ import pytest
 from ciceroscm import CICEROSCM
 
 from cscm_calibrate.esm import forcing
-from cscm_calibrate.esm.emulator import FIXED, THERMAL, Emulator, default_params
+from cscm_calibrate.esm.emulator import (
+    COMPONENTS,
+    FIXED,
+    I0,
+    THERMAL,
+    Emulator,
+    default_params,
+)
+from cscm_calibrate.esm.targets import HIST_END
 
 N = forcing.NYEND - forcing.NYSTART + 1
 
@@ -37,7 +45,10 @@ def test_matches_native_forcing_driven_run(comps):
     """Replacing the forcing per run gives the same result as ciceroscm's own path."""
     p = default_params() | {"s_ari": 1.5, "s_volc": 0.8}
     em = Emulator(comps, ["X"], idealised=False)
-    fn, fs, volc_n, volc_s = em.forcing("X", p)
+    # ciceroscm runs from 1750 with zero forcing before the emulator's 1850 start
+    fn, fs, volc_n, volc_s = (
+        np.pad(f, [(I0, 0)] + [(0, 0)] * (f.ndim - 1)) for f in em.forcing("X", p)
+    )
     years = np.arange(forcing.NYSTART, forcing.NYEND + 1)
     df = pd.DataFrame(
         {"FORC_NH": fn, "FORC_SH": fs, "total": 0.5 * (fn + fs)}, index=years
@@ -56,7 +67,23 @@ def test_matches_native_forcing_driven_run(comps):
         }
     )
     scm._run({"results_as_dict": True}, pamset_udm={k: p[k] for k in THERMAL} | FIXED)
-    t = scm.results["dT_glob_air"]
+    t = scm.results["dT_glob_air"][I0:]
     o = em.run(p)
     np.testing.assert_allclose(o["X/T"][1], t - t[em.base].mean(), atol=1e-9)
-    np.testing.assert_allclose(o["X/N"][1], scm.results["RIB_glob"], atol=1e-9)
+    np.testing.assert_allclose(o["X/N"][1], scm.results["RIB_glob"][I0:], atol=1e-9)
+
+
+def test_tiers_sharing_history_match_separate_runs(comps):
+    """Branching tiers from one historical run changes nothing."""
+    after = np.arange(N) > HIST_END - forcing.NYSTART
+    comps |= {f"Y/{k}": comps[f"X/{k}"] for k in COMPONENTS}
+    comps["Y/co2"] = np.where(after, 2 * comps["X/co2"], comps["X/co2"])
+    comps |= {f"Z/{k}": 1.1 * comps[f"X/{k}"] for k in COMPONENTS}
+    em = Emulator(comps, ["X", "Y", "Z"], idealised=False)
+    assert em.hist == {"X": "X", "Y": "X", "Z": "Z"}
+    p = default_params()
+    o = em.run(p)
+    for t in "YZ":
+        alone = Emulator(comps, [t], idealised=False).run(p)
+        for v in "TN":
+            np.testing.assert_array_equal(o[f"{t}/{v}"][1], alone[f"{t}/{v}"][1])

@@ -9,14 +9,14 @@ from cscm_calibrate.esm.targets import Block
 TRUTH = default_params() | {"log_sdT": -3, "log_sdN": -2, "rho_d": 0.5, "log_sm": -3}
 
 
-def test_block_loglik_is_multivariate_normal():
+def test_block_likelihood_is_multivariate_normal():
     rng = np.random.default_rng(0)
     b = Block(np.arange(10), np.zeros(10), 3, 0.1, 0.4)
     r, u = rng.standard_normal(10) * 0.2, np.linspace(0, 1, 10)
     lag = np.abs(np.subtract.outer(b.x, b.x))
     cov = 0.1**2 * 0.4**lag + 0.2**2 * 0.7**lag + 0.05**2 * np.outer(u, u)
     expected = multivariate_normal(np.zeros(10), cov).logpdf(r)
-    assert fit.block_loglik(b, r, 0.2, 0.7, 0.05, u) == pytest.approx(expected)
+    assert fit.BlockLikelihood(b)(r, 0.2, 0.7, 0.05, u) == pytest.approx(expected)
 
 
 def test_scaling_basis_is_warming_since_2021_for_tiers():

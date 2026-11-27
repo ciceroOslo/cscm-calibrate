@@ -20,7 +20,7 @@ import numpy as np
 from scipy.linalg import cho_factor, cho_solve
 from scipy.optimize import differential_evolution
 
-from cscm_calibrate.esm.emulator import PARAMS, Emulator
+from cscm_calibrate.esm.emulator import PARAMS, Emulator, default_params
 from cscm_calibrate.esm.forcing import TIERS
 from cscm_calibrate.esm.targets import HIST_END, idealised_blocks, scenario_blocks
 
@@ -45,15 +45,27 @@ def scaling_basis(key: str, x: np.ndarray, y: np.ndarray) -> np.ndarray:
     return y
 
 
-def block_loglik(b, r, sd, rho_d, sm=0.0, u=None) -> float:  # noqa: PLR0913
-    """Gaussian log-likelihood of residual ``r`` for target block ``b``."""
-    lag = np.abs(np.subtract.outer(b.x, b.x))
-    cov = b.sigma**2 * b.rho**lag + sd**2 * rho_d**lag
-    if u is not None:
-        cov = cov + sm**2 * np.outer(u, u)
-    c = cho_factor(cov, lower=True, check_finite=False)
-    logdet = 2 * np.log(np.diag(c[0])).sum()
-    return -0.5 * (r @ cho_solve(c, r) + logdet + len(r) * np.log(2 * np.pi))
+class BlockLikelihood:
+    """Gaussian log-likelihood of the residuals for target block ``b``."""
+
+    def __init__(self, b):
+        lag = np.abs(np.subtract.outer(b.x, b.x))
+        self.lag = lag.astype(int)  # whole years, so rho**lag is a lookup
+        if not np.array_equal(self.lag, lag):
+            msg = "block x must be whole years"
+            raise ValueError(msg)
+        self.iv = b.sigma**2 * b.rho**lag  # internal variability, fixed
+        self.powers = np.arange(self.lag.max() + 1)
+        self.norm = len(b.x) * np.log(2 * np.pi)
+
+    def __call__(self, r, sd, rho_d, sm=0.0, u=None) -> float:
+        """Log-likelihood of residual ``r`` given the discrepancy parameters."""
+        cov = self.iv + sd**2 * (rho_d**self.powers)[self.lag]
+        if u is not None:
+            cov += sm**2 * np.outer(u, u)
+        c = cho_factor(cov, lower=True, overwrite_a=True, check_finite=False)
+        logdet = 2 * np.log(np.diag(c[0])).sum()
+        return -0.5 * (r @ cho_solve(c, r, check_finite=False) + logdet + self.norm)
 
 
 class LogPosterior:
@@ -61,8 +73,15 @@ class LogPosterior:
 
     def __init__(self, blocks: dict, comps: dict, tiers: list[str]):
         self.blocks = blocks
+        self.lik = {k: BlockLikelihood(b) for k, b in blocks.items()}
         self.em = Emulator(comps, tiers)
         self.hist = next(t for t in HIST_TIER_ORDER if t in tiers)
+        x = {k.split("/")[0]: v[0] for k, v in self.em.run(default_params()).items()}
+        for key, b in blocks.items():
+            xe = x[self.hist if key.startswith("hist/") else key.split("/")[0]]
+            if b.x.min() < xe[0] or b.x.max() > xe[-1]:
+                msg = f"{key} extends beyond the emulated years"
+                raise ValueError(msg)
 
     def __call__(self, x) -> float:
         """Evaluate at ``x``; -inf outside the prior bounds or if a run fails."""
@@ -78,8 +97,8 @@ class LogPosterior:
                 var = key.split("/")[1]
                 y = np.interp(b.x, *o[key])
                 u = scaling_basis(key, b.x, y) if var == "T" else None
-                ll += block_loglik(
-                    b, y - b.y, sd[var], p["rho_d"], np.exp(p["log_sm"]), u
+                ll += self.lik[key](
+                    y - b.y, sd[var], p["rho_d"], np.exp(p["log_sm"]), u
                 )
         except (np.linalg.LinAlgError, ValueError, FloatingPointError):
             return -np.inf

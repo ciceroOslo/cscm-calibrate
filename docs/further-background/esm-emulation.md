@@ -77,6 +77,12 @@ scenario, and for abrupt-4xCO2 and 1pctCO2 driven by scaled CO2 forcing
 alone. ECS and TCR are diagnosed as for the ESMs: a Gregory regression over
 abrupt-4xCO2 years 1-150, and 1pctCO2 warming over years 61-80.
 
+Each evaluation steps the thermal model directly, from 1850 (forcing is
+zero before then). Tiers with the same historical forcing share one run to
+2021 and continue from a copy of its ocean state. The idealised runs stop
+after 150 years. None of this changes the result: the output is identical
+to running every experiment through `CICEROSCM` from 1750.
+
 ## Fit
 
 `cscm_calibrate.esm.fit` samples the 13 emulator parameters together with
