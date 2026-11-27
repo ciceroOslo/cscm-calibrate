@@ -56,6 +56,27 @@ def test_add_entry_to_sample_distributions_skewnorm():
     assert arr.shape == (10**5,)
     # Should be skewed: mean > 0 for this config
     assert np.mean(arr) > 0
+    # 5th/50th/95th percentiles at central -1.645*lower, central, central +1.645*upper
+    q05, q50, q95 = np.percentile(arr, [5, 50, 95])
+    assert abs(q05 + 1.645) < 0.05
+    assert abs(q50) < 0.05
+    assert abs(q95 - 2 * 1.645) < 0.05
+
+
+def test_add_entry_to_sample_distributions_skewnorm_large_values():
+    # e.g. OHC in ZJ: the fit must converge far from the origin
+    samples = {}
+    constraint_config = {
+        "Varname_short": ["ohc"],
+        "lower_sigma": [50.0],
+        "upper_sigma": [70.0],
+        "Central Value": [500.0],
+    }
+    arr = add_entry_to_sample_distributions(samples, constraint_config, 0)["ohc"]
+    q05, q50, q95 = np.percentile(arr, [5, 50, 95])
+    assert abs(q05 - (500 - 1.645 * 50)) < 2
+    assert abs(q50 - 500) < 2
+    assert abs(q95 - (500 + 1.645 * 70)) < 2
 
 
 def test_calculate_sample_weights_basic():
