@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: cscm-calibrate
+          fetch-depth: 0  # setuptools-scm needs the tags for the version
       # the package expects ciceroscm checked out next to it (shared_functions.py)
       - uses: actions/checkout@v4
         with:
@@ -26,11 +27,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: pip install ./ciceroscm emcee pytest
+        run: pip install ./ciceroscm -e ./cscm-calibrate emcee pytest
       - name: Run tests
         working-directory: cscm-calibrate
-        env:
-          PYTHONPATH: src
         run: pytest -m "not slow" tests
 
   urls:
