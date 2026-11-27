@@ -4,16 +4,21 @@ Forcing-driven CICERO-SCM with per-ESM forcing scalings
 The thermal model (upwelling-diffusion, with ocean heat-uptake efficacy) is
 driven by the forcing components of :mod:`cscm_calibrate.esm.forcing`, each
 multiplied by a scaling. Only the thermal model runs per evaluation (about
-0.6 ms per model year).
+0.25 ms per model year), and only from 1850: forcing is zero before then.
+Tiers with the same historical forcing share one run to 2021.
 """
 
 from __future__ import annotations
 
+import copy
+
 import numpy as np
-from ciceroscm import CICEROSCM
+from ciceroscm.thermal_model.upwelling_diffusion_model import (
+    UpwellingDiffusionModel,
+)
 
 from cscm_calibrate.esm.forcing import NYEND, NYSTART, PIC_YEAR
-from cscm_calibrate.esm.targets import N_ABRUPT
+from cscm_calibrate.esm.targets import HIST_END, N_ABRUPT
 
 # name: (lower, upper) bounds of the uniform prior. Thermal ranges widen the
 # +epsilon prior (tests/test-data/config_file_no_deltaaero_wide_lambda.json)
@@ -38,39 +43,21 @@ SCALINGS = {
 PARAMS = {**THERMAL, **SCALINGS}
 FIXED = {"threstemp": 7.0, "lm": 40, "ldtime": 12, "delta_lambda_aero": 0.0}
 BASE = (1850, 1900)  # GSAT anomaly reference period for the scenarios
+I0 = PIC_YEAR - NYSTART  # index of 1850 in the forcing components
+NHIST = HIST_END - PIC_YEAR + 1  # years 1850-2021, shared by the tiers
+N_IDEAL = 150  # years of abrupt-4xCO2 and 1pctCO2 emulated
+COMPONENTS = ["co2", "solar", "volc_n", "volc_s"] + [
+    f"{k}_{h}" for k in ("ari", "aci", "other") for h in "ns"
+]
 
 
-class _ForcingRun:
-    """One CICEROSCM instance whose forcing is replaced before each run."""
-
-    def __init__(self, nystart: int, nyears: int):
-        self.nystart = nystart
-        self.model = CICEROSCM(
-            {
-                "forc_data": np.zeros(nyears),
-                "nystart": nystart,
-                "nyend": nystart + nyears - 1,
-                "emstart": nystart + nyears,
-                "sunvolc": 0,
-                "idtm": 24,
-                "scenname": "esm",
-            }
-        )
-        # ciceroscm reads forcing year by year through forc_set
-        self.model.forc_set = self._forc_set
-
-    def _forc_set(self, yr):
-        i = yr - self.nystart
-        return self.fn[i], self.fs[i], 0.5 * (self.fn[i] + self.fs[i]), 0.0
-
-    def run(self, pam, fn, fs, volc_n=None, volc_s=None):
-        self.fn, self.fs = fn, fs
-        m = self.model
-        if volc_n is not None:
-            m._volc_n_arr, m._volc_s_arr = volc_n, volc_s
-            m._volc_n_mean, m._volc_s_mean = volc_n.mean(axis=1), volc_s.mean(axis=1)
-        m._run({"results_as_dict": True}, pamset_udm={**pam, **FIXED})
-        return m.results
+def _integrate(udm, fn, fs, volc_n, volc_s):
+    """Step ``udm`` through the given years; returns GSAT and TOA flux."""
+    t, n = np.empty(len(fn)), np.empty(len(fn))
+    for i in range(len(fn)):
+        r = udm.energy_budget([fn[i], fs[i], volc_n[i], volc_s[i]])
+        t[i], n[i] = r["dtemp_air"], r["RIB"]
+    return t, n
 
 
 class Emulator:
@@ -81,26 +68,40 @@ class Emulator:
     """
 
     def __init__(self, comps: dict, tiers: list[str], idealised: bool = True):
+        for k in COMPONENTS:
+            for t in tiers:
+                if np.any(comps[f"{t}/{k}"][:I0]):
+                    msg = f"{t}/{k}: nonzero forcing before {PIC_YEAR}"
+                    raise ValueError(msg)
         self.c = comps
-        self.years = np.arange(NYSTART, NYEND + 1)
+        self.years = np.arange(PIC_YEAR, NYEND + 1)
         self.base = (self.years >= BASE[0]) & (self.years <= BASE[1])
-        self.scen = {t: _ForcingRun(NYSTART, len(self.years)) for t in tiers}
-        self.ideal = {}
-        if idealised:
-            for exp in ("abrupt-4xCO2", "1pctCO2"):
-                f = comps[f"{exp}/co2"]
-                self.ideal[exp] = (_ForcingRun(PIC_YEAR, len(f)), f)
+        self.tiers = list(tiers)
+        # the first tier with the same historical forcing runs the history
+        self.hist = {}
+        for t in tiers:
+            self.hist[t] = next(
+                (u for u in self.hist.values() if self._same_history(t, u)), t
+            )
+        self.ideal = idealised
+
+    def _same_history(self, a: str, b: str) -> bool:
+        n = I0 + NHIST
+        return all(
+            np.allclose(self.c[f"{a}/{k}"][:n], self.c[f"{b}/{k}"][:n], 0, 1e-12)
+            for k in COMPONENTS
+        )
 
     def forcing(self, tier: str, p: dict):
-        """Scaled NH and SH forcing (W m-2) and monthly volcanic forcing."""
+        """Scaled NH and SH forcing (W m-2) and monthly volcanic, from 1850."""
+        c = {k: self.c[f"{tier}/{k}"][I0:] for k in COMPONENTS}
         hemi = []
         for h in "ns":
-            f = p["s_co2"] * self.c[f"{tier}/co2"] + self.c[f"{tier}/solar"]
+            f = p["s_co2"] * c["co2"] + c["solar"]
             for k in ("ari", "aci", "other"):
-                f = f + p[f"s_{k}"] * self.c[f"{tier}/{k}_{h}"]
+                f = f + p[f"s_{k}"] * c[f"{k}_{h}"]
             hemi.append(f)
-        volc = [p["s_volc"] * self.c[f"{tier}/volc_{h}"] for h in "ns"]
-        return (*hemi, *volc)
+        return (*hemi, p["s_volc"] * c["volc_n"], p["s_volc"] * c["volc_s"])
 
     def run(self, p: dict, tiers=None, idealised: bool = True) -> dict:
         """
@@ -110,18 +111,27 @@ class Emulator:
         (T relative to 1850-1900) and the year since branching for the
         idealised runs (relative to piControl).
         """
-        pam = {k: float(p[k]) for k in THERMAL}
-        out = {}
-        for tier in self.scen if tiers is None else tiers:
-            r = self.scen[tier].run(pam, *self.forcing(tier, p))
-            t = r["dT_glob_air"]
+        pam = {**{k: float(p[k]) for k in THERMAL}, **FIXED}
+        out, hist = {}, {}
+        for tier in self.tiers if tiers is None else tiers:
+            f = self.forcing(tier, p)
+            h = self.hist[tier]
+            if h not in hist:
+                udm = UpwellingDiffusionModel(pam)
+                hist[h] = (udm, _integrate(udm, *(x[:NHIST] for x in f)))
+            udm, (th, nh) = hist[h]
+            # continue from a copy of the 2021 ocean state
+            tf, nf = _integrate(copy.deepcopy(udm), *(x[NHIST:] for x in f))
+            t = np.concatenate([th, tf])
             out[f"{tier}/T"] = (self.years, t - t[self.base].mean())
-            out[f"{tier}/N"] = (self.years, r["RIB_glob"].copy())
-        for exp, (e, f) in self.ideal.items() if idealised else ():
-            r = e.run(pam, p["s_co2"] * f, p["s_co2"] * f)
+            out[f"{tier}/N"] = (self.years, np.concatenate([nh, nf]))
+        no_volc = np.zeros((N_IDEAL, 1))
+        for exp in ("abrupt-4xCO2", "1pctCO2") if self.ideal and idealised else ():
+            f = p["s_co2"] * self.c[f"{exp}/co2"][:N_IDEAL]
             x = np.arange(1, len(f) + 1)
-            out[f"{exp}/T"] = (x, r["dT_glob_air"].copy())
-            out[f"{exp}/N"] = (x, r["RIB_glob"].copy())
+            udm = UpwellingDiffusionModel(pam)
+            tn = _integrate(udm, f, f, no_volc, no_volc)
+            out[f"{exp}/T"], out[f"{exp}/N"] = ((x, y) for y in tn)
         return out
 
     def diagnostics(self, p: dict) -> dict:
@@ -134,7 +144,7 @@ class Emulator:
         o = self.run(p, tiers=[])
         t4x, n4x = (o[f"abrupt-4xCO2/{v}"][1][:N_ABRUPT] for v in "TN")
         slope, f4x = np.polyfit(t4x, n4x, 1)
-        tier, i = next(iter(self.scen)), 2019 - NYSTART
+        tier, i = self.tiers[0], 2019 - NYSTART
         aer = sum(
             p[f"s_{k}"]
             * 0.5
