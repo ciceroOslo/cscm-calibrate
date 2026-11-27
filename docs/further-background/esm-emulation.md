@@ -16,9 +16,8 @@ are added as the corresponding code is merged.
 
 ## Targets
 
-Inputs are the global-mean products of the
-[scenariomip-esm-figures](https://github.com/benmsanderson/scenariomip-esm-figures)
-repository (`data/`), pinned by commit in each run. For one ESM,
+Inputs are the global-mean products of the `scenariomip-esm-figures`
+repository (`data/`; private for now), pinned by commit in each run. For one ESM,
 `cscm_calibrate.esm.targets` returns one block per time series:
 
 | Block | Years | Variables |
