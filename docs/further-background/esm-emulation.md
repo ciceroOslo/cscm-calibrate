@@ -37,3 +37,23 @@ autocorrelation of single-member noise, divided by the square root of the
 number of members. It is estimated from the linearly detrended piControl
 where available (T, N), otherwise from deviations of members about the
 ensemble mean (at least three members), otherwise a fixed floor.
+
+## SCM forcing
+
+The SCM is driven by its own forcing for each ScenarioMIP tier
+(`cscm_calibrate.esm.forcing`), split into components that each ESM fit
+scales separately: CO2, aerosol-radiation and aerosol-cloud interaction,
+all other anthropogenic forcing, volcanic and solar. Aerosol and "other"
+forcing are kept per hemisphere. Aerosol forcing is linear in its
+coefficients, so the two aerosol terms come from re-running with those
+coefficients set to zero.
+
+Runs start from rest in 1850, as an ESM branching from piControl does.
+Before 1850, concentrations, non-CO2 emissions and land use stay at their
+1850 values, CO2 emissions and volcanic forcing are zero, and solar is
+relative to its 1850-1873 mean. Forcing is relative to 1850. Starting the
+SCM in 1750 instead would carry a warming and a carbon-cycle imbalance into
+1850 that the ESMs do not have.
+
+The idealised runs use the CO2 ERF of the abrupt-4xCO2 and 1pctCO2
+concentrations, with all other forcing at pre-industrial.
