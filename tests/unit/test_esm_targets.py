@@ -66,6 +66,13 @@ def test_scenario_blocks_split_history_and_tiers(data_dir):
     assert b["H/T"].y[-1] - b["VL/T"].y[-1] == pytest.approx(0.04 * 79, abs=0.2)
 
 
+def test_missing_variable_is_skipped(data_dir):
+    toa = pd.read_csv(data_dir / "toa_imbalance.csv")
+    toa.assign(net_toa_Wm2=np.nan).to_csv(data_dir / "toa_imbalance.csv", index=False)
+    b = scenario_blocks(data_dir, SRC, "concentration")
+    assert set(b) == {f"{t}/T" for t in ("hist", "H", "VL")}
+
+
 def test_noise_from_spread_or_control(data_dir):
     b = scenario_blocks(data_dir, SRC, "concentration")
     # piControl has no tas: T noise comes from the member spread
