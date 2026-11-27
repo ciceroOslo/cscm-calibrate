@@ -104,8 +104,14 @@ def add_entry_to_sample_distributions(samples, constraint_config, varnum):
             loc=central, scale=lower_sigma, size=10**5, random_state=43178
         )
         return samples
+    # lower/upper_sigma are one-sigma widths, so the 5th/95th percentiles sit
+    # NINETY_TO_ONESIGMA (1.645) sigmas from the central value
+    q05 = central - NINETY_TO_ONESIGMA * lower_sigma
+    q95 = central + NINETY_TO_ONESIGMA * upper_sigma
     var_params = scipy.optimize.root(
-        opt, [1, 1, 1], args=(central - lower_sigma, central, central + upper_sigma)
+        opt,
+        [1, central, NINETY_TO_ONESIGMA * (lower_sigma + upper_sigma) / 2],
+        args=(q05, central, q95),
     ).x
     samples[name] = scipy.stats.skewnorm.rvs(
         var_params[0],
