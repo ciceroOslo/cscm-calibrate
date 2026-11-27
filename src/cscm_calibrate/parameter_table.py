@@ -300,9 +300,11 @@ def plot_parameter_histograms(
 
     fgs_list = []
     axs_list = []
+    rows_list = []
     for i in range(int(file_num)):
         start_row = i * max_rows_per_file
         end_row = start_row + max_rows_per_file
+        print(nrows)
         fig, axs = plt.subplots(
             nrows=min(max_rows_per_file, nrows - start_row),
             ncols=ncols,
@@ -311,13 +313,16 @@ def plot_parameter_histograms(
         )
         fgs_list.append(fig)
         axs_list.append(axs)
+        rows_list.append(min(max_rows_per_file, nrows - start_row))
     for axnum, var in enumerate(variables):
         print(f"nrows: {nrows}, max_rows_per_file: {max_rows_per_file}, ncols: {ncols}, axnum: {axnum}")
         fignum = axnum // (ncols*max_rows_per_file)
+        rows_now = rows_list[fignum]
         axnum_this_fig = axnum - fignum * max_rows_per_file * ncols
         print(f"Fig. {fignum}, axnum_this_fig: {axnum_this_fig}, ax shape: {axs_list[fignum].shape}")
-        print(f"Placing on row {axnum_this_fig % max_rows_per_file}, column {axnum_this_fig // max_rows_per_file}")
-        ax = axs_list[fignum][axnum_this_fig % max_rows_per_file][axnum_this_fig // max_rows_per_file]
+        print(f"Placing on row {axnum_this_fig % rows_now}, column {axnum_this_fig // rows_now}")
+        ax = axs_list[fignum][axnum_this_fig % rows_now][axnum_this_fig // rows_now]
+
         if var in priors:
             ax.axvspan(*priors[var], color="grey", alpha=0.2, label="Prior range")
         for samples_df, label in zip(samples, labels):

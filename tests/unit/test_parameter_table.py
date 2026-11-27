@@ -70,7 +70,7 @@ def test_posterior_percentile_ranges(samples_file):
     assert ranges["missing"] == ""
 
 
-@TABLE_OUT_OF_DATE
+#@TABLE_OUT_OF_DATE
 def test_make_parameter_table(samples_file, tmp_path):
     other = _write_samples(tmp_path / "other.json", [(1.0, 0.5, 0.3)] * 10)
     table = pt.make_parameter_table(
@@ -81,14 +81,12 @@ def test_make_parameter_table(samples_file, tmp_path):
     )
     assert list(table.columns) == [
         "Variable name",
-        "Description",
         "Prior range",
         "Posterior 5-95% (A)",
         "Posterior 5-95% (B)",
     ]
     # Prior numbers are kept exactly as written in the json
     assert list(table["Prior range"]) == ["0.4-2.16", "-0.010--0.00", "0-7"]
-    assert list(table["Description"]) == ["", "", ""]
     assert table["Posterior 5-95% (B)"].iloc[0] == "1-1"
     assert table["Posterior 5-95% (A)"].iloc[1] == ""
 
@@ -99,25 +97,21 @@ def test_make_parameter_table_default_labels(samples_file):
     assert len(table) == len(pt.read_prior_ranges(CONFIG))
 
 
-@TABLE_OUT_OF_DATE
 def test_write_csv_and_latex(samples_file, tmp_path):
     table = pt.make_parameter_table(
         CONFIG, samples_paths=[samples_file], variables=["rb_coef0"]
     )
     pt.write_table_csv(table, tmp_path / "table.csv")
     pt.write_table_latex(table, tmp_path / "table.tex", caption="Test", label="tab:x")
-
     assert (tmp_path / "table.csv").read_text().startswith(
-        "Variable name,Description,Prior range"
+        "Variable name,Prior range"
     )
     latex = (tmp_path / "table.tex").read_text()
     assert r"rb\_coef0" in latex
     assert r"5-95\%" in latex
     assert r"\label{tab:x}" in latex
-    assert r"\begin{tabular}{llll}" in latex
+    assert r"\begin{tabular}{lll}" in latex
 
-
-@TABLE_OUT_OF_DATE
 def test_plot_parameter_histograms(samples_file, tmp_path):
     outfile = tmp_path / "hist.png"
     fig = pt.plot_parameter_histograms(
