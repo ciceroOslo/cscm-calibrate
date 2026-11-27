@@ -57,3 +57,22 @@ SCM in 1750 instead would carry a warming and a carbon-cycle imbalance into
 
 The idealised runs use the CO2 ERF of the abrupt-4xCO2 and 1pctCO2
 concentrations, with all other forcing at pre-industrial.
+
+## Emulator
+
+`cscm_calibrate.esm.emulator` runs the CICERO-SCM thermal model (the
++epsilon configuration: upwelling-diffusion ocean with ocean heat-uptake
+efficacy and no aerosol-dependent feedback) on the scaled forcing
+components. An ESM is described by 13 parameters:
+
+- eight thermal parameters (`lambda`, `rlamdo`, `akapa`, `cpi`, `W`,
+  `beto`, `mixed`, `ocean_efficacy`), with uniform priors that widen the
+  +epsilon prior where pilot fits reached its bounds;
+- five forcing scalings (`s_co2`, `s_ari`, `s_aci`, `s_other`, `s_volc`),
+  which absorb differences between the ESM's effective forcing and the
+  SCM's, such as its CO2 forcing per doubling or its aerosol strength.
+
+The emulator returns GSAT (relative to 1850-1900) and net TOA flux for each
+scenario, and for abrupt-4xCO2 and 1pctCO2 driven by scaled CO2 forcing
+alone. ECS and TCR are diagnosed as for the ESMs: a Gregory regression over
+abrupt-4xCO2 years 1-150, and 1pctCO2 warming over years 61-80.
