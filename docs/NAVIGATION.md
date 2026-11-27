@@ -11,6 +11,7 @@ See https://oprypin.github.io/mkdocs-literate-nav/
 - [Tutorials](tutorials/index.md)
 - [Further background](further-background/index.md)
     - [Dependency pinning and testing](further-background/dependency-pinning-and-testing.md)
+    - [Calibration to individual ESMs](further-background/esm-emulation.md)
 - [Development](development.md)
 - [API reference](api/cscm_calibrate/)
 - [Changelog](changelog.md)
