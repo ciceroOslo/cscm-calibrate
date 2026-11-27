@@ -178,7 +178,11 @@ research workflows rather than a stable command-line interface.
 - `plot_carbon_cycle_from_dumps.py` creates carbon-cycle comparison plots from
   three output dumps, optionally overlaying observations and CMIP6 data.
 - `plot_diamond_scenarios.py` groups Diamond scenario output by model, plots
-  temperature ensembles, and saves quantile and median-member tables.
+  temperature ensembles, and saves quantile and median-member tables. It also
+  overlays the NDC LTT scenarios across models with median lines and 5th–95th
+  percentile uncertainty plumes in `all_models_*_timeseries_w_infilling_ndcc.png`.
+  The `make_timeseries_for_all_models` helper includes every scenario when called
+  with `just_ndcc=False`.
 - `plot_flat10_vs_cumulative_emissions.py` plots flat-10 output variables
   against cumulative CO2 emissions.
 - `plot_ladder_figures.py` creates the original three structural-ladder
@@ -213,7 +217,10 @@ research workflows rather than a stable command-line interface.
   selected sample indices; it is an exploratory inspection tool.
 - `make_latex_parameter_table_from_json.py` converts prior and posterior
   parameter JSON files into CSV and LaTex tables, with optional histogram
-  panels.
+  panels and per-sample scatter plots of `lambda` against `delta_lambda_aero`.
+  Scatter filenames include the sample label with whitespace replaced by
+  underscores. Files missing either parameter are skipped with a warning.
+  Use `--no-scatter` to disable scatter plots independently of `--no-hist`.
 - `make_rcmip_meta_files.py` generates the RCMIP model and comments metadata
   CSVs from the protocol workbook.
 - `reformat_csvs_for_rcmip.py` converts raw output CSVs to RCMIP-oriented

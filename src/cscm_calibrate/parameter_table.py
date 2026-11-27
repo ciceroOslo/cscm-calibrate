@@ -8,6 +8,8 @@ calibration config file, posterior samples from ``draw_samples_*.json`` files.
 from __future__ import annotations
 
 import json
+import re
+import warnings
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -249,6 +251,48 @@ def write_table_latex(table, path, caption=None, label=None):
     """Write the parameter table to a LaTeX file."""
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(table_to_latex(table, caption=caption, label=label))
+
+
+def plot_parameter_scatter_per_sample(samples_paths, outdir, labels=None):
+    """Save lambda versus delta_lambda_aero scatter plots, one per sample file.
+
+    Each point represents a posterior member. Filenames include the sample
+    label with every whitespace character replaced by an underscore. Files
+    missing either parameter are skipped with a warning.
+
+    Returns a list of saved figure paths.
+    """
+    samples_paths = list(samples_paths)
+    labels = _default_labels(samples_paths, labels)
+    outdir = Path(outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+    output_paths = []
+    for path, label in zip(samples_paths, labels):
+        samples = read_posterior_samples(path)
+        required = ["delta_lambda_aero", "lambda"]
+        missing = [name for name in required if name not in samples.columns]
+        if missing:
+            warnings.warn(
+                f"Skipping scatter plot for {label!r} ({path}): "
+                f"missing parameters {', '.join(missing)}",
+                UserWarning,
+                stacklevel=2,
+            )
+            continue
+        fig, ax = plt.subplots()
+        try:
+            ax.scatter(samples["delta_lambda_aero"], samples["lambda"], alpha=0.5)
+            ax.set_xlabel("delta_lambda_aero")
+            ax.set_ylabel("lambda")
+            ax.set_title(label)
+            fig.tight_layout()
+            filename_label = re.sub(r"\s", "_", label)
+            outfile = outdir / f"lambda_vs_delta_lambda_aero_{filename_label}.png"
+            fig.savefig(outfile)
+            output_paths.append(outfile)
+        finally:
+            plt.close(fig)
+    return output_paths
 
 
 def plot_parameter_histograms(

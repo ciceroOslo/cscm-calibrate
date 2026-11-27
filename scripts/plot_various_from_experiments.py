@@ -21,7 +21,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 
 # ---------------------------------------------------------------------------
 # Paths & constants
@@ -163,7 +162,7 @@ def percentile_band(arr: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray
 
 def plot_band(ax, years, p05, p50, p95, *, color: str, label: str) -> None:
     ax.fill_between(years, p05, p95, color=color, alpha=0.25, linewidth=0)
-    ax.plot(years, p50, color=color, lw=1.5, label=f"{label} (median)")
+    ax.plot(years, p50, color=color, lw=1.5, label=f"{label}")
 
 
 # ---------------------------------------------------------------------------
@@ -417,6 +416,9 @@ def flat10_key_metrics(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def flat10_pairplot_histograms(metrics: pd.DataFrame, suffix: str = "") -> None:
+    # Imported lazily so the module's shared helpers stay usable without seaborn.
+    import seaborn as sns
+
     snsplot = sns.pairplot(
         metrics.drop(labels=["zec200", "zec190"], axis=1),
         corner=True,

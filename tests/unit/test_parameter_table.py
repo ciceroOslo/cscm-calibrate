@@ -127,3 +127,58 @@ def test_plot_parameter_histograms(samples_file, tmp_path):
     legend_labels = [text.get_text() for text in fig.legends[0].get_texts()]
     assert legend_labels == ["Prior range", "A", "B"]
     assert np.isclose(len(visible[0].patches), 1 + 2 * 30)
+
+
+def test_plot_parameter_scatter_per_sample(tmp_path, monkeypatch):
+    path = tmp_path / "samples.json"
+    path.write_text(json.dumps([
+        {"pamset_udm": {"lambda": 0.5, "delta_lambda_aero": -0.2}},
+        {"pamset_udm": {"lambda": 1.2, "delta_lambda_aero": 0.8}},
+    ]))
+    saved_figures = []
+    original_savefig = matplotlib.figure.Figure.savefig
+
+    def capture_savefig(fig, *args, **kwargs):
+        saved_figures.append(fig)
+        return original_savefig(fig, *args, **kwargs)
+
+    monkeypatch.setattr(matplotlib.figure.Figure, "savefig", capture_savefig)
+    paths = pt.plot_parameter_scatter_per_sample(
+        [path, path], tmp_path / "plots", labels=["A B\tC\nD", "Second"]
+    )
+    assert [path.name for path in paths] == [
+        "lambda_vs_delta_lambda_aero_A_B_C_D.png",
+        "lambda_vs_delta_lambda_aero_Second.png",
+    ]
+    assert all(path.stat().st_size > 0 for path in paths)
+    for fig, label in zip(saved_figures, ["A B\tC\nD", "Second"]):
+        ax = fig.axes[0]
+        np.testing.assert_allclose(
+            ax.collections[0].get_offsets(), [[-0.2, 0.5], [0.8, 1.2]]
+        )
+        assert ax.get_xlabel() == "delta_lambda_aero"
+        assert ax.get_ylabel() == "lambda"
+        assert ax.get_title() == label
+        assert not pt.plt.fignum_exists(fig.number)
+
+
+def test_plot_parameter_scatter_default_label(tmp_path):
+    path = tmp_path / "sample label.json"
+    path.write_text(json.dumps([
+        {"pamset_udm": {"lambda": 0.5, "delta_lambda_aero": 0.2}},
+    ]))
+    paths = pt.plot_parameter_scatter_per_sample([path], tmp_path)
+    assert paths == [tmp_path / "lambda_vs_delta_lambda_aero_sample_label.png"]
+    assert paths[0].exists()
+
+
+def test_plot_parameter_scatter_missing_parameters(samples_file, tmp_path):
+    with pytest.warns(UserWarning, match="Skipping.*missing parameters delta_lambda_aero"):
+        paths = pt.plot_parameter_scatter_per_sample([samples_file], tmp_path)
+    assert paths == []
+    assert not list(tmp_path.glob("*.png"))
+
+
+def test_plot_parameter_scatter_label_count(samples_file, tmp_path):
+    with pytest.raises(ValueError, match="labels must have the same length"):
+        pt.plot_parameter_scatter_per_sample([samples_file], tmp_path, labels=[])

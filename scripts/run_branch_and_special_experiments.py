@@ -25,6 +25,8 @@ EXCEEDANCE_THRESHOLDS_PG_C = [750, 1000, 2000]
 
 OUTPATH_MAIN = "out_file_dump"
 
+esm_hist_ext_experiments = ["esm-hist-ext", "esm-hist-ext-CO2pulse", "esm-hist-ext-cdrpulse", ]
+
 def _find_input_file() -> Path:
 	"""Locate the requested input CSV, preferring the rcmip subfolder."""
 	script_dir = Path(__file__).resolve().parent
@@ -131,6 +133,7 @@ def get_threshold_emissions_year_values(run_group_df: pd.DataFrame, threshold: f
 	#sys.exit(4)
 	return tot_values
 
+
 def get_variable_data_as_timeseries(run_group_df: pd.DataFrame, target_variable: str) -> pd.Series:
 	"""
 	From one grouped run dataframe, return year-column values for:
@@ -178,6 +181,7 @@ def process_runs_from_json(
 		save_data_dict[f"esm-1pct-brch-{threshold}PgC"] = []
 	save_data_dict["1pctCO2-bgc"] = []
 	save_data_dict["1pctCO2-rad"] = []
+	
 	years_1pct = _get_year_columns(df_with_threshold_rows)
 	for run_id, run_df in df_with_threshold_rows.groupby("run_id", sort=False):
 		entry = get_draw_samples_entry(json_file_path, run_id)
@@ -291,6 +295,17 @@ def get_default_inputs() -> dict:
 	print(arg_dict)
 	scendata = define_scendata_for_scm(INPUT_DIR, **arg_dict)
 	return scendata
+
+def get_default_inputs_histext() -> dict:
+	scenname = "hist-ext"
+	scen_name_strip = "hist-ext"
+	run_type = "non_idealised"
+	arg_dict = make_scenariodata_argdict(run_type, scenname, scen_name_strip, yend=2500)
+	print(arg_dict)
+	scendata = define_scendata_for_scm(INPUT_DIR, **arg_dict)
+	return scendata
+
+def process_histext_experiments() -> dict:
 
 
 

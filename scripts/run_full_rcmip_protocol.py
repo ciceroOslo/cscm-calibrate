@@ -198,7 +198,7 @@ def make_scenariodata_argdict(run_type, scen_name, scen_name_strip, yend, includ
         print("Hello")
         emistart = 1850
     else:
-        emistart = yend
+        emistart = yend + 1
     arg_dict = {
         "gaspam" : gases_df,
         "nyend": yend,
@@ -283,12 +283,16 @@ def make_scenariodata_argdict(run_type, scen_name, scen_name_strip, yend, includ
     elif scen_name_strip in special_mapping and os.path.exists(os.path.join(input_dir, f"{special_mapping[scen_name_strip]}_conc_{gases_ep}")):
         print("Went and got correct concentrations")
         arg_dict["df_conc"] = f"{special_mapping[scen_name_strip]}_conc_{gases_ep}"
+    elif scen_name.startswith("esm-") and (scen_name.endswith("CF") or scen_name.endswith("CTAP")):
+        arg_dict["df_conc"] = f"scen7-{'-'.join(scen_name_strip.split('-')[:-1])}_conc_{gases_ep}"
     elif scen_name.startswith("esm-") and run_type == "idealised":
         arg_dict["df_conc"] = conc_piControl
     elif scen_name.startswith("methanemip") and os.path.exists(os.path.join(input_dir, f"ssp245_conc_{gases_ep}")):
         arg_dict["df_conc"] = f"ssp245_conc_{gases_ep}"
+
     elif not scen_name.startswith("esm-allGHG"):
         print(f"Concentration file missing for scenario {scen_name}")
+    
         sys.exit(4)
     # Need to set this to correct version
     else:
@@ -367,7 +371,7 @@ def dump_results_to_netcdf(results, scenario_name):
 if __name__ == "__main__":
     #input_dir = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata"
     #protocol_file = os.path.join("..", "..","rcmip-phase-3/RCMIP3_input_datafiles/", "rcmip_phase3_protocol_v1.1.0.xlsx")
-    protocol_file = os.path.join(input_dir, "rcmip_phase3_protocol_v1.1.6.xlsx")
+    protocol_file = os.path.join(input_dir, "rcmip_phase3_protocol_v3.0.1.xlsx")
     variables_all, variables_non_idealised, variables_non_idealised_emi, variables_non_idealised_conc =  read_output_variables_from_protocol(protocol_file)
     print(variables_all)
     print(variables_non_idealised_emi)
@@ -386,15 +390,20 @@ if __name__ == "__main__":
     skip = []
     skip = ["esm-1pct-brch-1000PgC", "esm-1pct-brch-2000PgC", "esm-1pct-brch-750PgC"]
     split_experiment_dfs = load_and_process_protocol(protocol_file)
-    #print(split_experiment_dfs)
-    #sys.exit(4)
+    print(split_experiment_dfs)
+    print(split_experiment_dfs.keys())
+
+
     for key1 in split_experiment_dfs:
+        if key1 == "idealised":
+            continue
+        print(split_experiment_dfs[key1].keys())
         for key2 in split_experiment_dfs[key1]:
             print(f"{key1} - {key2} : {split_experiment_dfs[key1][key2].shape}")
             print("---------------------------------------------------------")
-            #sys.exit(4)
             for index,row in split_experiment_dfs[key1][key2].iterrows():
                 print(row["Scenario"])
+
                 outpath = f"{outpath_main}/{row['Scenario']}_rcmip_{CONFIG_NAME}.csv"
                 outpath_processed = f"{outpath_main}/{row['Scenario']}_rcmip_ciceroscm_20260401.csv"
                 if os.path.exists(outpath) or os.path.exists(outpath_processed):
@@ -410,7 +419,9 @@ if __name__ == "__main__":
                     continue
                 print(row["Scenario"])
                 print(special_scen_skip)
-                if row["Scenario"] in special_scen_skip:
+                print(dont_run)
+                #sys.exit(4)
+                if row["Scenario"] in special_scen_skip or row["Scenario"].startswith("esm-hist-ext"):
                     print(f"Skipping special scenario {row['Scenario']}")
                     continue
                 if dont_run:
