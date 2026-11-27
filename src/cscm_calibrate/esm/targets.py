@@ -97,6 +97,8 @@ def scenario_blocks(data_dir: Path, source: str, driver: str) -> dict[str, Block
     blocks = {}
     for var, (name, col, floor) in variables.items():
         df = _read(data_dir, name, source, driver).dropna(subset=[col])
+        if df.empty:  # variable not available for this ESM
+            continue
         df = df.drop_duplicates(["tier", "variant", "year"])
         fut = df[(df.year > HIST_END) & (df.tier != "hist")]
         sigma, rho = (
