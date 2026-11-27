@@ -14,10 +14,10 @@ from cscm_calibrate.set_up_calibration_configs_and_run import define_scendata_fo
 
 
 INPUT_DIR = "/div/no-backup-nac/users/masan/GRAFITE/temp_indata/"
-CONFIG_NAME = "draw_samples_pattern_pdo_ar7_500"
+CONFIG_NAME = "draw_samples_ar7_v1_500"
 CONFIG_PATH = Path(f"../draw_samples_archive/{CONFIG_NAME}.json")
 
-OUTPATH_MAIN = "out_file_dump_pdo_ar7"
+OUTPATH_MAIN = "out_file_dump_ar7_v1"
 
 distrorun = DistributionRun(None, json_file_name=CONFIG_PATH)
 
@@ -54,9 +54,11 @@ def take_scenario_row_define_scendata_and_run(experiment, forc_type, yend, ystar
     else:
         run_type = "non-idealised"
         variables = variables_list[2] + ["Anomalous Radiation","Dynamic Feedback Lambda"]
+    variables = variables + ["Effective Radiative Forcing|Greenhouse Gases"]
     if scen_name_strip.startswith("scen7") and scen_name_strip.endswith("C"):
         scen_name_strip = scen_name_strip[:-1]
     arg_dict = make_scenariodata_argdict(run_type, scen_name, scen_name_strip, yend)
+
     if forc_type == "nonatforc":
         arg_dict["sunvolc"] = 0
     # print(arg_dict.keys())
@@ -69,6 +71,11 @@ def take_scenario_row_define_scendata_and_run(experiment, forc_type, yend, ystar
     if run_type == "non-idealised" and include_pdo:
         pdo_timeseries = os.path.join(INPUT_DIR, "pdo_ts_noaa.dat")
         arg_dict["pdo_timeseries"] = pdo_timeseries
+    if run_type == "non-idealised":
+        scen_name_end = scen_name.split("esm-allGHG-")[-1]
+        if scen_name_end == "hist":
+            scen_name_end = "historical"
+        arg_dict["rf_luc_file"] = f"LUCalbedo_RCMIP_{scen_name_end}_AR7.txt"
 
     scendata = define_scendata_for_scm(INPUT_DIR,**arg_dict)
     scendata[0]["scenname"] = scen_name
@@ -97,11 +104,11 @@ def take_scenario_row_define_scendata_and_run(experiment, forc_type, yend, ystar
     #     return pd.DataFrame()
 
 
-    #print(variables)
-    # print(scen_name)
+    # print(variables)
+    print(scen_name)
     # #print(row["Type"])
     # print(scendata[0]["emstart"])
-    # print(scendata)
+    print(scendata)
     #sys.exit(4)
     #try:
     results = distrorun.run_over_distribution(
@@ -132,12 +139,12 @@ def main():
         if os.path.exists(outpath_natforc):
             print(f"Output file {outpath_natforc} already exists, skipping run")
             continue
-        results = take_scenario_row_define_scendata_and_run(experiment, forc_type="natforc", ystart=duration[0], yend=duration[1], include_pdo = True)
+        results = take_scenario_row_define_scendata_and_run(experiment, forc_type="natforc", ystart=duration[0], yend=duration[1], include_pdo = False)
         if not results.empty:
             results.to_csv(outpath_natforc)
         del results
         if experiment.startswith("esm-allGHG"):
-            results = take_scenario_row_define_scendata_and_run(experiment, forc_type="nonatforc", ystart=duration[0], yend=duration[1], include_pdo = True)
+            results = take_scenario_row_define_scendata_and_run(experiment, forc_type="nonatforc", ystart=duration[0], yend=duration[1], include_pdo = False)
             if not results.empty:
                 results.to_csv(outpath_noforc)
             del results

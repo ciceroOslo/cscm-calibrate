@@ -23,7 +23,7 @@ OUTPATH_MAIN = "out_file_dump_nopattern_noefficacy"
 YSTART = 1750
 EMSTART = 1850
 MAX_YEND = 2500
-DIAMOND_FILE_SUFFIX = "_em_gases_vupdate_2024_WMO_added_new_em_DiamondWP-scenarios.txt"
+DIAMOND_FILE_SUFFIX = "_infilled_em_gases_vupdate_2024_WMO_added_new_em_DIAMOND.txt"
 CONCENTRATIONS_FILE = "ssp245_conc_gases_vupdate_2024_WMO_added_new.txt"
 
 distrorun = DistributionRun(None, json_file_name=CONFIG_PATH)
@@ -106,10 +106,10 @@ def main():
             continue
 
         experiment = make_experiment_name(emissions_file)
-        outpath = f"{OUTPATH_MAIN}/{experiment}_idealised_{CONFIG_NAME}.csv"
-        # if os.path.exists(outpath):
-        #     print(f"Output file {outpath} already exists, skipping run")
-        #     continue
+        outpath = f"{OUTPATH_MAIN}/{experiment}_infilled_DIAMOND_{CONFIG_NAME}.csv"
+        if os.path.exists(outpath):
+            print(f"Output file {outpath} already exists, skipping run")
+            continue
         yend = get_emissions_end_year(emissions_file)
         print("Ready to run experiment:", experiment)
         print("Emissions file:", emissions_file)

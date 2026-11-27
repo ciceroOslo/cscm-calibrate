@@ -1,5 +1,5 @@
 """
-Make prior/posterior parameter tables (csv and LaTeX) and histogram panels.
+Make parameter tables, histogram panels, and per-sample parameter scatter plots.
 
 All arguments are optional, defaults are set in the DEFAULT_* constants below.
 """
@@ -16,6 +16,7 @@ matplotlib.use("Agg")
 from cscm_calibrate.parameter_table import (  # noqa: E402
     make_parameter_table,
     plot_parameter_histograms,
+    plot_parameter_scatter_per_sample,
     write_table_csv,
     write_table_latex,
 )
@@ -58,13 +59,14 @@ def parse_args(argv=None):
     parser.add_argument("--outdir", type=Path, default=DEFAULT_OUTDIR)
     parser.add_argument("--fname-stub", default=DEFAULT_FNAME_STUB)
     parser.add_argument("--no-hist", action="store_true")
+    parser.add_argument("--no-scatter", action="store_true")
     parser.add_argument("--bins", type=int, default=DEFAULT_BINS)
     parser.add_argument("--ncols", type=int, default=DEFAULT_NCOLS)
     return parser.parse_args(argv)
 
 
 def main(argv=None):
-    """Write the parameter table and histograms."""
+    """Write parameter tables, histograms, and per-sample scatter plots."""
     args = parse_args(argv)
     args.outdir.mkdir(parents=True, exist_ok=True)
     
@@ -89,6 +91,10 @@ def main(argv=None):
             ncols=args.ncols,
             bins=args.bins,
             outfile=args.outdir / f"{args.fname_stub}.png",
+        )
+    if not args.no_scatter:
+        plot_parameter_scatter_per_sample(
+            args.samples, args.outdir, labels=args.labels
         )
     print(f"Output written to {args.outdir}")
 
