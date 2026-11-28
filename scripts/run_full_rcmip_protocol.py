@@ -159,7 +159,9 @@ conc_piControl = get_df_from_input_w_data_handler(
     f"piControl_conc_{gases_ep}", 
     nyend=yendmax, nystart=ystart, case_type="conc"
     )
-lucalbedo_piControl = os.path.join(input_dir,"LUCalbedo_RCMIP_constant_zero_RCMIP3.txt") 
+lucalbedo_piControl = os.path.join(input_dir,"LUCalbedo_RCMIP_constant_zero_RCMIP3.txt")
+# Last year of LUCalbedo_RCMIP_historical_RCMIP3.txt; it is zero afterwards
+HIST_LUC_END = 2022
 
 # Not system independent, can only be run on amoc or qbo
 # If running on different system, this must be changed
@@ -243,13 +245,16 @@ def make_scenariodata_argdict(run_type, scen_name, scen_name_strip, yend, includ
             arg_dict["rf_luc_file"] = f"LUCalbedo_RCMIP_{scen_name_strip.split('-')[0]}_RCMIP3.txt"
         elif scen_name.startswith("methanemip") and os.path.exists(os.path.join(input_dir, f"LUCalbedo_RCMIP_ssp245_RCMIP3.txt")):
             arg_dict["rf_luc_file"] = f"LUCalbedo_RCMIP_ssp245_RCMIP3.txt"
-        elif scen_name == "esm-allGHG-scen7-H-CH4L_rcmip_draw_samples_500.csv":
+        elif scen_name == "esm-allGHG-scen7-H-CH4L":
             arg_dict["rf_luc_file"] = "LUCalbedo_RCMIP_scen7-H_RCMIP3.txt"
-        elif scen_name == "esm-allGHG-scen7-L-CH4H_rcmip_draw_samples_500.csv":
+        elif scen_name == "esm-allGHG-scen7-L-CH4H":
             arg_dict["rf_luc_file"] = "LUCalbedo_RCMIP_scen7-L_RCMIP3.txt"
-        else:
-            # TODO check if this is appropriate in all cases
+        elif yend <= HIST_LUC_END:
             arg_dict["rf_luc_file"] = "LUCalbedo_RCMIP_historical_RCMIP3.txt"
+        else:
+            # The historical file is zero after HIST_LUC_END: don't use it for
+            # scenarios, make the missing file (make_scen7_landuse_files.py)
+            raise FileNotFoundError(f"No land-use albedo file for {scen_name}")
     
     # Pick correct emissions file:
     if os.path.exists(os.path.join(input_dir, f"{scen_name}_em_{gases_ep}")):
